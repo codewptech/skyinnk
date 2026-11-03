@@ -1,0 +1,132 @@
+name: Production CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  deploy:
+    name: Deploy exact commit
+    if: github.event_name == 'push'
+    needs: ci
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    environment:
+      name: production
+      url: https://www.skillor.in
+
+    concurrency:
+      group: skillor-production
+      cancel-in-progress: false
+
+    steps:
+      - name: Connect to Webphin tailnet
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+          ping: webphin-production-shared-vps1
+
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+
+          install -d -m 700 ~/.ssh
+
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/skillor_deploy
+          chmod 600 ~/.ssh/skillor_deploy
+
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy exact commit
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          ssh \
+            -o BatchMode=yes \
+            -o IdentityAgent=none \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            -o ConnectTimeout=10 \
+            -i "$HOME/.ssh/skillor_deploy" \
+            "$VPS_USER@$VPS_HOST" \
+            bash -s -- "$DEPLOY_SHA" <<'REMOTE'
+
+          set -euo pipefail
+
+          DEPLOY_SHA="$1"
+
+          cd /srv/webphin/apps/skillor
+
+          echo "Fetching main..."
+          git fetch --prune origin main
+
+          CURRENT_MAIN="$(git rev-parse origin/main)"
+
+          if [ "$DEPLOY_SHA" != "$CURRENT_MAIN" ]; then
+            echo "Skipping stale deployment."
+            echo "Workflow SHA: $DEPLOY_SHA"
+            echo "Current main: $CURRENT_MAIN"
+            exit 0
+          fi
+
+          echo "Deploying $DEPLOY_SHA"
+
+          git cat-file -e "${DEPLOY_SHA}^{commit}"
+          git reset --hard "$DEPLOY_SHA"
+
+          docker compose build
+
+          if ! docker compose up -d --wait --wait-timeout 120; then
+            echo "Deployment failed health check."
+            docker compose ps
+            docker compose logs --tail=100 skillor
+            exit 1
+          fi
+
+          echo "Production deployment healthy."
+          docker compose ps
+
+          REMOTE
