@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
       - name: Build
         run: npm run build
 
@@ -45,10 +48,10 @@ jobs:
 
     environment:
       name: production
-      url: https://www.skillor.in
+      url: https://www.skyinnk.in
 
     concurrency:
-      group: skillor-production
+      group: skyinnk-production
       cancel-in-progress: false
 
     steps:
@@ -69,8 +72,8 @@ jobs:
 
           install -d -m 700 ~/.ssh
 
-          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/skillor_deploy
-          chmod 600 ~/.ssh/skillor_deploy
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/webphin_deploy
+          chmod 600 ~/.ssh/webphin_deploy
 
           printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
@@ -90,7 +93,7 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
             -o ConnectTimeout=10 \
-            -i "$HOME/.ssh/skillor_deploy" \
+            -i "$HOME/.ssh/webphin_deploy" \
             "$VPS_USER@$VPS_HOST" \
             bash -s -- "$DEPLOY_SHA" <<'REMOTE'
 
@@ -98,7 +101,7 @@ jobs:
 
           DEPLOY_SHA="$1"
 
-          cd /srv/webphin/apps/skillor
+          cd /srv/webphin/apps/skyinnk
 
           echo "Fetching main..."
           git fetch --prune origin main
@@ -117,12 +120,24 @@ jobs:
           git cat-file -e "${DEPLOY_SHA}^{commit}"
           git reset --hard "$DEPLOY_SHA"
 
-          docker compose build
+          echo "Building production images..."
+          docker compose build skyinnk skyinnk-migrate
 
+          echo "Running database migrations..."
+          docker compose \
+            --profile migration \
+            run \
+            --rm \
+            skyinnk-migrate \
+            npx prisma migrate deploy
+
+          echo "Database migrations completed successfully."
+
+          echo "Starting production application..."
           if ! docker compose up -d --wait --wait-timeout 120; then
             echo "Deployment failed health check."
             docker compose ps
-            docker compose logs --tail=100 skillor
+            docker compose logs --tail=100 skyinnk
             exit 1
           fi
 

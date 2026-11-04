@@ -3,9 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime
 
     ports:
       - "127.0.0.1:3005:3005"
+
+    env_file:
+      - .env
 
     environment:
       NODE_ENV: production
@@ -34,3 +38,15 @@ services:
         max-size: "10m"
         max-file: "3"
         compress: "true"
+
+  skyinnk-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+
+    env_file:
+      - .env
+
+    profiles:
+      - migration
