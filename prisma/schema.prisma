@@ -13,3 +13,36 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
+
+model User {
+  id                   String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  auth0Id              String    @unique
+  name                 String?
+  givenName            String?
+  familyName           String?
+  middleName           String?
+  nickname             String?
+  preferredUsername    String?
+  email                String?
+  emailVerified        Boolean?
+  phoneNumber          String?
+  phoneNumberVerified  Boolean?
+  picture              String?
+  profile              String?
+  website              String?
+  gender               String?
+  birthdate            String?
+  zoneinfo             String?
+  locale               String?
+  addressFormatted     String?
+  addressStreetAddress String?
+  addressLocality      String?
+  addressRegion        String?
+  addressPostalCode    String?
+  addressCountry       String?
+  auth0UpdatedAt       DateTime? @db.Timestamptz(6)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([email])
+}

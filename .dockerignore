@@ -1,0 +1,30 @@
+# Allow only application/build inputs. Local credentials and artifacts never enter a layer.
+**
+!package.json
+!package-lock.json
+!nuxt.config.ts
+!tsconfig.json
+!app/
+!app/**
+!server/
+!server/**
+!public/
+!public/**
+!prisma/
+!prisma/**
+
+# Defense in depth for sensitive/generated files nested inside allowed directories.
+**/.env*
+**/node_modules
+**/.nuxt
+**/.output
+**/.cache
+**/.data
+**/.nitro
+**/.git
+**/.aws
+**/.codex
+**/*.log
+**/*.pem
+**/*.key
+app/generated/prisma
