@@ -88,6 +88,21 @@ the database model/migration, claim clearing policy, middleware lifecycle,
 origin-only cache controls, automated verification, and production prerequisites.
 Cloudflare Dashboard rules are configured separately.
 
+## Validation
+
+Use Node 24.22 or newer in the Node 24 line and the installed dependencies:
+`npm run check:all` validates/generates Prisma, checks Nuxt types, builds once,
+and scans output for build-secret exposure. `npm run test:all` independently runs
+the complete lightweight suite. Neither command needs Docker, PostgreSQL,
+database credentials, a browser, or external application services. See
+[the testing guide](docs/testing.md) for scope and verification limits.
+
+## Analytics and legal pages
+
+See [the analytics and legal review guide](docs/analytics-and-legal.md) for GTM
+runtime configuration, local verification, owner confirmation items, and the
+production browser checks required before approving release.
+
 ## Production
 
 Build the application for production:

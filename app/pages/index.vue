@@ -40,15 +40,9 @@ useHead({
 </template>
 
 <style scoped>
-:global(body) {
-  margin: 0;
-}
-
 .coming-soon {
   box-sizing: border-box;
   display: grid;
-  min-height: 100vh;
-  min-height: 100svh;
   place-content: center;
   padding: 2rem;
   background: #f8fafc;

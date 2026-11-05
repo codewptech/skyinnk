@@ -34,7 +34,11 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
-    public: { auth0SyncFreshnessMs: 300_000 },
+    public: {
+      auth0SyncFreshnessMs: 300_000,
+      gtmId: "GTM-5ZH9SBK5",
+      analyticsEnabled: false,
+    },
     auth0SyncRateLimit: { maxRequests: 10, windowMs: 60_000 },
     auth0: {
       // NUXT_AUTH0_* overrides these at startup. Never compile credentials into defaults.

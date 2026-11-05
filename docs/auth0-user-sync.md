@@ -1,4 +1,8 @@
-# Auth0 user synchronization v1.3
+# Auth0 user synchronization
+
+Current lightweight validation and its limits are documented in
+[testing.md](testing.md). Production database and authentication behavior below
+are unchanged by the testing rewrite.
 
 ## Existing integrations and scope
 
@@ -31,21 +35,14 @@ UI intact. `app.vue` now hosts `NuxtPage` and `NuxtRouteAnnouncer`.
 | `server/plugins/cache-headers.ts`                                  | Final Node response cache policy, including errors and SDK responses.                          |
 | `server/types/immutable-assets.d.ts`                               | Type declaration for the server-only generated asset allowlist.                                |
 | `.env.example`                                                     | Optional five-minute freshness setting; existing secret placeholders retained.                 |
-| `package.json`                                                     | Separate unit/database/HTTP/browser test commands, with no new dependency.                     |
+| `package.json`                                                     | Two lightweight validation commands, with no new dependency.                                   |
 | `README.md`                                                        | Link to this implementation and review guide.                                                  |
 | `docs/auth0-user-sync.md`                                          | Model, policy, per-file report, test commands and manual prerequisites.                        |
-| `tests/profile.test.ts`                                            | All profile mappings, nullable/invalid claims, date normalization and identity boundaries.     |
-| `tests/coordinator.test.ts`                                        | Delayed SDK initialization, freshness, deduplication, account changes and cleanup.             |
-| `tests/database.integration.ts`                                    | Actual PostgreSQL defaults, UUID version, constraints, triggers and concurrency.               |
-| `tests/http.integration.ts`                                        | Actual production authentication/security/status/cache responses.                              |
-| `tests/browser.integration.ts`                                     | Actual client hydration, delayed profile, eligibility, switching, layout and outages.          |
-| `tests/helpers/production.ts`                                      | Isolated production server and SDK-encrypted test sessions.                                    |
-| `tests/helpers/browser.ts`                                         | Installed Chrome control through its native debugging protocol.                                |
 
 Existing dependency/lockfile changes from the earlier Auth0 integration are
 preserved. The v1.2 synchronization baseline installed no packages and preserved Docker/Compose.
-The v1.3 audit remediation below changes Docker and CI verification; Cloudflare
-configuration and production credentials remain unchanged.
+The production native-engine, secret, request-size, and expiry protections remain
+in place. Cloudflare configuration and production credentials are unchanged.
 
 ## Database contract
 
@@ -204,13 +201,9 @@ waits until the server delay expires; there is no immediate/automatic retry, log
 or redirect. In-flight deduplication, identity-scoped state, public-page access and
 the normal five-minute successful-sync freshness interval remain unchanged.
 
-This rate-limit change creates `server/utils/auth0-sync-rate-limit.ts` and
-`tests/rate-limit.test.ts`; it updates `server/api/auth/sync.post.ts`,
-`nuxt.config.ts`, `.env.example`, `app/middleware/auth0-sync.ts`,
-`app/utils/auth0-sync.ts`, `tests/coordinator.test.ts`, `tests/http.integration.ts`,
-`tests/browser.integration.ts`, `tests/helpers/production.ts`, and this report.
-Prisma schema/migrations/client setup, profile mapping, Auth0 configuration,
-Cloudflare headers/rules, dependencies and deployment files are unchanged.
+The lightweight core and HTTP suites cover client policy and API admission with
+isolated persistence/session doubles. They do not establish distributed quotas
+or actual database concurrency.
 
 ## Eligible-page synchronization
 
@@ -283,256 +276,51 @@ Origin headers cannot override a Dashboard rule that explicitly ignores them.
 
 ## Reproducible verification
 
-Node's built-in test runner is used without additional dependencies. Test isolation
-is disabled explicitly so individual TypeScript test cases run in this Node 24
-environment; unit tests use isolated fixtures and integration commands are separate.
-
 ```bash
-npx prisma validate
-npx prisma generate
-npm run typecheck
-npm test
-npm run build
-```
-
-Use a dedicated **loopback PostgreSQL 18** instance for the integration suites.
-They reject non-loopback URLs, check the actual server version before writes, and
-remove only their own randomized test identities. Never use production credentials.
-
-```bash
-export TEST_DATABASE_URL='postgresql://TEST_USER@127.0.0.1:TEST_PORT/TEST_DATABASE'
-DATABASE_URL="$TEST_DATABASE_URL" DIRECT_URL="$TEST_DATABASE_URL" npx prisma migrate deploy
-npm run test:db
-npm run test:http
-# Requires installed Chrome; optional CHROME_BIN selects its executable.
-npm run test:browser
-```
-
-Database/HTTP/browser suites explicitly skip when their required test database or
-browser is unavailable. A skipped suite is not evidence of a passing integration.
-The HTTP/browser suites require the current production build. HTTP sessions are
-created with the actual SDK encrypted-cookie store using temporary test secrets;
-these tests do not contact a live Auth0 tenant. Browser tests delay the SDK profile
-response to exercise initialization/hydration and simulate account switching.
-
-Coverage includes native UUIDv7 version extraction, database defaults and direct-SQL
-triggers, unchanged/subject-only updates, identity/createdAt preservation, duplicate
-email, concurrent upserts, claim mapping/clearing, freshness/cooldown/deduplication,
-late profile loading, subscription cleanup, invalid/expired sessions, forged body
-and origin rejection, per-identity rate limits, rejected-write prevention, concurrency,
-Retry-After recovery and client cooldowns, API error statuses, responsive layouts, server outages,
-private SSR/profile/error/payload responses, real immutable build assets and 304s.
-
-### CI verification
-
-The existing `Production CI/CD` workflow runs the same suites in its `ci` job on
-pull requests and pushes to `main`. It installs dependencies, discovers the
-runner's Chrome executable, and applies the existing migrations to a disposable
-`postgres:18` service. All three database URLs are explicitly set to this loopback
-service with test-only credentials. No production Neon or Auth0 secrets are used.
-GitHub Actions removes the service when the job ends. See GitHub's
-[PostgreSQL service-container documentation](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers).
-
-The two required verification commands are:
-
-```bash
-npm run test:all
 npm run check:all
+npm run test:all
 ```
 
-`test:all` first requires an isolated `TEST_DATABASE_URL` and an executable Chrome
-(`CHROME_BIN`, default `/opt/google/chrome/chrome`), failing if either is missing
-instead of allowing integration suites to skip. Docker is also required by the
-container suite, which fails rather than skipping when the daemon is unavailable. It generates Prisma Client and
-builds the production server with dummy-secret exclusion assertions, then runs unit,
-database, HTTP, security, browser and actual Docker-image suites in order. `check:all` validates the Prisma
-schema, regenerates the client, checks TypeScript, and builds production again as
-the final check. Each command stops on the first failure. The individual suite
-commands and their optional-skip behavior remain available for local development.
+`check:all` supplies unreachable validation URLs and dummy Auth0 credentials,
+validates the schema and generates Prisma Client once, checks Nuxt types, builds
+once, and scans generated artifacts for those dummy secret markers. It neither
+connects to a database nor applies migrations. Prisma CLI and Client remain
+6.19.3.
 
-For local full-suite verification, use a dedicated, disposable PostgreSQL 18
-database, set `TEST_DATABASE_URL`, `DATABASE_URL` and `DIRECT_URL` to that same
-loopback database, apply migrations as shown above, and set `CHROME_BIN` if needed.
-Use dummy Auth0 configuration if a local `.env` is present; fixtures supply their
-own temporary session secrets and never perform live Universal Login. The earlier
-local OIDC regression fixture remains separate from these repository suites.
+`test:all` runs the general core, HTTP/security, and rendering categories without
+production output, generated Prisma Client, database URLs, a browser, Docker, or
+network services. Persistence and verified Auth0 sessions are explicit doubles.
+Actual mapping, admission, error normalization, limiter, middleware, and Vue
+rendering logic execute. See [testing.md](testing.md) for the exact boundaries.
 
-Deployment retains `needs: ci`, its push-only condition, and the existing production
-commands and secrets. A failed preparation, test, or check prevents deployment.
-Browser profile removal uses bounded retries for Chrome subprocess shutdown races.
+CI installs once and runs those two commands in order. It has no database service,
+Chrome discovery, migrations, image builds, or integration prerequisites. The
+existing production deploy job remains CI-gated, push-only, and otherwise
+unchanged, including its real Prisma migrations and liveness/readiness checks.
 
-Local verification of this CI wiring passed `test:all` (45 Node test cases, no
-skips), `check:all`, actionlint workflow validation, and the separate local OIDC
-regression fixture. Missing database/browser prerequisites and non-loopback test
-URLs returned nonzero exits. Hosted GitHub Actions execution remains unverified.
+## Runtime protections
 
-## Executed verification record
+The production Docker targets retain OpenSSL/CA certificates for Prisma's native
+engine. `/api/health` is public process liveness; `/api/ready` performs a minimal
+User read and sanitizes engine/database/schema failures to 503. The deployment
+checks readiness after startup.
 
-On the final rate-limited implementation, these checks passed:
+Private Auth0 defaults remain empty in Nuxt configuration and are overridden at
+runtime. The production Docker context exclusions remain unchanged. Build checks
+scan server/public artifacts for injected secret markers, but do not inspect real
+image assembly.
 
-- Prisma v6 schema validation/Client generation were verified during the synchronization baseline; the schema, generated-client setup and migrations are unchanged by rate limiting.
-- `npm run typecheck` and `npm run build`.
-- `npm test`: 21 individual unit tests, no skips/failures.
-- `npm run test:db`: 6 Node test cases, no skips/failures, on PostgreSQL 18.6.
-- `npm run test:http`: 12 Node test cases, no skips/failures, against the actual production build.
-- `npm run test:browser`: 6 Node test cases, no skips/failures, using installed headless Chrome at 320/390/768/1440px.
-- The existing local OIDC fixture also passed login/PKCE, signed callback, encrypted session, profile and logout regression checks after the changes.
-- During the synchronization baseline, native `INSERT ... ON CONFLICT` was observed in the isolated PostgreSQL statement log.
-- During the synchronization baseline, Prisma migration diff reported no difference between the migrated database and `schema.prisma`.
-- Formatting and Git diff whitespace checks.
-- Hash comparison confirmed the limiter leaves Prisma schema/migrations/client setup, profile mapping, existing cache-header enforcement, actual `.env`, dependencies/lockfile and deployment files unchanged.
-- Deterministic limiter tests cover rolling expiration, precise Retry-After, independent identities, concurrent admission, bounded memory, cleanup and invalid policy. Production HTTP tests additionally verify 429/no-store responses, unchanged database timestamps on rejection, forged-identity resistance, runtime overrides/recovery, failed-attempt accounting and fail-closed configuration. Browser tests verify Retry-After instead of the generic cooldown without logout or redirect.
+The backchannel middleware caps declared and streamed bodies at 16 KiB before SDK
+parsing. Only a genuine JOSE expiration of the `exp` claim becomes anonymous and
+clears matching cookie chunks; unrelated validation/configuration errors still
+propagate. Lightweight tests exercise these middleware decisions with isolated
+streams and session clients, not signed OIDC exchange or real HTTP sockets.
 
-Earlier HTTP assertions exposed Nitro's error-path header override and were fixed;
-final HTTP tests cover that path. Browser account-switch instrumentation was
-corrected to use Nuxt's actual prefixed SDK state; final browser tests passed.
-There are no remaining failing local checks. Live tenant/CDN/Neon checks below
-have not been claimed as passed.
-
-## Independent audit remediation v1.3 (AUD-001 through AUD-004)
-
-The independent audit is preserved at `/tmp/skyinnk-independent-audit/report.md`.
-The findings were reproduced before remediation using disposable credentials and
-PostgreSQL 18. No production migration, credential rotation, tenant/CDN change,
-commit, push, or deployment is part of this remediation.
-
-### AUD-001: native engine and database readiness
-
-Both existing `node:24-bookworm-slim` stages now install `openssl` and
-`ca-certificates` before Prisma generation/execution. Node 24, Debian, Prisma 6,
-and the existing build/runtime targets remain in place. The liveness endpoint
-`GET /api/health` is unchanged. New `GET /api/ready` performs a minimal User-table
-read to verify native-engine loading, connectivity, and the migrated schema; it
-returns only `{ status: "ready" }`, or a sanitized 503. It inherits private/no-store
-headers. The deployment workflow checks readiness inside the running container
-after its existing liveness gate; this code was not deployed during remediation.
-
-`tests/containers.integration.ts` builds both real targets, loads their native
-engines, starts its own disposable `postgres:18` container, runs the migration
-image, and synchronizes an SDK-encrypted session through the production image.
-It checks readiness before migration, during a database outage, and after recovery,
-while liveness/public HTML stay available. It also verifies the stored UUIDv7 row,
-private headers, public immutable assets, expired-session handling, and 413 errors.
-The suite uses Linux host networking with randomly selected ports, generated
-credentials and uniquely named containers/images; cleanup affects only those test
-resources. It never consumes production database URLs. Docker absence fails the
-suite rather than skipping it.
-
-### AUD-002: runtime-only credentials and Docker context
-
-All five private Auth0 runtime-config defaults are empty strings. Nuxt's existing
-`NUXT_AUTH0_*` runtime overrides remain supported by the SDK. Builds do not read
-credential values into compiled defaults. Runtime injection remains mandatory;
-real `.env` contents were not changed, printed, replaced, or rotated.
-
-The new `.dockerignore` allows only manifest/configuration, application, server,
-public, and Prisma source inputs. Environment files (including nested variants),
-local dependencies, build/cache outputs, Git metadata, credentials and unrelated
-files stay outside the context. The migration image no longer retains `.env`.
-
-`tests/helpers/build-security.ts` builds with unique dummy client/session-secret
-markers and scans all `.output` files for either value. The container suite makes
-a disposable context containing dummy root/nested environment files and excluded
-sentinels, then scans `/app` in **both** image targets. It also proves runtime
-credential injection by starting the built application with independently generated
-session credentials. No real environment file enters that disposable context.
-
-### AUD-003: bounded SDK backchannel bodies
-
-`server/middleware/backchannel-body-limit.ts` enforces **16 KiB of incoming bytes**
-on the SDK's POST backchannel route. Oversize Content-Length is rejected before
-reading; chunked bodies are counted while iterating the Node request, and rejected
-as soon as the limit is crossed. A 413 closes that connection instead of keeping
-an unread request reusable. There are no custom data-event listeners or patched
-SDK/parser code: Node 24's `iterator({ destroyOnReturn: false })` allows an early
-response without destroying its socket first. Accepted bounded bytes are passed
-through h3's pre-read body input, including an empty byte array for empty chunked
-requests. The SDK still parses the protocol and verifies the logout token.
-
-Regressions cover exact-limit bodies, ordinary/empty chunked bodies, and early
-413 responses for both framing types while the sender deliberately leaves the
-body unfinished. Case/trailing-slash route variants receive the same protection.
-The signed local OIDC fixture additionally supplies valid and forged logout JWTs:
-a valid token reaches the existing stateless-store limitation, while a forged
-signature is rejected before that step. Stateless backchannel revocation remains
-unsupported by the existing SDK store; no session-storage redesign was introduced.
-
-### AUD-004: genuine encrypted-envelope expiration
-
-`server/middleware/auth0-session-expiry.ts` decorates only `getSession` and
-`getUser` on the SDK's request-scoped client. The existing SDK routes, claims
-verification, cookie encryption and login/callback/logout implementations remain
-in use. `readWithSessionExpiry` catches only an actual JOSE `JWTExpired` instance
-for the `exp` claim; configuration errors, other validation failures, and lookalike
-objects propagate. Expired session cookie chunks are cleared with their configured
-path and cookie security options. Sync returns 401; profile returns the SDK's normal
-anonymous 204 response. Cache policy remains private/no-store.
-
-The fixture creates authenticated encrypted cookies with envelope `exp` sixty
-seconds in the past, beyond the SDK's fifteen-second tolerance, without mocking
-the global clock. Tests check multi-chunk removal and valid-session behavior.
-Unit tests prove unrelated exceptions retain their identity and do not clear cookies.
-The repository now contains a local HTTPS OIDC provider regression using generated
-keys/certificates: authorization-code/PKCE exchange, signed callback, safe return URL,
-session-cookie attributes, profile, sync, logout and tampered cookies are exercised
-without live Auth0 access or disabled TLS verification.
-
-### Verification and regression controls
-
-`npm run test:all` now requires loopback `TEST_DATABASE_URL`, executable Chrome,
-OpenSSL, and a working Docker daemon. `CHROME_BIN` and optional `DOCKER_BIN` select
-executables; ordinary Docker configuration such as `DOCKER_HOST` is honored. It
-runs the dummy-secret build, unit/database/HTTP/security/OIDC/browser tests and
-actual container suite. `npm run check:all` still validates/generates Prisma,
-checks TypeScript, and builds production. CI uses only its existing disposable
-PostgreSQL credentials, includes all new suites, and allows 25 minutes for image
-builds. Container fixtures generate their own PostgreSQL credentials independently.
-
-Final verification on 4 November 2026 passed:
-
-- `npm run test:all`: **59 reported cases, no failures/skips**, including five
-  parent cases (54 leaf cases): unit 22, database 6, HTTP 12, security 6, signed
-  OIDC 1, browser 6, actual Docker images 6.
-- `npm run check:all`: Prisma validation/generation, TypeScript and production
-  build all passed. The dummy-secret build assertion also passed.
-- Both actual Docker targets loaded their native engines and passed artifact
-  scans; the migration/runtime test used PostgreSQL **18.6**. The container base
-  ran Node **24.22.2** on Linux amd64. The temporary verification daemon was
-  rootless Docker 28.5.1 with overlay2 storage; no host container service was used.
-- `actionlint` 1.7.12, Prettier checks on changed supported files, and
-  `git diff --check` passed. Existing `.env`, `.env.example`, lockfile, Prisma
-  schema/migrations/singleton and frontend source hashes remained unchanged.
-
-Logs and mutation-control evidence are recorded in `/tmp/skyinnk-remediation/`.
-Mutation experiments operate on disposable source copies, preserving the saved
-checkout: restoring build-time secret serialization fails the artifact scan;
-removing Docker-context exclusions fails the real-image scan; removing the
-expiry/body-limit middleware fails the corresponding HTTP tests. Loading the
-engine in the original unmodified Docker base fails with `ERR_DLOPEN_FAILED`,
-while both corrected images load it. Initial temporary-daemon storage exhaustion,
-a test-status assumption and a nested-test fixture mistake were corrected before
-the final full runs; none is counted as a passing check.
-
-Hosted GitHub Actions, other CPU architectures, live Auth0/Neon/CDN and VPS
-configuration remain outside local verification. Production release still requires
-the external prerequisites below. Existing SDK stateless storage continues to
-reject backchannel revocation after valid token verification; this fix bounds its
-requests and preserves that behavior rather than changing session architecture.
-
-Changed implementation/verification files:
-
-| Files                                                                         | Purpose                                                               |
-| ----------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `Dockerfile`, `.dockerignore`, `nuxt.config.ts`                               | Native dependencies, safe build context, runtime-only credentials.    |
-| `server/api/ready.get.ts`                                                     | Database/schema readiness, separate from liveness.                    |
-| `server/middleware/backchannel-body-limit.ts`                                 | Bounded pre-read body for the existing SDK route.                     |
-| `server/middleware/auth0-session-expiry.ts`, `server/utils/session-expiry.ts` | Narrow request-scoped expiry normalization.                           |
-| `tests/helpers/production.ts`                                                 | Reusable authentic session cookies and true envelope-expiry fixtures. |
-| `tests/helpers/build-security.ts`, `tests/helpers/require-integration.ts`     | Secret-marker build and mandatory tool checks.                        |
-| `tests/security.integration.ts`, `tests/session-expiry.test.ts`               | HTTP boundaries and exception-preservation regressions.               |
-| `tests/oidc.integration.ts`, `tests/containers.integration.ts`                | Signed local OIDC and actual image/database verification.             |
-| `package.json`, `.github/workflows/deploy-production.yml`                     | Full-suite integration and deployment readiness gate.                 |
-| `docs/auth0-user-sync.md`                                                     | Current behavior, evidence and production prerequisites.              |
+The rewrite intentionally removes automatic PostgreSQL migration/default/trigger
+verification, signed OIDC/TLS flows, encrypted-cookie browser round trips, image
+packaging/native-engine checks, outage recovery, and browser hydration/layout
+coverage. Mocks and rendering checks do not provide equivalent integration
+assurance. These are explicit limits of the new lightweight CI contract.
 
 ## Before production approval
 

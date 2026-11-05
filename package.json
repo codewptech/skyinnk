@@ -7,16 +7,8 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "test": "node --test --test-isolation=none tests/*.test.ts",
-    "test:browser": "node --test --test-isolation=none tests/browser.integration.ts",
-    "test:http": "node --test --test-isolation=none tests/http.integration.ts",
-    "test:db": "node --test --test-isolation=none tests/database.integration.ts",
-    "test:security": "node --test --test-isolation=none tests/security.integration.ts",
-    "test:oidc": "node --test --test-isolation=none tests/oidc.integration.ts",
-    "test:containers": "node --test --test-isolation=none tests/containers.integration.ts",
-    "test:all": "node tests/helpers/require-integration.ts && prisma generate && node tests/helpers/build-security.ts && npm test && npm run test:db && npm run test:http && npm run test:security && npm run test:oidc && npm run test:browser && npm run test:containers",
-    "check:all": "prisma validate && prisma generate && npm run typecheck && npm run build",
-    "typecheck": "nuxt typecheck",
+    "test:all": "node --experimental-test-module-mocks --test --test-isolation=none tests/*.test.mjs",
+    "check:all": "node scripts/check.mjs",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
