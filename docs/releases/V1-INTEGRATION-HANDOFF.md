@@ -5,7 +5,7 @@ Permanent workflow: **GitHub → Codex/Work → tested commits → development b
 Repository: `codewptech/skyinnk`.
 Target: `development/v1-public-launch`.
 Feature branch: `work/v1-public-learning-integration`.
-Inspected remote head: `3217efa`; Chat 03 API migration: `4fe0d24`.
+Current inspected integration head: `ff63b22`; historical starting point: `3217efa`; Chat 03 API migration: `4fe0d24`.
 
 ## Reconciliation completed
 
@@ -28,3 +28,9 @@ Run `npm ci`, `npm run test:all`, `npm run check:all`. The optional production f
 Keep routine tests lightweight. The current production workflow still triggers only for main push/PR; it was not changed during reconciliation. Development-branch CI can be added in a separate scoped change after write access is established.
 
 Continue publication/content review, browser/Auth0/container/recovery checks and the factual release-state record. V2 database/CMS work remains separate. No live Neon connection or migration is necessary for this V1 implementation.
+
+## Shared workstream coordination
+
+Chat 01 owns architecture/product/scope/approvals. Chat 03 leads backend/API development, compatibility and technical review. Work owns V1 frontend/classroom/content/public-launch implementation. The shared integration branch is not for competing direct commits; inspect it and open PRs before each task, use dedicated feature branches, and coordinate before changing another active workstream's files.
+
+PR #1 reconciliation merges Chat 03's `ff63b22` release-baseline record into Work's branch. Preserve Chat 03's baseline evidence separately from Work's implemented-but-unmerged route/test inventory. Chat 03 provides technical review; Work resolves its own PR.

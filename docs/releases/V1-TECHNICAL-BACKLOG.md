@@ -5,7 +5,7 @@ Integration owner: V1 Work/Codex; Chat 03 remains backend/V2 owner. Branch: `wor
 
 | ID | Work | State | Owner / evidence / next action |
 |---|---|---|---|
-| V1-01 | Inspect GitHub and reconcile Chat 03 | Done locally | Latest remote baseline `3217efa`; Chat 03 API commit `4fe0d24` retained unchanged; prior V1 batch reconciled against actual remote |
+| V1-01 | Inspect GitHub and reconcile Chat 03 | Done locally | Latest remote baseline `ff63b22` (historical start `3217efa`); Chat 03 API commit `4fe0d24` retained unchanged; prior V1 batch reconciled against actual remote |
 | V1-02 | Non-production remote integration branch | Done | Published verified source at `ff54735`; [draft PR #1](https://github.com/codewptech/skyinnk/pull/1) targets `development/v1-public-launch`; not merged |
 | V1-03 | Public content contract | Implemented + tested | Stable source keys, review/publication checks, course-wide slug uniqueness, physical resource allowlist; `tests/v1-content.test.mjs` |
 | V1-04 | Homepage, catalogue, course details | Implemented; SSR tested | Honest empty catalogue, canonical URLs, ordered released syllabus, correct nested lesson routing; visual acceptance remains |
@@ -35,3 +35,7 @@ Integration owner: V1 Work/Codex; Chat 03 remains backend/V2 owner. Branch: `wor
 No task marked “implemented” is a claim of production deployment or educator publication approval.
 
 Permanent workflow: GitHub → Codex/Work → tested commits → development branch → controlled release. ZIP and manual patch handoffs are retired as the normal workflow.
+
+PR #1 reconciliation: retain both release-state evidence records and both commit histories; Work resolves the feature branch, Chat 03 provides technical review. Re-run tests/build/public-content HTTP smoke and verify GitHub mergeability before declaring the divergence resolved.
+
+Reconciliation validation completed: fresh npm ci, 30/30 tests, check:all (Prisma/types/build + 354-artifact secret scan) and isolated production public-content/HTTP smoke passed. Application source unchanged; browser, Auth0, content/legal and operational release gates remain open. GitHub mergeability is verified on PR #1 after feature-branch publication.
