@@ -26,7 +26,7 @@ UI intact. `app.vue` now hosts `NuxtPage` and `NuxtRouteAnnouncer`.
 | `prisma/migrations/migration_lock.toml`                            | PostgreSQL migration provider lock.                                                            |
 | `server/utils/prisma.ts`                                           | Preserve singleton; rename its development cache to resolve the existing type collision.       |
 | `server/utils/auth0-user.ts`                                       | Validated profile mapping and identity-keyed native upsert with bounded conflict fallback.     |
-| `server/api/auth/sync.post.ts`                                     | Session-only empty-body API, origin/CSRF checks and sanitized errors.                          |
+| `server/api/v1/auth/sync.post.ts`                                  | Session-only empty-body API, origin/CSRF checks and sanitized errors.                          |
 | `app/app.vue`                                                      | Root page outlet and route announcer.                                                          |
 | `app/pages/index.vue`                                              | Existing Home Page UI, opted into the named middleware.                                        |
 | `app/middleware/auth0-sync.ts`                                     | Client-only page opt-in and bounded synchronization request.                                   |
@@ -96,7 +96,7 @@ changed provider claims become available when Auth0 renews/reissues the session.
 
 ## Session-only API and CSRF
 
-`POST /api/auth/sync` accepts an empty body and returns `{ "synced": true }`.
+`POST /api/v1/auth/sync` accepts an empty body and returns `{ "synced": true }`.
 The existing SDK's `useAuth0(event).getSession()` verifies/decrypts the server
 session; the browser never supplies the subject or profile. Query parameters are
 ignored. The browser sends `X-Auth0-Sync: 1` with same-origin credentials.
@@ -301,7 +301,7 @@ unchanged, including its real Prisma migrations and liveness/readiness checks.
 ## Runtime protections
 
 The production Docker targets retain OpenSSL/CA certificates for Prisma's native
-engine. `/api/health` is public process liveness; `/api/ready` performs a minimal
+engine. `/api/v1/health` is public process liveness; `/api/v1/ready` performs a minimal
 User read and sanitizes engine/database/schema failures to 503. The deployment
 checks readiness after startup.
 

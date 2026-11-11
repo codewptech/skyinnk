@@ -83,7 +83,7 @@ bun run dev
 ## Auth0 user synchronization
 
 The public Home Page synchronizes verified Auth0 session claims to Prisma through
-`POST /api/auth/sync`. See [the synchronization guide](docs/auth0-user-sync.md) for
+`POST /api/v1/auth/sync`. See [the synchronization guide](docs/auth0-user-sync.md) for
 the database model/migration, claim clearing policy, middleware lifecycle,
 origin-only cache controls, automated verification, and production prerequisites.
 Cloudflare Dashboard rules are configured separately.

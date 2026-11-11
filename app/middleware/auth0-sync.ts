@@ -19,7 +19,7 @@ export default defineNuxtRouteMiddleware(() => {
       router: useRouter(),
       freshnessMs: Number(useRuntimeConfig().public.auth0SyncFreshnessMs),
       request: async () => {
-        const response = await fetch("/api/auth/sync", {
+        const response = await fetch("/api/v1/auth/sync", {
           method: "POST",
           credentials: "same-origin",
           headers: { "X-Auth0-Sync": "1" },

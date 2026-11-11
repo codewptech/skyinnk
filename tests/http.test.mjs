@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
+import { readdirSync } from "node:fs";
 import { registerHooks } from "node:module";
 import { Readable } from "node:stream";
 import { ServerResponse } from "node:http";
@@ -38,8 +39,8 @@ registerHooks({
     return next(specifier, context);
   },
 });
-const health = (await import("../server/api/health.get.ts")).default;
-const ready = (await import("../server/api/ready.get.ts")).default;
+const health = (await import("../server/api/v1/health.get.ts")).default;
+const ready = (await import("../server/api/v1/ready.get.ts")).default;
 const bodyLimit = (
   await import("../server/middleware/backchannel-body-limit.ts")
 ).default;
@@ -54,18 +55,18 @@ let fixtureId = 0;
 async function api() {
   // Each fixture gets a fresh process-local limiter; no global clock mutation.
   const sync = (
-    await import(`../server/api/auth/sync.post.ts?fixture=${++fixtureId}`)
+    await import(`../server/api/v1/auth/sync.post.ts?fixture=${++fixtureId}`)
   ).default;
   const app = createApp({ debug: false });
   app.use(
     createRouter()
-      .get("/api/health", health)
-      .get("/api/ready", ready)
-      .post("/api/auth/sync", sync),
+      .get("/api/v1/health", health)
+      .get("/api/v1/ready", ready)
+      .post("/api/v1/auth/sync", sync),
   );
   const handle = toWebHandler(app);
   return async (
-    path = "/api/auth/sync",
+    path = "/api/v1/auth/sync",
     init = {},
     user = { sub: "session|owner" },
   ) => {
@@ -89,6 +90,29 @@ async function api() {
     });
   };
 }
+
+test("owned API routes are versioned and legacy URLs are unavailable", async () => {
+  const handlers = readdirSync(new URL("../server/api/", import.meta.url), {
+    recursive: true,
+  }).filter((path) => path.endsWith(".ts"));
+  assert.equal(handlers.length, 3);
+  for (const path of handlers) assert.ok(path.startsWith("v1/"), path);
+
+  const request = await api();
+  for (const [path, method] of [
+    ["/api/health", "GET"],
+    ["/api/ready", "GET"],
+    ["/api/auth/sync", "POST"],
+  ]) {
+    const response = await request(path, { method });
+    assert.equal(
+      response.status,
+      404,
+      `Legacy endpoint ${path} must not exist`,
+    );
+  }
+  assert.equal(database.user.upsert.mock.callCount(), 0);
+});
 
 test("HTTP rejects invalid origins, missing CSRF, cross-site requests and framed bodies before writes", async () => {
   const request = await api();
@@ -127,7 +151,7 @@ test("HTTP rejects absent or unusable verified identities and never writes", asy
 test("HTTP accepts verified-session claims, ignores query identity and returns minimal success JSON", async () => {
   const request = await api();
   const response = await request(
-    "/api/auth/sync?sub=forged",
+    "/api/v1/auth/sync?sub=forged",
     {},
     { sub: "session|actual", name: "Actual", access_token: "private" },
   );
@@ -184,17 +208,17 @@ test("HTTP persistence failures return sanitized 503 or 500 without leaking priv
 test("liveness is independent of persistence; readiness reports sanitized availability", async () => {
   const request = await api();
   assert.deepEqual(
-    await (await request("/api/ready", { method: "GET" })).json(),
+    await (await request("/api/v1/ready", { method: "GET" })).json(),
     { status: "ready" },
   );
   database.user.findFirst.mock.mockImplementation(async () => {
     throw new Error("private-database-marker");
   });
-  const unavailable = await request("/api/ready", { method: "GET" });
+  const unavailable = await request("/api/v1/ready", { method: "GET" });
   assert.equal(unavailable.status, 503);
   assert.equal((await unavailable.json()).statusMessage, "Database not ready");
   assert.deepEqual(
-    await (await request("/api/health", { method: "GET" })).json(),
+    await (await request("/api/v1/health", { method: "GET" })).json(),
     { status: "ok" },
   );
 });

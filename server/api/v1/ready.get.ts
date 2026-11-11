@@ -1,6 +1,6 @@
-import prisma from "../utils/prisma.ts";
+import prisma from "../../utils/prisma.ts";
 
-// Separate from /api/health: readiness requires a working native engine and migrated schema.
+// Separate from /api/v1/health: readiness requires a working native engine and migrated schema.
 export default defineEventHandler(async () => {
   try {
     await prisma.user.findFirst({ select: { id: true } });
