@@ -2,10 +2,12 @@
 
 **Project:** Skyinnk.in  
 **Owner conversation:** Chat 01 — Platform Architecture HQ  
-**Document version:** 3.0 — complete consolidated master  
+**Document version:** 3.1 — canonical master with approved V1/V2 release split
 **Last updated:** 11 November 2026  
-**Status:** **AUTHORITATIVE MASTER ADL** — approved decisions through Discussions 01–19, finalized IMP-17, original ADR-001–053 and post-v1.2 ERD-01–54; later unapproved proposals and execution status explicitly segregated
+**Status:** **AUTHORITATIVE MASTER ADL** — retains ADR-001–068, approved ERD-01–54 and IMP-01–17; adds approved release-split ADR-069 and Chat 03 autonomy ADR-070. Previous ADL versions are obsolete as governing documents.
 
+> **LATEST GOVERNING RELEASE DECISION — 11 November 2026:** **Skyinnk V1 is a seven-day-target public/free-learning launch** with real reviewed lessons, course discovery, a public classroom, existing optional Auth0 login and launch-safe legal/privacy safeguards. **Skyinnk V2 retains the entire previously approved full-platform functionality** (CMS, enrolled/personalized dashboard, progress, canonical Solved Questions, private doubts, Cashfree, invoices, editorial, etc.). All historic references to the original “V1” full-product scope must be read as **V2 delivery commitments**, not cancelled feature approvals. See **§17, ADR-069–070** and accompanying release scope/technical/execution documents. This is a release-sequencing supersession, **not** permission to weaken student access/security safeguards.
+>
 > **Purpose.** Preserve architecture decisions across Chat 01 and specialist chats. This Markdown file is the durable record to store in the project repository (suggested path: `docs/architecture/ARCHITECTURE-DECISIONS.md`). ChatGPT memory is supplementary; code and production status must be separately verified.
 >
 > **Important:** Approval of a conceptual relationship, feature direction, or UX contract does **not** approve a specific Prisma schema, migration, API, code change, or deployment.
@@ -1099,3 +1101,40 @@ When a new decision is made in HQ:
 | 1.1     | 2026-11-10 | Recorded explicit approval of all seven Discussion 03 lesson/resource/publication principles (ADR-014–020); corrected the Markdown educator CMS as already approved/in-scope V1 (ADR-013); preserved paid-course invoices as V1 (ADR-021); advanced next discussion to identity, enrollment, entitlements and Cashfree. |
 | 1.2     | 2026-11-10 | Added ADR-022–053 covering user-approved Discussions 04, 05, corrected 06 and 07. All earlier ADRs and V1.2 conceptual relationships preserved.                                                                                                                                                                         |
 ```
+
+## 17. APPROVED UPDATED RELEASE STRATEGY — Version 1 public launch / Version 2 complete platform (11 November 2026)
+
+**Authority:** User explicitly approved splitting the platform into a deliberately small, launchable V1 and a comprehensive future V2. The user also reiterated that Chat 03 should run local technical development independently and escalate only material architecture questions. This section is newer than and takes precedence over earlier document language that described every approved full-platform feature as part of the _first public release_.
+
+### ADR-069 — V1 quick public-learning release and preserved full V2 scope
+
+- **Status:** **Approved — release strategy / sequencing**, 11 November 2026. The precise one-week plan is an aggressive working target contingent on real content and release checks, not unconditional permission to deploy.
+- **Decision:** Introduce **Skyinnk V1 Public Launch** prioritizing learning value and student acquisition: responsive real homepage, Class 10 Mathematics/English free learning, Class 11 commerce previews only when real content is ready, public course/syllabus pages, route-based public video/text classroom, Markdown notes, public resources, SEO, existing optional Auth0 identity, and truthful marketing. No forced login to access free public lessons.
+- **V1 publishing:** Content may be manually maintained as reviewed public Git/Markdown files with stable _source migration keys_ and public canonical URLs. This is a temporary publishing mechanism, not an alternative educational data model; do not create a competing production academic database for V1. Later database primary IDs must still be **PostgreSQL-generated UUIDv7**.
+- **Non-blocking V1 stretch:** Basic My Learning and explicit free enrollment may be added only if the canonical Enrollment/authorization and permanent ever-enrolled course safeguards are actually implemented and tested. **Auth0 registration alone is not enrollment**; do not fake persisted progress or entitlement.
+- **Defer to V2 while preserving all previous approvals:** Full educator CMS, full student dashboard and progress, explicit durable free/paid enrollment, lifetime-access implementation, protected premium delivery, Cashfree checkout and financial records, private Ask a Doubt and educator Inbox, canonical Solved Questions and practice, notifications, editorial/admin enhancements and their security/recovery infrastructure. Individual V2 components can ship as validated increments after V1.
+- **V1 safety:** Public only means **intentionally approved for guest access**, not unprotected paid/private material. No paid order, invoice, doubt or enrollment claim may be shown as working. The existing template legal pages must be replaced with accurate appropriately reviewed launch content before public launch, especially given minors and optional Auth0 registration. Keep GTM/analytics disabled until proper consent behavior is verified.
+- **Supersession scope:** Earlier ADR-005, ADR-006, ADR-013, ADR-021, ADR-036–043 and other approvals that said “in V1” continue to require those features in the **complete platform / V2 roadmap**; only their initial **launch delivery timing** changes. Their security, permission, publication, purchase, lifetime-access and deletion guarantees are **not** revoked or reduced. Chat 02 UX Discussions 01–73 remain the full future functional contract.
+- **Detailed release contract:** `01-RELEASE-SCOPE-V1-V2.md` (scope), `02-TECHNICAL-ARCHITECTURE-AND-V2-MIGRATION.md` (reuse/migration), `03-7-DAY-EXECUTION-AND-WORK-CODEX-HANDOFF.md` (execution). These do not independently authorize production deployment or application-schema replacement.
+
+### ADR-070 — Independent local technical work and protected production boundary
+
+- **Status:** **Approved — updated working practice**, 11 November 2026; refines historical ADR-002/ADR-068 wording.
+- **Decision:** Chat 03 independently owns and sequences **local technical implementation, testing, routine fixes, isolated database validation and task prioritization**, without requiring Chat 01 to write a new prompt or approve each routine task. Technical orchestration may use Codex/Work and reviewable development branches. Chat 01 handles only **material alterations/conflicts** to the approved platform architecture, business/UX contracts and student/financial protections.
+- **User authority:** Explicit user approval is still required for **production deployment, live Neon migrations, destructive persistent-data changes, pushes or merges to auto-deploying `main`, and material production infrastructure/security operations**. Technical autonomy does not confer production authority.
+- **Release tracking:** After V1 launch, record actual repo commit, deployed routes, shipped lesson source keys, Prisma migration status, tests, privacy/legal status, release checks and deferred V2 dependencies in `docs/releases/V1-RELEASE-STATE.md`. A planned feature must never be described as live solely because the ADL approves it.
+
+### 17.1 Verified source/repository boundary for accelerated V1 development
+
+- Read-only inspection on 11 November 2026 found accessible GitHub `codewptech/skyinnk`, default branch `main`, existing Coming Soon homepage, original single-User Prisma schema, and old owned health/readiness API paths in that branch. Its workflow deploys on successful `main` push and can run `prisma migrate deploy`.
+- Chat 03 separately **reported** Phase 00 Task 01 implemented and locally verified: migrated owned APIs to `/api/v1/` with developer-confirmed checks; isolated local commit `a2a4e4e` is **not** evidence of a GitHub push. The source must be reconciled into a protected non-main integration branch before V1 changes rely on it.
+- In this conversation the GitHub connector could **read** repository contents but branch creation was refused with HTTP 403. A coder or separately authorized write-capable integration must create development branches. No GitHub write, production deployment or live database change was performed as part of these documents.
+- Schema V4 (66 candidate models) remains a **separate unimplemented design candidate**. Chat 03 independently validates it for V2 in isolation; it is **not** a dependency of public V1 lesson delivery.
+
+### 17.2 Decision change history
+
+| Version | Date           | Change                                                                                                                                                                                                                                                                                                                                                                        |
+| ------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **3.1** | **2026-11-11** | Preserved the selected v1.2 → consolidated v3.0 ADR/ERD/IMP/UX history. Added **ADR-069** (approved first-launch/V2 split) and **ADR-070** (independent Chat 03 technical execution); clarified original “V1” wording as prior full-scope designation. Documented actual GitHub `main` vs local Task 01 state and unvalidated V4. No production/data/code changes authorized. |
+
+**Authoritative status:** **This v3.1 file replaces v3.0 and all earlier ADL documents as the governing master.** Retain original ADR-001–068 and all numbered ERD/IMP/UX histories for audit; use the later, explicitly approved release-scope and autonomy clarifications for planning.
