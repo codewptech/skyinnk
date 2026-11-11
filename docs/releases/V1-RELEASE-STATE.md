@@ -1,8 +1,10 @@
 # Skyinnk V1 — Actual release state
 
 Date: 11 November 2026. Repository: `codewptech/skyinnk`.
-Status: **implemented and tested locally; not launch-ready; not deployed**.
-Integration branch: `work/v1-public-learning-integration` (local, based on the actual development branch).
+Status: **implemented, tested and published to a non-production GitHub feature branch; draft PR open; not launch-ready; not deployed**.
+Integration branch: `work/v1-public-learning-integration` (published, based on the actual development branch).
+Implementation commit: `ff54735745717331c6d8215dc32e60586d7fd2b8`; published tree matches the tested local tree exactly.
+Draft PR: https://github.com/codewptech/skyinnk/pull/1 (target `development/v1-public-launch`, not merged).
 Target: `development/v1-public-launch`.
 Current GitHub integration base: `3217efa` (11 November 2026).
 Chat 03 API migration commit `4fe0d24` and architecture commit `3217efa` remain in ancestry. API handlers, callers/probes, HTTP security tests and canonical ADL were preserved from that remote branch.
@@ -56,7 +58,7 @@ Runtime: Node 24.22.1 / npm 11.9.0. Fresh `npm ci` succeeded on the reconciled d
 
 Reviewed lessons/media/resources, accurate approved Privacy/Terms, real Auth0 smoke, browser/mobile tests, container build, backup/rollback readiness and explicit owner release approval are still required. Existing policy text remains an unapproved template; only its skip-link target changed.
 
-Permanent workflow: GitHub → Codex/Work → tested commits → development branch → controlled release. GitHub ref creation still returns HTTP 403; Git/gh currently has no GitHub login, while Codex Cloud task listing returns HTTP 401. Remote publication is blocked: installation `180853687` does not list `codewptech/skyinnk` among its selected repositories. Add the repository to that installation and retry connector publication. No main push/merge, deployment, live Neon change or production infrastructure operation occurred. See the GitHub integration handoff for branch ownership and coordination.
+Permanent workflow: GitHub → Codex/Work → tested commits → development branch → controlled release. GitHub repository authorization is restored, source publication succeeded and draft PR #1 is open. A fresh fetch verified the exact tested source tree. Remaining standalone Git/gh or Codex Cloud login limitations do not block the working GitHub publication path. No main push/merge, deployment, live Neon change or production infrastructure operation occurred.
 
 ## V2 bridge
 

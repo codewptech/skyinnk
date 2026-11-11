@@ -1,12 +1,12 @@
 # Skyinnk V1 — Shared execution checklist
 
 Updated: 11 November 2026. Target: 18 November 2026, conditional on release gates.
-Integration owner: V1 Work/Codex; Chat 03 remains backend/V2 owner. Branch: `work/v1-public-learning-integration` (local); target `development/v1-public-launch`.
+Integration owner: V1 Work/Codex; Chat 03 remains backend/V2 owner. Branch: `work/v1-public-learning-integration` (published on GitHub); target `development/v1-public-launch`.
 
 | ID | Work | State | Owner / evidence / next action |
 |---|---|---|---|
 | V1-01 | Inspect GitHub and reconcile Chat 03 | Done locally | Latest remote baseline `3217efa`; Chat 03 API commit `4fe0d24` retained unchanged; prior V1 batch reconciled against actual remote |
-| V1-02 | Non-production remote integration branch | Blocked | GitHub ref creation HTTP 403. Installation 180853687 excludes skyinnk from selected repositories. Add the repository and save, then publish the tested feature branch; no manual ZIP/patch integration |
+| V1-02 | Non-production remote integration branch | Done | Published verified source at `ff54735`; [draft PR #1](https://github.com/codewptech/skyinnk/pull/1) targets `development/v1-public-launch`; not merged |
 | V1-03 | Public content contract | Implemented + tested | Stable source keys, review/publication checks, course-wide slug uniqueness, physical resource allowlist; `tests/v1-content.test.mjs` |
 | V1-04 | Homepage, catalogue, course details | Implemented; SSR tested | Honest empty catalogue, canonical URLs, ordered released syllabus, correct nested lesson routing; visual acceptance remains |
 | V1-05 | Route-based classroom | Implemented; type/build/SSR tested | Shared course context, responsive sidebar/dialog, video/text mode, accessible tabs, prev/next across modules; interactive browser checks pending |

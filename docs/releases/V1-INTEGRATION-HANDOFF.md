@@ -17,9 +17,9 @@ Chat 03 commits remain ancestors of the integration branch. Do not reset, overwr
 
 Use a feature branch and PR targeting `development/v1-public-launch`. Confirm branch protections and required reviews before merging. No PR or merge should target production-deploying `main` without separate release authorization.
 
-The GitHub connector currently denies ref creation with HTTP 403 (`Resource not accessible by integration`). Git/gh has no authenticated GitHub host or credential helper; the fallback Codex Cloud task-list call returns HTTP 401 (`Could not parse your authentication token`). Repository user/admin metadata is not proof that this execution environment has a write credential.
+Repository access was restored on 11 November 2026 after `codewptech/skyinnk` was added to the connected GitHub App installation. The verified implementation was published as commit `ff54735745717331c6d8215dc32e60586d7fd2b8`, with tree `2aa4dbd666ce0c4464f9feddd1ec4b6777fd4e1b` exactly matching the tested local integration tree. A fresh fetch confirmed identical source files.
 
-Exact repository-scope finding: the connected GitHub App installation `180853687` uses selected repositories, and its accessible repository list does **not** include `codewptech/skyinnk`. This explains why public reads do not establish write authorization. Minimum unblock: add `codewptech/skyinnk` in https://github.com/settings/installations/180853687 and save, then retry connector publication. No Git token or manual file transfer is required when that connection is correctly authorized. A separate Git/gh login or Codex reconnect is only an alternative execution path. GitHub ref/contents publication requires Contents write; PR creation additionally requires Pull requests write. Enter credentials only through the secure account/environment sign-in flow. Do not put tokens in chat, source or git remotes.
+Draft PR: https://github.com/codewptech/skyinnk/pull/1 — base `development/v1-public-launch`, head `work/v1-public-learning-integration`. The PR is not merged. Source publication uses the authorized GitHub connection; a separate Git/gh credential is not necessary for this workflow. No manual ZIP/patch handoff is required.
 
 ## Validation and continuing work
 
