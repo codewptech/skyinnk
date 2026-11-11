@@ -4,6 +4,12 @@
 !package-lock.json
 !nuxt.config.ts
 !tsconfig.json
+!content/
+!content/catalogue.json
+!shared/
+!shared/public-content.ts
+!scripts/
+!scripts/validate-public-content.ts
 !app/
 !app/**
 !server/
