@@ -1,97 +1,80 @@
-# Skyinnk V1 — Actual release state
+# Skyinnk V1 — Canonical release state
 
-Date: 11 November 2026. Repository: `codewptech/skyinnk`.
-Status: **implemented, tested and published to a non-production GitHub feature branch; draft PR open; not launch-ready; not deployed**.
-Shared integration branch: `development/v1-public-launch`.
-Work feature branch / PR head: `work/v1-public-learning-integration` (PR #1, not merged).
-Implementation commit: `ff54735745717331c6d8215dc32e60586d7fd2b8`; published tree matches the tested local tree exactly.
-Draft PR: https://github.com/codewptech/skyinnk/pull/1 (target `development/v1-public-launch`, not merged).
-Target: `development/v1-public-launch`.
-Current inspected shared integration head: `ff63b22bde5d0bd1f856ec8d42ed6006cb1faccd` (11 November 2026).
-Historical starting point / original merge-base: `3217efa91254d1e8fc06c7138f22c7b3cf9122f7`.
-Chat 03 API migration commit `4fe0d24`, architecture commit `3217efa` and release-baseline commit `ff63b22` remain in ancestry after reconciliation. API handlers, callers/probes, HTTP security tests and canonical ADL were preserved from that remote branch.
-Prior V1 batch `41beb76` was originally reconciled from `3217efa`; that earlier ADL reconciliation retained the remote canonical document. This round resolves only the release-state add/add divergence against `ff63b22`; application source is unchanged. Current merge revision is recorded by feature-branch history.
-Production commit/date/routes: **not inspected or changed by this task**.
+**Last verified:** 12 November 2026 (GitHub repository evidence)  
+**Scope:** ADR-069/070, seven-day-target **public/free-learning V1**, not the full V2 learning-commerce platform  
+**Repository:** `codewptech/skyinnk`  
+**Shared integration branch:** `development/v1-public-launch`  
+**Verified integration HEAD at this review:** `c381cb62a848ff2689aaf0a92df979d840e8af31`  
+**Production `main` HEAD independently observed:** `6bfc342e89a19b76570565854b643387d0139e90`  
+**Production release/deployment of this V1:** **NOT AUTHORIZED, NOT PERFORMED OR VERIFIED**
 
-## Shared baseline and workstream evidence
+> **Status:** V1 public frontend and lesson-content foundation are **merged and CI-verified in non-production development**. This is not a public release: approved educational lessons/resources, real-browser and tenant tests, legal/media sign-offs and release verification are pending. A passing development CI run never authorizes a push to `main`, database migration or production deployment.
 
-Chat 03 added the release-state path independently in `ff63b22`, after Work branched from `3217efa`. This produced an add/add documentation conflict only; no API, Prisma or application files changed on the base side. Reconciliation merges the current integration head into Work's feature branch and preserves both histories.
+## Verified GitHub integration history
 
-| Evidence scope | Actual state |
-|---|---|
-| Shared integration at `ff63b22` | Coming Soon homepage; public catalogue/course/classroom implementation pending in that branch until PR #1 is merged |
-| Work feature branch / PR #1 | Public frontend, content contract and classroom implemented/tested, still unmerged and not deployed |
-| Chat 03 baseline verification | Developer reported 20/20 tests; Prisma 6.19.3 validation/generation, typecheck, production build and 237-artifact secret-marker check after Task 01. Historical local evidence, not proof of the new classroom or browser journey |
-| Work implementation verification | 30 lightweight tests, production build and 354-artifact secret-marker scan; isolated public-content/HTTP checks. Re-run after this reconciliation is recorded below |
+| Workstream / change | Commit / PR | Status and evidence |
+| --- | --- | --- |
+| Existing application foundation | Original Nuxt 4 / Auth0 / Prisma User migration | Preserved; no new academic model or live database migration |
+| Chat 03 versioned APIs | `4fe0d24` | `/api/v1/health`, `/api/v1/ready`, `/api/v1/auth/sync`; historical local 20/20 Node tests, Prisma/build verification |
+| Approved release architecture | `3217efa` | ADL V3.1, ADR-069/070: public V1 and complete-feature V2 split |
+| Original release-state baseline | `ff63b22` | Previously created independent of frontend; Work's add/add document conflict was reconciled without discarding either history |
+| Development CI | PR #4, `17dcf7c` | Reviewed and integrated, non-deploying development PR/push workflow |
+| Governance controls | PR #6, `8ec0a4d` | `AGENTS.md`, governance policy and ownership/overlap checks; previous 40/40 validation passed |
+| Trusted-check source (NOT activated) | PR #8, `6971696` | Independent GitHub App checker code only; 57/57 tests and post-merge CI passed |
+| **Public frontend / classroom / content contract** | **PR #1, head `7910dcd`, merge `c381cb6`** | **Merged via reviewed PR into development, not production** |
 
-The shared baseline retains Auth0, the original User and original migration; Schema V4's 66-model candidate remains V2-only and is not installed or migrated. Public guest learning must remain sign-in-free. No production revision or deployment has been authorized or verified.
+**Frontend PR #1** carried exactly the previously approved 30 changed paths. Work's final merge head `7910dcd2a96380973ebb69f021b59a5ad1207adf` incorporates all preceding development/governance/security commits via history-preserving merges. Work's earlier validation tree `65b2409...` and subsequent `fd05912...` were superseded by exact final tree `26ccb5f4e73a4c49132950f2c66d7519f0e6501d`.
 
-## Implemented routes and evidence (Work feature branch)
+**Final PR validation:** <https://github.com/codewptech/skyinnk/actions/runs/43226136393> — exact PR head `7910dcd` **SUCCESS**, 67 tests passed / 0 failed, governance role/task/shared-file/overlap check, locked dependency install, Prisma validate/generate, Nuxt types/build and 354-artifact secret-marker scan.
 
-| Route | Local behavior | Verification |
-|---|---|---|
-| `/` | Responsive public homepage, honest subject preparation labels, optional existing Auth0 controls | Actual Vue SSR guest/signed-in tests; production HTTP |
-| `/courses` | Published course catalogue; truthful empty state today | Production HTTP, integrated type/build checks |
-| `/courses/[courseSlug]` | Released course details and ordered syllabus; unknown courses 404 | Isolated production fixture, exact expected course heading |
-| `/courses/[courseSlug]/lessons/[lessonSlug]` | Route-based classroom, video/text mode, responsive syllabus, tabs, notes, resources and cross-module navigation | Type/SFC/build tests, isolated production fixture exact video/text lesson headings; interactive behavior still requires browser execution |
-| `/sitemap.xml` | Canonical URLs from only the public manifest | Fixture lesson URLs verified in XML |
-| `/api/v1/health` | Liveness independent of database | Unit/HTTP and production fixture; legacy paths 404 |
-| `/api/v1/ready` | Existing readiness contract preserved | Mocked persistence success/failure tests; no live Neon check |
-| `/api/v1/auth/sync` | Existing POST-only session/CSRF/rate-limit protections preserved | Unit/HTTP boundary tests; real Auth0 login/logout not run |
+**Post-merge validation:** <https://github.com/codewptech/skyinnk/actions/runs/43234744439> — exact development HEAD `c381cb6` **SUCCESS**, 67 tests passed / 0 failed, Prisma validation/generation, Nuxt production build and 354-artifact scan. Governance PR-only check correctly skipped on a development push. These are CI verification, not end-to-end browser or production validation.
 
-The course-detail file moved to `[courseSlug]/index.vue` so lesson URLs render the lesson page instead of an unrendered nested child. Classroom state reads changing route parameters; no persistent progress or enrollment is implied.
+**Work reports** a locally run isolated production-fixture HTTP smoke suite at the exact final PR source: published course, video/text lesson headings, public resource, sitemap, unpublished/legacy 404 and cache behavior passed. Chat 03 inspected the source and exact GitHub CI logs but did **not independently rerun** Work's fixture HTTP suite or a real browser.
 
-## Released educational content
+## What is actually implemented in non-production V1
 
-**Zero real courses / zero real lessons released.** `content/catalogue.json` is `{schemaVersion:1,courses:[]}`. No teacher-approved content was supplied. Synthetic interface fixtures exist only in tests or temporary isolated builds; they are never public course data.
+| Route or behavior | Source / behavior | Verification boundary |
+| --- | --- | --- |
+| `/` | Replaced Coming Soon with responsive guest-facing homepage, honest subject preparation text and optional Auth0 sign-in controls | Nuxt build, lightweight tests and fixture HTTP; real tenant sign-in still pending |
+| `/courses` | Public published-course listing; deliberate empty state while no real courses approved | Build/tests and fixture HTTP |
+| `/courses/[courseSlug]` | Public released course detail, ordered modules and lesson links; unknown/unpublished course => 404 | Fixture HTTP; no real reviewed course yet |
+| `/courses/[courseSlug]/lessons/[lessonSlug]` | Stable route-based classroom for video/text lessons, collapsible desktop syllabus, mobile dialog, Overview/Notes/Resources tabs and next/previous navigation | Source/type/build/fixture tests; real browser history, dialog and video persistence unverified |
+| `/sitemap.xml` | Canonical homepage/catalogue and only manifest-published course/lesson URLs | Fixture HTTP; no unpublished sitemap URLs |
+| `/api/v1/health` | Existing liveness route | Local automated/HTTP checks; production state not inferred |
+| `/api/v1/ready` | Existing database readiness boundary | Mocked success/failure checks; live Neon untouched |
+| `/api/v1/auth/sync` | Existing Auth0 POST-only sync/CSRF/rate-limit contract | Unit/HTTP boundary checks; real Auth0 tenant login/logout not yet exercised |
+| `/auth/*` | Existing Auth0 SDK-managed routes, **not renamed** | Integration preserved; full real login flow pending |
 
-Build validation requires stable source keys, explicitly public/published review metadata, unambiguous routes, valid optional YouTube IDs and truthful resources. It checks resource existence, file size, real-path containment and an allowlist; unlisted resource files fail the build. Matching reviewed resources may be reused across lessons.
+**Publication-only content model:** `content/catalogue.json` has `{"schemaVersion":1,"courses":[]}`. Thus **zero educator-approved real courses and zero real lessons are currently published**. Do not claim the test fixtures are live lessons or artificially mark a course published. School scope starts with free Class 10 Mathematics and English; Class 11 commerce previews require approved materials. Publication requires stable source migration keys, public/published review metadata, valid ordering and routes. Review must come from an actual educator/content owner, not fabricated metadata.
 
-Markdown uses HTML-disabled markdown-it and bounded, untrusted KaTeX rendering. Links and images have explicit policies; notes cannot load remote tracking images. Public video makes no iframe request before the student's Load video action; playback is not set to autoplay. Actual media availability and rights remain unverified until real media is supplied.
+**Resources:** only reviewed local `/resources/public/*` paths from the manifest are allowed. Build-time checks enforce file existence, size, real-path containment and exclude unlisted resource files. Markdown renderer disables raw HTML, uses constrained link/image policies, and renders bounded KaTeX without trusting source macros. YouTube embeds require student action before loading third-party media; actual media consent/rights and playback must be checked with real lessons. Static public resources are **not protected paid-course delivery**.
 
-## Database, security and compatibility
+**Access boundary:** guests can discover released public content without signup. Signing in does **not** equate to course enrollment, purchase or entitlement. No V1 persistence/authorization code here should be described as providing paid access. Existing Auth0-linked `User` and original `20261104000000_create_auth0_user` migration remain intact. The experimental 66-model Schema V4 was **not** applied to V1 or live Neon.
 
-- Prisma 6.19.3: original `User` only. Original `20261104000000_create_auth0_user` migration unchanged.
-- No educational schema, Schema V4 installation, migration execution or live database connection.
-- Auth0 SDK `/auth/*` routes remain unchanged; User sync remains homepage-scoped as in the baseline.
-- Existing private/no-store origin and CDN cache policy retained. GTM remains disabled by default; production runtime consent/configuration must be checked before release.
-- Docker build context now includes only the new approved catalogue and necessary validation/shared code. A real container build has not been executed in this task.
-- Authoritative ADL v3.1 is unchanged from the actual remote development branch.
+## Release-critical unfinished work
 
-## Verification
+1. **Real reviewed educational content:** publish approximately 4–6 substantial Class 10 Mathematics/English lessons with educator sign-off, usable Markdown notes, and approved/rights-cleared videos/resources. Ensure accurate publication metadata and a passing build.
+2. **Real-browser / mobile acceptance:** test desktop and mobile classroom dialog/focus, tabs, route changes and history, previous/next behavior, video consent and state, offline/404 behavior and resource previews/downloads. Prior Chromium attempt failed before page load because socket/process-singleton operations were not permitted; **no successful browser run is asserted**.
+3. **Auth0 regression:** real Universal Login/logout/session and authenticated sync behavior on the approved tenant, without requiring login for guest material. No live Neon migration.
+4. **Legal / privacy / security release review:** approve and verify privacy/terms, cookie/analytics consent, public-media rights, external-player behavior, SEO, accessibility and link integrity. Existing legal content is not independently signed off.
+5. **Operational release verification:** reproducible container build, safe environment/configuration, production health/readiness, backups/rollback plan and an explicit owner release decision. These are **future gates**, not authorization for a release now.
+6. **Technical integration/automation:** Work owns V1 UI/content and browser acceptance; Chat 03 owns /api/v1, Auth0, authorization compatibility, CI, source integrity and this canonical release-state record. Any new API contract must be coordinated before consumers depend on it.
 
-Runtime: Node 24.22.1 / npm 11.9.0. Fresh `npm ci` succeeded on the reconciled development baseline. Reconciliation validation reran successfully: 30 tests, check:all with 354-artifact secret scan, and isolated production course/video/text/resource/sitemap/404 checks.
+## V1 / V2 boundary — authoritative ADR-069
 
-- `npm run test:all`: **30 tests passed**. Includes Auth0 normalization/coordinator behavior, HTTP security/rate-limits/cache/session expiry, API versioning, actual Vue SSR, Markdown/KaTeX attacks and content/publication/resource validation.
-- `npm run check:all`: **passed**. Prisma validate + client generate, Nuxt typecheck and production build. **354 production artifacts excluded build-secret markers**. Database URLs and Auth0 settings were intentionally unusable local validation values.
-- Isolated fixture production build + **14 HTTP requests passed**, including exact course/video/text page headings, real TXT resource, sitemap lesson URLs, no-store behavior, legacy API/unpublished 404s and POST-only sync.
-- Current production preview: six grouped HTTP checks passed against the empty real manifest. Development server startup was attempted; Nitro could not open its worker socket (`listen EPERM ... nitro-worker...sock`), so development-mode HTTP checks are blocked by the environment. Earlier logs remain development evidence; no new ZIP handoff is used.
-- Chromium launch was attempted twice and failed on a restricted socket operation before page load. Shared Chrome could not reach the execution preview (connection refused). **Mobile layout, keyboard/dialog interaction, video persistence and client history are implemented but not browser-verified.** The opt-in runner is provided for a working browser environment.
-- No production claims follow from synthetic content, mocks or local HTTP checks.
+**V1:** fast, public, mobile-responsive, guest-accessible learning discovery and published free lessons, course pages, classroom, Markdown notes/resources, optional existing Auth0 and launch-safety safeguards.
 
-## Reconciliation verification — 11 November 2026
+**V2 (approved, not cancelled):** complete academic PostgreSQL models/ERD, persistent enrollments and lifetime entitlements, learner dashboard/My Courses/Continue Learning and durable progress, Cashfree online payment, immutable purchases/invoices, protected enrolled resources, educator-managed CMS, Solved Questions, private doubts, notifications and editorial. Do **not** silently scope these as implemented V1 backend features; any material release-scope change needs Architecture HQ approval.
 
-Resolved the add/add release-state conflict while merging integration commit `ff63b22` into Work's PR branch. Both histories are retained. The resolution changes only the three Work release/coordination documents; application/API/Prisma/test/workflow files match the previously published Work head. Chat 03's API, ADL and baseline release-state commits remain in ancestry.
+## Governance and non-production safety
 
-Fresh checks on the resolved worktree: `npm ci` passed (592 packages); `npm run test:all` passed 30/30; `npm run check:all` passed Prisma 6.19.3 validation/generation, Nuxt typecheck and production build, with 354 artifacts excluding secret markers. The isolated fixture production build and public-content HTTP smoke passed again (result timestamp `2026-11-11T15:47:36.927Z`), covering exact course/video/text headings, physical resource, sitemap, legacy/unpublished 404s and cache behavior. Browser checks were explicitly not run in HTTP-only mode; previously recorded environment blockers remain unresolved. This is local execution evidence, not automatic development-branch CI or production evidence.
+- `main` is production-only. No direct integration pushes, history rewriting or owner emergency bypass. Every new Chat 03 implementation requires a fresh `chat03/task-*` branch from the latest remote integration HEAD, an open task issue, exact shared-file reservations, and reviewed PR with actual CI.
+- Work owns V1 frontend, course content and classroom. Chat 03 is integration steward and the **only editor** of this release-state file. Coordination source: <https://github.com/codewptech/skyinnk/issues/2>.
+- Issue #7 / Smiley: owner reports App registered and installed, but its independent service **is not hosted or active**; no webhook/required check or separate-identity rollout. Owner explicitly **paused** hosting, ruleset activation, credential migration and expenditure. Issue #7 remains open/deferred, not a condition for V1 non-production integration.
+- No production deployment, live Neon migration, production credential change or modification to `main` is performed by this release-state update.
 
-PR #1 remains draft and unmerged for Chat 03 technical review. The shared integration branch was not written by this reconciliation; only Work's feature branch receives the merge resolution.
+## Historic evidence and references
 
-## Coordination responsibilities
+Earlier Work milestones (PR #1): `ff547357` original source delivery, `87e3318` initial reconciliation, `d73acab` governance refresh, `7910dcd` final security baseline refresh. Previous 30/30 and 50/50 tests reflected their then-current sources and are retained as history; **67/67** is the current merged-source test count.
 
-- Chat 01 owns architecture, product scope and material approvals.
-- Chat 03 is technical lead for backend/API development, integration compatibility and technical review.
-- Work owns V1 frontend, classroom, course content integration and public-launch implementation.
-- Inspect the latest integration branch and open PRs before editing. Each implementation task uses a dedicated feature branch and PR. Coordinate before changing another active workstream's files.
-- The shared integration branch is not a destination for competing direct commits. Chat 03's review of PR #1 is recorded at https://github.com/codewptech/skyinnk/pull/1#issuecomment-6800303635; Work owns this conflict resolution.
-- The production workflow covers main push/PR only. Local evidence must not be described as automatic development-branch CI.
-
-## Launch gates and operations
-
-Reviewed lessons/media/resources, accurate approved Privacy/Terms, real Auth0 smoke, browser/mobile tests, container build, backup/rollback readiness and explicit owner release approval are still required. Existing policy text remains an unapproved template; only its skip-link target changed.
-
-Permanent workflow: GitHub → Codex/Work → tested commits → development branch → controlled release. GitHub repository authorization is restored, source publication succeeded and draft PR #1 is open. A fresh fetch verified the exact tested source tree. Remaining standalone Git/gh or Codex Cloud login limitations do not block the working GitHub publication path. No main push/merge, deployment, live Neon change or production infrastructure operation occurred.
-
-## V2 bridge
-
-Public source keys and canonical slugs map to future approved entities; actual new database IDs must be PostgreSQL-generated UUIDv7. Enrollment, saved completion/progress, dashboard, CMS, protected delivery, private doubts, Solved Questions, Cashfree, invoices, notifications and editorial remain V2 work. Signing in has not been treated as enrollment. Chat 03's separate V2 work must be reconciled by diff before integration.
+Supporting release notes remain in `docs/releases/V1-REVIEW.md`, `V1-CONTENT-INTAKE.md`, `V1-INTEGRATION-HANDOFF.md` and `V1-TECHNICAL-BACKLOG.md`; some descriptions predate the merge and must not override this verified canonical status. The approved release architecture is `docs/architecture/ARCHITECTURE-DECISIONS.md` (ADL v3.1).
