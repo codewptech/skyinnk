@@ -95,7 +95,14 @@ test("owned API routes are versioned and legacy URLs are unavailable", async () 
   const handlers = readdirSync(new URL("../server/api/", import.meta.url), {
     recursive: true,
   }).filter((path) => path.endsWith(".ts"));
-  assert.equal(handlers.length, 3);
+  assert.deepEqual([...handlers].sort(), [
+    "v1/auth/sync.post.ts",
+    "v1/health.get.ts",
+    "v1/public/courses.get.ts",
+    "v1/public/courses/[courseSlug].get.ts",
+    "v1/public/courses/[courseSlug]/lessons/[lessonSlug].get.ts",
+    "v1/ready.get.ts",
+  ].sort());
   for (const path of handlers) assert.ok(path.startsWith("v1/"), path);
 
   const request = await api();
