@@ -1,3 +1,6 @@
+import { checkPublicContent } from "./scripts/validate-public-content";
+checkPublicContent();
+
 const immutableBuildAssets = new Set<string>();
 
 // https://nuxt.com/docs/api/configuration/nuxt-config

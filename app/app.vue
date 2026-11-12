@@ -1,9 +1,17 @@
 <script setup lang="ts">
-useHead({ htmlAttrs: { lang: "en" } });
+useHead({
+  htmlAttrs: { lang: "en" },
+  meta: [
+    { property: "og:site_name", content: "Skyinnk" },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ],
+});
 </script>
 
 <template>
   <div class="site-shell">
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <NuxtRouteAnnouncer />
     <NuxtPage />
     <footer class="site-footer">
@@ -16,6 +24,24 @@ useHead({ htmlAttrs: { lang: "en" } });
 </template>
 
 <style>
+* {
+  box-sizing: border-box;
+}
+button {
+  font: inherit;
+}
+.skip-link {
+  position: fixed;
+  top: -6rem;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.8rem;
+  background: #fff;
+  border: 2px solid #164b96;
+}
+.skip-link:focus {
+  top: 1rem;
+}
 body {
   margin: 0;
   background: #f8fafc;

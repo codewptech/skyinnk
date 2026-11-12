@@ -3,7 +3,7 @@ defineProps<{ title: string }>();
 </script>
 
 <template>
-  <main class="legal-page">
+  <main id="main-content" class="legal-page">
     <NuxtLink to="/">Skyinnk home</NuxtLink>
     <article aria-labelledby="legal-title">
       <h1 id="legal-title">{{ title }}</h1>

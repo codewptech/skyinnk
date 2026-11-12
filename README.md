@@ -1,4 +1,11 @@
-# Nuxt Minimal Starter
+# Skyinnk
+
+V1 public-learning development uses the existing Nuxt/Auth0/Prisma application.
+Start with [the execution checklist](docs/releases/V1-TECHNICAL-BACKLOG.md),
+[actual release state](docs/releases/V1-RELEASE-STATE.md),
+and [content intake](docs/releases/V1-CONTENT-INTAKE.md).
+The public catalogue is empty until educator-approved lessons are supplied.
+No new academic database or V2 CMS is required for this release.
 
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 

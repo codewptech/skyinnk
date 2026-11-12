@@ -75,11 +75,11 @@ async function renderPage(page, user) {
 
 test("public home renders its login action and shared legal navigation without an account", async () => {
   const page = await renderPage("index");
-  assert.match(page.html, /<h1[^>]*>Coming Soon\.\.\.<\/h1>/);
+  assert.match(page.html, /<h1[^>]*>Free lessons for curious school learners\.<\/h1>/);
   for (const path of ["/auth/login", "/privacy-policy", "/terms-of-service"])
     assert.ok(page.html.includes(`href="${path}"`));
   assert.ok(!page.html.includes('href="/auth/logout"'));
-  assert.match(page.headTags, /<title>Coming Soon<\/title>/);
+  assert.match(page.headTags, /<title>Skyinnk \| Free Learning for School Students<\/title>/);
   assert.match(page.htmlAttrs, /lang="en"/);
 });
 
