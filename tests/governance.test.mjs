@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roleForBranch, taskIssueNumber, reservedPaths, validatePolicy } from '../scripts/verify-pr-governance.mjs';
+import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, LEGACY_PR1_FILES, validatePolicy } from '../scripts/verify-pr-governance.mjs';
 
 const tick = String.fromCharCode(96);
 const issue = (role, branch, paths = []) => ({
@@ -61,4 +61,75 @@ test('legacy PR #1 exempt only for its exact number and branch', () => {
     body:'',issue:null,files:['package.json']})),[]);
   assert.ok(validatePolicy(base({number:2,head:'work/v1-public-learning-integration',
     body:'',issue:null})).length);
+});
+
+test('legacy PR #1 continues to pass unchanged reviewed paths without new task metadata', () => {
+  const errors = validatePolicy(base({
+    number: 1, head: 'work/v1-public-learning-integration',
+    body: '', issue: null, files: [...LEGACY_PR1_FILES],
+  }));
+  assert.deepEqual(errors, []);
+});
+test('legacy PR #1 still rejects overlapping open PR files', () => {
+  const errors = validatePolicy(base({
+    number: 1, head: 'work/v1-public-learning-integration',
+    body: '', issue: null, files: [...LEGACY_PR1_FILES],
+    openPulls: [{ number: 9, base: 'development/v1-public-launch', files: ['package.json'] }],
+  }));
+  assert.match(errors.join(' '), /overlap with open PR #9/);
+});
+test('legacy PR #1 rejects new backend paths and unreviewed extra filenames', () => {
+  const errors = validatePolicy(base({
+    number: 1, head: 'work/v1-public-learning-integration',
+    body: '', issue: null,
+    files: ['server/api/v1/new-private-endpoint.get.ts'],
+  }));
+  assert.match(errors.join(' '), /unreviewed new file/);
+  assert.match(errors.join(' '), /Work may not/);
+});
+test('legacy PR #1 must still target development integration', () => {
+  const errors = validatePolicy(base({
+    number: 1, head: 'work/v1-public-learning-integration',
+    base: 'main', body: '', issue: null, files: ['package.json'],
+  }));
+  assert.match(errors.join(' '), /Base branch must be development/);
+});
+test('governance files are protected against Work even when reserved', () => {
+  const head = 'work/task-catalogue';
+  const files = ['docs/governance/DEVELOPMENT-WORKFLOW.md', '.github/pull_request_template.md',
+    '.github/ISSUE_TEMPLATE/development-task.md', 'tests/governance.test.mjs'];
+  const errors = validatePolicy(base({ head, files, issue: issue('Work', head, files) }));
+  assert.equal(errors.filter(e => e.includes('Governance-owned file')).length, files.length);
+});
+test('Chat 03 cannot self-reserve Chat 01 governance documents', () => {
+  const head = 'chat03/task-ci-review';
+  const files = ['docs/architecture/ARCHITECTURE-DECISIONS.md', 'AGENTS.md',
+    'scripts/verify-pr-governance.mjs'];
+  const errors = validatePolicy(base({ head, files, issue: issue('Chat 03', head, files) }));
+  assert.equal(errors.filter(e => e.includes('Governance-owned file')).length, files.length);
+});
+test('Chat 03 keeps technical CI authority with reserved workflow path', () => {
+  const head = 'chat03/task-ci-validation';
+  const files = ['.github/workflows/development-ci.yml'];
+  assert.deepEqual(validatePolicy(base({ head, files, issue: issue('Chat 03', head, files) })), []);
+  assert.match(validatePolicy(base({ head, files, issue: issue('Chat 03', head) })).join(' '),
+    /must be reserved/);
+});
+test('coordinated Chat 03 exception for Work-owned UI requires exact path claim', () => {
+  const head = 'chat03/task-classroom-compatibility';
+  const path = 'app/pages/courses/index.vue';
+  assert.deepEqual(validatePolicy(base({
+    head, files: [path], issue: issue('Chat 03', head, [path]),
+  })), []);
+  assert.match(validatePolicy(base({
+    head, files: [path], issue: issue('Chat 03', head),
+  })).join(' '), /Work-owned UI/);
+});
+test('issue template and architecture documentation require exact shared reservations', () => {
+  assert.equal(isSharedPath('.github/ISSUE_TEMPLATE/development-task.md'), true);
+  assert.equal(isSharedPath('docs/architecture/ARCHITECTURE-DECISIONS.md'), true);
+  const files = ['.github/ISSUE_TEMPLATE/development-task.md',
+    'docs/architecture/ARCHITECTURE-DECISIONS.md'];
+  const errors = validatePolicy(base({ files, issue: issue('Chat 01', 'chat01/task-enforce-workflow') }));
+  assert.equal(errors.filter(e => e.includes('must be reserved')).length, 2);
 });
