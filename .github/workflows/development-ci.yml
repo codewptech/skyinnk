@@ -1,0 +1,49 @@
+name: Development PR CI
+
+on:
+  pull_request:
+    branches:
+      - development/v1-public-launch
+  push:
+    branches:
+      - development/v1-public-launch
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: skyinnk-development-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  development-ci:
+    name: Development CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Enforce PR branch, task ownership and overlapping-file policy
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/verify-pr-governance.mjs
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run lightweight tests
+        run: npm run test:all
+
+      - name: Validate Prisma, types and production build
+        run: npm run check:all
