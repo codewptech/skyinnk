@@ -12,10 +12,10 @@ This repository has **two protected long-lived branches**: `main` (production) a
 7. Chat 03 is technical integration steward: review cross-stream changes and verify exact head/test evidence before non-production integration. Do not merge another agent's active PR without coordination.
 8. Preserve already-tested work and commit history; do not force push, reset, delete active branches or silently discard other work.
 
-**Workspace ownership:** Chat 01 = product architecture and governance only (not routine feature implementation); Chat 03 = backend/APIs/Auth0/Prisma/infra/CI/security/integration; Work = V1 public UI/classroom/catalogue/educational lesson integration and UI verification.
+**Workspace ownership:** Chat 01 = product architecture and governance code/docs (`AGENTS.md`, `.github/ISSUE_TEMPLATE/`, PR template, `docs/governance/`, `docs/architecture/`, governance script and tests); Chat 03 = backend/APIs/Auth0/Prisma/infra/CI/security/integration (may edit CI with exact reservation); Work = V1 public UI/classroom/catalogue/educational lesson integration and UI verification. Work and Chat 03 must not edit Chat 01 governance files even if they attempt to self-reserve them.
 
 **Emergency bypass:** `codewptech` has an *Always allow* branch-ruleset exception, for owner-authorized emergency recovery only. An available bypass is **not** permission for agents to use it for routine commits or merges. The account owner retains release authority.
 
-**Grandfathered work:** Existing draft PR #1 uses pre-policy branch `work/v1-public-learning-integration` and is exempted from new task-branch metadata **only until merged or closed**; it still requires passing tests/build and Chat 03 review. New PRs must use the prescribed task branches.
+**Grandfathered work:** Existing draft PR #1 uses pre-policy branch `work/v1-public-learning-integration`. Only its old branch/task issue/shared-file reservation metadata is exempted, and only for its 30 already-reviewed changed filenames. All role boundaries, PR target, overlap detection, CI/build checks and Chat 03 review still apply. One-time approval covers only its existing sitemap route and release-state document. New files and new PRs must follow the full policy.
 
 For details, read `docs/governance/DEVELOPMENT-WORKFLOW.md`. This file does not supersede the approved Skyinnk Architecture Decision Log or the V1/V2 scope.
