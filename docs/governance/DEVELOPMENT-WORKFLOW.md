@@ -30,11 +30,11 @@ Only reserve paths genuinely needed. The owner must check Issue #2, open PRs and
 
 ## Workstream responsibilities
 
-- **Chat 01:** Architecture HQ, product decisions, development policy. No routine application-source changes.
-- **Chat 03:** Backend, APIs, Auth0 middleware, Prisma, infrastructure/CI, security, integration review. Sole steward for `docs/releases/V1-RELEASE-STATE.md`.
-- **Work:** V1 homepage, catalogue, course details, classroom, repository-managed lesson content, Markdown and public resources, frontend tests. Does not modify `server/`, `prisma/`, `app/middleware/`, CI workflows, or release-state ownership files.
+- **Chat 01:** Architecture HQ, product decisions, governance documents and policy code (`AGENTS.md`, `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md`, `docs/governance/`, `docs/architecture/`, `scripts/verify-pr-governance.mjs`, `tests/governance.test.mjs`). No routine application-source changes.
+- **Chat 03:** Backend, APIs, Auth0 middleware, Prisma, infrastructure/CI, security, integration review. Chat 03 may edit technical CI workflows only with an exact shared-path reservation; governance-owned files require a separate Chat 01-owned task/PR. Sole steward for `docs/releases/V1-RELEASE-STATE.md`.
+- **Work:** V1 homepage, catalogue, course details, classroom, repository-managed lesson content, Markdown and public resources, frontend tests. Does not modify `server/`, `prisma/`, `app/middleware/`, CI workflows, release-state ownership files, or Chat 01 governance files.
 
-Shared hotspots include `package.json`, `package-lock.json`, `nuxt.config.ts`, `app/app.vue`, `README.md`, `docs/releases/*`, workflow files and existing cross-stream tests. They require an exact-file reservation in the task issue. Chat 03 must reserve and coordinate before editing Work-owned UI files.
+Shared hotspots include `package.json`, `package-lock.json`, `nuxt.config.ts`, `app/app.vue`, `README.md`, `.github/ISSUE_TEMPLATE/*`, `docs/architecture/*`, `docs/releases/*`, workflow files and existing cross-stream tests. They require an exact-file reservation in the task issue. Chat 03 must reserve and coordinate before editing Work-owned UI files.
 
 ## PR protocol
 
@@ -55,7 +55,7 @@ GitHub cannot prove which ChatGPT agent made a commit if agents share the same a
 
 ## Pre-protocol V1 work
 
-Draft PR #1 (`work/v1-public-learning-integration`) predates this contract. It is temporarily exempt from **new task-branch metadata only**; normal CI and technical review still apply. Retire this exception after PR #1 has been safely merged/closed. Do not discard its tested work.
+Draft PR #1 (`work/v1-public-learning-integration`) predates this contract. It is temporarily exempt from **new task-branch name, issue-claim and shared-reservation metadata only**. Its already-reviewed list of 30 changed files is explicitly frozen in the policy checker, including the one-time Chat 03-reviewed public sitemap route and reconciled release-state file. PR #1 still must target development, may not add unreviewed paths, may not touch governance files, and must pass cross-stream safety and overlap checks against every other open PR plus normal CI/technical review. Retire this exception after PR #1 has been safely merged/closed. Do not discard its tested work.
 
 Browser/mobile behavior, real Auth0 flows, educator-approved content, final legal text, live operational validation and production approval remain distinct V1 launch gates. This policy does not alter them.
 
