@@ -55,13 +55,10 @@ export function webhookServer({ secret, repository, installationId, evaluate, lo
       res.writeHead(403); res.end(); return;
     }
     const event = req.headers['x-github-event'];
-    if (!['pull_request', 'issues', 'push'].includes(event)) {
+    if (!['pull_request', 'issues'].includes(event)) {
       res.writeHead(202); res.end(); return;
     }
-    // Ignore pushes outside the integration ref. Never run PR-controlled code.
-    if (event === 'push' && data.ref !== 'refs/heads/development/v1-public-launch') {
-      res.writeHead(202); res.end(); return;
-    }
+    // Base pushes are covered by the periodic full re-evaluation; no Contents permission.
     res.writeHead(202); res.end();
     enqueue(event);
   });

@@ -14,7 +14,7 @@ The new self-contained checker lives in `security/trusted-governance/`:
 
 - `policy.mjs`: trusted policy over GitHub API metadata only, with exact frozen PR #1 legacy path allowlist. Validates branch namespace, open task issue, workstream and branch claim, mandatory exact shared-file reservations, workstream-specific protections, governance files and overlaps with all other open development PRs.
 - `github-app.mjs`: signs short-lived GitHub App JWTs; requests narrowly scoped installation tokens; retrieves fresh GitHub PR/issue/file-name metadata; publishes `Skyinnk Trusted Governance` **check runs** on exact PR HEAD SHAs using the App identity.
-- `server.mjs`: standalone webhook HTTP server with raw-body HMAC-SHA256 verification, repository and installation matching, limited request sizes, queued serial reconciliation, initial scan, five-minute periodic rescan and fast webhook acknowledgment.
+- `server.mjs`: standalone webhook HTTP server with raw-body HMAC-SHA256 verification, repository and installation matching, limited request sizes, queued serial reconciliation, initial scan, five-minute periodic rescan (including base changes) and fast webhook acknowledgment.
 - `Dockerfile`: dependency-free Node 24 container entrypoint. Build with `docker build -f security/trusted-governance/Dockerfile security/trusted-governance` (narrow build context; does not include any application or `.env` files). **No deployment performed.**
 - `tests/trusted-governance.test.mjs`: positive/negative policy, HMAC, JWT, mocked check-run API and event-path tests.
 
@@ -22,7 +22,7 @@ The App service must run from a **pinned, reviewed image/commit in a non-product
 
 ### Trusted App permissions (minimum)
 
-GitHub App repository permissions: `Metadata: read` (automatic), `Pull requests: read`, `Issues: read`, `Checks: read and write`. Subscribe to `Pull request`, `Issues` and `Push` webhooks. Install only in `codewptech/skyinnk`. No Contents write, Administration, Actions write, Deployments, Secrets or repository ruleset permissions.
+GitHub App repository permissions: `Metadata: read` (automatic), `Pull requests: read`, `Issues: read`, `Checks: read and write`. Subscribe to `Pull request` and `Issues` webhooks only. GitHub requires `Contents: read` for `Push` subscription; we deliberately omit it and rely on the five-minute rescan for base pushes. Install only in `codewptech/skyinnk`. No Contents write, Administration, Actions write, Deployments, Secrets or repository ruleset permissions.
 
 App environment variables in the **deployment provider's secret manager**, not in GitHub files, PRs or chat:
 
@@ -50,7 +50,7 @@ node --test tests/trusted-governance.test.mjs
 3. Confirm a real legitimate development PR shows `Skyinnk Trusted Governance` from the **new App**, with a successful check run on the latest PR HEAD. Confirm a test PR missing an issue claim returns failure; validate protected file, overlap and tampered PR-controlled policy attempts through temporary feature-branch PRs with no bypass. Do **not** merge those negative test PRs.
 4. **Only after verified App check runs**: go to `https://github.com/codewptech/skyinnk/settings/rules`, edit `Protect development - V1 Integration` and add an additional required check named **exactly** `Skyinnk Trusted Governance`, with **Source = the new dedicated App**. Keep the existing required `Development CI`; keep strict up-to-date policy, PR required, deletion/non-fast-forward blocks. This is an owner-only settings change.
 5. Use a separate *non-bypass* agent identity to confirm GitHub refuses to merge an invalid PR; use a valid PR to confirm the check is required, passes, and permits the ordinary reviewed process. Verify the new check's App source ID in the **live ruleset API**. Never test by exercising the `codewptech` emergency bypass.
-6. Observe webhook delivery and check-run audits for reliable reruns on issue edits, PR edits/synchronizes, competing PR opens/closes and development base pushes. Keep the task open until external hosting, enforcement, identity segregation, and negative live outcomes are verified.
+6. Observe webhook delivery and check-run audits for reliable reruns on issue edits, PR edits/synchronizes, competing PR opens/closes; periodic scans cover development base pushes without a Push webhook. Keep the task open until external hosting, enforcement, identity segregation, and negative live outcomes are verified.
 
 **GitHub ruleset snapshots prior to activation:** `Protect development - V1 Integration` ID `27049500` and `Protect main - Production` ID `27046619`, both active. Development requires `Development CI` from GitHub Actions app integration ID `15368`; no trusted-App check yet. Both currently include `codewptech` user ID `118954375` with `bypass_mode=always`. These live settings are **not modified by this task**.
 
