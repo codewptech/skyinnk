@@ -9,8 +9,8 @@ assignees: []
 <!-- Replace ALL PLACEHOLDERS. The existing governance checker requires the exact Workstream, Branch and Reserved shared paths headings. Leave a new task BACKLOG until a coordinator verifies real dependencies, file claims and executor availability. -->
 
 Workstream: REPLACE_WITH_Work_OR_Chat_03_OR_Chat_01
-Branch: \`REPLACE_WITH_role/task-short-name\`
-Target: \`development/v1-public-launch\`
+Branch: `REPLACE_WITH_role/task-short-name`
+Target: `development/v1-public-launch`
 Delivery lane: REPLACE_WITH_Learning_Experience_OR_Technical_Foundation_OR_Quality_Remediation_OR_Governance
 Priority: REPLACE_WITH_P0_P1_P2_P3
 Risk: REPLACE_WITH_ordinary_OR_shared-interface_OR_sensitive-governance_OR_release-gated
@@ -43,10 +43,10 @@ none / advisory — NEVER claim an atomic lock unless a working claim broker act
 - [ ] Post-merge development SHA and CI recorded before DONE.
 
 ### Owned / affected paths
-- \`REPLACE_WITH_actual-file-path\`
+- `REPLACE_WITH_actual-file-path`
 
 ### Reserved shared paths
-- \`REPLACE_WITH_exact-shared-path-or-remove-this-bullet\`
+- `REPLACE_WITH_exact-shared-path-or-remove-this-bullet`
 
 <!-- If no shared paths, retain this heading and write 'None.' The new task checker must reject placeholders. Existing checker expects exact bullet paths only when a shared file is changed. Both old/new paths of renames are affected. -->
 
