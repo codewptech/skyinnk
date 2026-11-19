@@ -191,7 +191,8 @@ export function markdownResourcePaths(source: string): Set<string> {
     for (const token of tokens) {
       const image = token.type === "image";
       const value = token.attrGet(image ? "src" : "href");
-      if (value?.startsWith("/") && (image ? isSafeMarkdownImage(value) : isSafeMarkdownLink(value))) {
+      if (typeof value === "string" && value.startsWith("/") &&
+          (image ? isSafeMarkdownImage(value) : isSafeMarkdownLink(value))) {
         const url = new URL(value, base);
         const path = decodeURIComponent(url.pathname);
         if (url.origin === base && path.startsWith("/resources/public/")) paths.add(path);
