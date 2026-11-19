@@ -53,9 +53,12 @@ Both important branches have active GitHub rulesets: PRs, required branch-specif
 
 GitHub cannot prove which ChatGPT agent made a commit if agents share the same account. It cannot stop two agents editing local files before pushing. Task claims, automated PR checks and Chat 03 integration review mitigate this risk but do not replace isolated credentials or owner judgment. Code running in a PR can potentially change its own workflow, so sensitive workflow/policy modifications require deliberate review and ownership.
 
-## Pre-protocol V1 work
+## Changed paths and historical PRs
 
-Draft PR #1 (`work/v1-public-learning-integration`) predates this contract. It is temporarily exempt from **new task-branch name, issue-claim and shared-reservation metadata only**. Its already-reviewed list of 30 changed files is explicitly frozen in the policy checker, including the one-time Chat 03-reviewed public sitemap route and reconciled release-state file. PR #1 still must target development, may not add unreviewed paths, may not touch governance files, and must pass cross-stream safety and overlap checks against every other open PR plus normal CI/technical review. Retire this exception after PR #1 has been safely merged/closed. Do not discard its tested work.
+Ownership, reservations and overlap checks cover both paths of a rename.
+Work's technical exclusions include the Trusted App source, security
+documentation and its technical tests. The one-time PR #1 exception ended
+with its merge. Its reviewed history is available in the merged PR.
 
 Browser/mobile behavior, real Auth0 flows, educator-approved content, final legal text, live operational validation and production approval remain distinct V1 launch gates. This policy does not alter them.
 
