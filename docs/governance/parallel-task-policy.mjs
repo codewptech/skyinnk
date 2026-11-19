@@ -130,7 +130,7 @@ if([p.outcome,p.acceptance,p.executor,p.branch,p.lane,p.risk,p.priority].some(x=
 if(number!==null&&[...p.start,...p.integration,...p.soft].includes(number))errors.push("Self dependency");
 if(new Set([...p.start,...p.integration,...p.soft]).size!==p.start.length+p.integration.length+p.soft.length)errors.push("Repeated dependency");
 if(p.state==="READY"&&p.executor!=="unclaimed")errors.push("READY task must be unclaimed");
-if(p.state==="READY"&&p.start.length>0)errors.push("READY state requires verified START dependency status; validate on live issue graph");
+// START completion is verified against live issue states in eligibleTask, not guessed from this static packet.
 if(["CLAIMED","BUILDING"].includes(p.state)&&p.executor==="unclaimed")errors.push("Active task needs real executor");
 return errors;
 }
