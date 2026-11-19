@@ -71,8 +71,8 @@ Invalid or placeholder packets remain BACKLOG. A status label alone is not autho
 | --- | --- | --- |
 | BACKLOG | Packet created or incomplete | READY, DEFERRED, CANCELLED |
 | READY | Validated, start prerequisites resolved, non-colliding claim available, authorized | CLAIMED, BLOCKED, DEFERRED, CANCELLED |
-| CLAIMED | Claim broker or explicitly documented **advisory** manual coordinator assigns executor and paths | BUILDING, READY (release), BLOCKED |
-| BUILDING | Executor is actually active and has branch/claim evidence | PR_OPEN, BLOCKED, CLAIMED (paused), CANCELLED |
+| CLAIMED | Claim broker or explicitly documented **advisory** manual coordinator assigns executor and paths | BUILDING, PAUSED, READY (release), BLOCKED |
+| BUILDING | Executor is actually active and has branch/claim evidence | PR_OPEN, PAUSED, BLOCKED, CLAIMED, CANCELLED |
 | PR_OPEN | A real task PR is open with exact head SHA | REVIEWING, CHANGES_REQUESTED, BLOCKED |
 | REVIEWING | Independent reviewer examining exact head | READY_TO_INTEGRATE, CHANGES_REQUESTED, BLOCKED |
 | CHANGES_REQUESTED | Review or exact-head CI rejects code | BUILDING, BLOCKED |
@@ -80,7 +80,8 @@ Invalid or placeholder packets remain BACKLOG. A status label alone is not autho
 | INTEGRATING | Integration steward has locked one candidate, reconciled base and begun normal PR merge | VERIFIED, CHANGES_REQUESTED, BLOCKED |
 | VERIFIED | Merge commit exists, post-merge development CI and relevant regression acceptance pass | DONE, CHANGES_REQUESTED |
 | DONE | Verified non-production delivery recorded, issue closed | REOPENED when new evidence invalidates result |
-| BLOCKED | Named missing condition, actor and unblock trigger exist | READY, BUILDING, PR_OPEN, REVIEWING as evidence supports |
+| BLOCKED | Named missing condition, actor and unblock trigger exists | READY, BUILDING, PR_OPEN, REVIEWING after validation |
+| PAUSED | Executor is unavailable; claim and source evidence preserved pending explicit resume or transfer | CLAIMED, BUILDING, BLOCKED, CANCELLED |
 | DEFERRED / CANCELLED | Explicit authorized disposition | BACKLOG only after owner/role reauthorization |
 | REOPENED | Previously DONE task invalidated | BACKLOG, READY |
 
@@ -165,9 +166,9 @@ Use contract-first fixtures for independent frontend/API work. Do not block all 
 
 **Current observed baseline (19 Nov 2026):** development `c1250c4`; nine audit PRs #14/#16/#18/#20/#22/#24/#26/#28/#30 under review. PR #32 proposes this architecture. Ready tasks #35 (Work guest course discovery) and #36 (Chat 03 public API HTTP) are unclaimed, and **no independent agent start has been proved**. Codex remains the intended technical implementer for the nine audit remediation PRs, subject to genuine running-task availability.
 
-**Phase 0 — this PR:** approve architecture semantics and template, without changing currently reserved governance/CI files. Historical issues and open PRs remain valid and must not break from a new mandatory packet format.
+**Phase 0 — this PR:** approve architecture semantics, template and isolated pure policy model with regression tests, without changing currently reserved governance/CI files. Historical issues and open PRs remain valid and must not break from a new mandatory packet format.
 
-**Phase 1 — policy after existing PRs:** issue #33 updates active `AGENTS.md`, development workflow, governance checker and tests after #24 and #32. Preserve historical issue compatibility and reject incomplete new PEA-2 packets.
+**Phase 1 — policy after existing PRs:** issue #33 integrates the reviewed pure module into active `AGENTS.md`, development workflow, governance checker and required tests after #24 and #32. Preserve historical issue compatibility and reject incomplete new PEA-2 packets.
 
 **Phase 2 — CI after policy:** issue #34 integrates validated task-state/dependency checks into required Development CI after #22/#33/#32; must use read-only GitHub scopes, fail closed on real violations, and never claim it can see unpublished competing edits without a broker.
 
@@ -176,6 +177,23 @@ Use contract-first fixtures for independent frontend/API work. Do not block all 
 **Phase 4 — concurrent pilot:** while Codex maintains its legitimate remediation PRs, start real Work #35 and Chat 03 #36 tasks in separate agent runtimes where supported. Require timestamps/run IDs/paths. Both produce exact-head CI PRs with no overlap; assign genuine technical reviewers concurrently; integrate at least one approved PR and record post-merge CI. Record owner interventions, review and merge waiting time. **The system does not pass this acceptance test simply because two issues exist.**
 
 **Rollout completion criteria:** (a) contract merged, (b) issue/task policy + CI checks effective and tested, (c) actual conflict-free concurrent execution observed, (d) reviews occur without owner relaying every step, (e) ordered integration passes post-merge checks, and (f) no unauthorized production writes. Publish status as `DESIGNED`, `DOCUMENTED`, `CI_ENFORCED`, `EXECUTING` and `PILOT_VERIFIED` separately.
+
+
+### Stage-zero executable model (not a live dispatcher)
+
+This PR additionally includes `docs/governance/parallel-task-policy.mjs` and `docs/governance/parallel-task-policy.test.mjs`. It is a **pure, non-mutating policy prototype**, intended to be integrated into mandatory governance/CI by #33/#34 after the existing active PR owners finish. It does not call GitHub, lock task paths, start agents, merge branches or change settings.
+
+The module implements packet parsing, role/branch/lane/priority checks, exact task-path declarations, START/INTEGRATION/SOFT parsing, state transitions, deterministic queue order (including ISO timestamps), dependency graph/cycle detection, detection of overlapping active claims and PR renamed paths, and integration readiness requiring CI/review evidence for the **current immutable PR head** and current development base. A caller cannot substitute stale generic pass flags for SHA-bound evidence.
+
+Execute the optional focused regression suite with:
+
+```sh
+node --test docs/governance/parallel-task-policy.test.mjs
+```
+
+The existing `npm run test:all` glob covers `tests/*.test.mjs` only. Thus **existing required Development CI does not run this optional new suite**, and a green GitHub check today must not be reported as proof that these new policy regressions ran in CI. They become mandatory only when #33/#34 wire them into a governed workflow without overlapping #24/#22. Manual execution evidence and test runner versions must be recorded truthfully.
+
+This helper is a preflight analysis model, **not an atomic claim authority**. Because issue metadata can be forged or changed mid-read, it must not be treated as a secure independent identity or as a lock. Trusted GitHub reads, actor/permission separation and a demonstrably atomic broker are separate tasks (#37). Exact PR-head review metadata in the prototype is a technical review signal, not proof of independently authenticated GitHub approval.
 
 ## 12. Failure handling
 
