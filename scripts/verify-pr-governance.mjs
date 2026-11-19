@@ -4,11 +4,25 @@
  */
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { field, parsePacket, section, validateGraph, validatePacket } from '../docs/governance/parallel-task-policy.mjs';
 
 const DEV_BRANCH = 'development/v1-public-launch';
 const REPOSITORY = 'codewptech/skyinnk';
 const WORKSTREAM = { chat03: 'Chat 03', work: 'Work', chat01: 'Chat 01' };
 const TICK = String.fromCharCode(96);
+const LAST_LEGACY_ISSUE = 43;
+const ACTIONS_APP_ID = 15368;
+const SHA = /^[0-9a-f]{40}$/;
+const PR_STATES = new Set(['PR_OPEN', 'REVIEWING', 'CHANGES_REQUESTED', 'READY_TO_INTEGRATE', 'INTEGRATING']);
+const CLAIM_STATES = new Set(['CLAIMED', 'BUILDING', 'PAUSED', 'BLOCKED', ...PR_STATES]);
+
+function isPeaIssue(issue) {
+  return Number.isSafeInteger(issue?.number) && issue.number > LAST_LEGACY_ISSUE && !issue.pull_request;
+}
+
+function declaredExecutor(packet) {
+  return Boolean(packet.executor) && !/^(?:unclaimed|unassigned|none|pending|unknown|n\/a)$/i.test(packet.executor);
+}
 export function changedPaths(files) {
   const paths = new Set();
   for (const file of files) {
@@ -114,6 +128,120 @@ export function assertEventRevision(eventPull, current) {
   }
 }
 
+// GitHub issues and PRs share a number space. START references must be issues.
+// Follow hard edges for cycle detection and resolve SOFT references without
+// using their completion state to block work.
+async function readDependencyGraph(issue, packet, api) {
+  const nodes = new Map([[issue.number, issue]]);
+  const packets = new Map([[issue.number, packet]]);
+  const queue = [{ number: issue.number, packet }];
+  const errors = [];
+  for (const task of queue) {
+    const hard = new Set([...task.packet.start, ...task.packet.integration]);
+    for (const number of new Set([...hard, ...task.packet.soft])) {
+      if (!nodes.has(number)) {
+        const node = await api('/issues/' + number);
+        if (node?.number !== number) throw new Error('GitHub returned the wrong dependency for #' + number);
+        nodes.set(number, node);
+      }
+      const node = nodes.get(number);
+      if (!hard.has(number) || !isPeaIssue(node) || packets.has(number)) continue;
+      const upstream = parsePacket(node.body);
+      packets.set(number, upstream);
+      const invalid = validatePacket(upstream, { number });
+      errors.push(...invalid.map(error => 'Dependency #' + number + ': ' + error));
+      if (invalid.length === 0) queue.push({ number, packet: upstream });
+    }
+  }
+  const tasks = [...nodes.values()].filter(node => !node.pull_request)
+    .map(node => ({ number: node.number, packet: packets.get(node.number) ?? {} }));
+  const knownPullRequests = [...nodes.values()].filter(node => node.pull_request).map(node => node.number);
+  return { nodes, packets, errors: [...errors, ...validateGraph(tasks, { knownPullRequests })] };
+}
+
+async function verifiedDevelopmentMerge(pr, baseSha, api) {
+  const merge = pr.merge_commit_sha;
+  if (pr.merged !== true || pr.base?.ref !== DEV_BRANCH || pr.base.repo?.full_name !== REPOSITORY ||
+      !SHA.test(merge ?? '') || !SHA.test(baseSha ?? '')) return false;
+  const page = await api('/commits/' + merge + '/check-runs?filter=all&per_page=100');
+  if (!Array.isArray(page?.check_runs) || page.total_count !== page.check_runs.length) {
+    throw new Error('Incomplete GitHub check evidence for ' + merge);
+  }
+  const latest = page.check_runs.filter(run => run.name === 'Development CI' && run.app?.id === ACTIONS_APP_ID &&
+    run.head_sha === merge).sort((a, b) => b.id - a.id)[0];
+  if (latest?.status !== 'completed' || latest.conclusion !== 'success') return false;
+  const runLink = /^https:\/\/github\.com\/codewptech\/skyinnk\/actions\/runs\/([1-9]\d*)\/job\/([1-9]\d*)$/.exec(latest.details_url ?? '');
+  if (!runLink || runLink[2] !== String(latest.id)) return false;
+  const run = await api('/actions/runs/' + runLink[1]);
+  if (String(run?.id) !== runLink[1] || run.event !== 'push' || run.head_sha !== merge || run.head_branch !== DEV_BRANCH ||
+      run.path !== '.github/workflows/development-ci.yml' || run.status !== 'completed' || run.conclusion !== 'success') return false;
+  if (merge === baseSha) return true;
+  const ancestry = await api('/compare/' + merge + '...' + baseSha);
+  return ancestry?.status === 'ahead' && ancestry.merge_base_commit?.sha === merge;
+}
+
+export async function validatePeaPull({ issue, pr, files, openPulls = [], api, collect }) {
+  if (!isPeaIssue(issue)) return [];
+  const packet = parsePacket(issue.body);
+  const errors = validatePacket(packet, { number: issue.number });
+  if (packet.branch !== pr.head.ref || packet.target !== pr.base.ref || packet.workstream !== WORKSTREAM[roleForBranch(pr.head.ref)]) {
+    errors.push('PEA-2 claim must match the actual PR workstream, branch and target.');
+  }
+  if (!PR_STATES.has(packet.state) || (pr.draft && ['READY_TO_INTEGRATE', 'INTEGRATING'].includes(packet.state))) {
+    errors.push('PEA-2 task must be in a PR or review state consistent with this pull request.');
+  }
+  if (!declaredExecutor(packet) || !section(issue.body ?? '', 'Claim lease')) {
+    errors.push('PEA-2 task must record the executor and an advisory or lease claim.');
+  }
+  const claimed = new Set([...packet.owned, ...packet.shared]);
+  for (const path of files) {
+    if (!claimed.has(path)) errors.push('Changed path outside the PEA-2 claim: ' + path);
+  }
+  if (errors.length) return errors;
+
+  const graph = await readDependencyGraph(issue, packet, api);
+  if (graph.errors.length) return graph.errors;
+  let closedPulls;
+  for (const number of [...packet.start, ...packet.integration]) {
+    const dependency = graph.nodes.get(number);
+    let verified = false;
+    if (dependency.pull_request) {
+      const upstream = await api('/pulls/' + number);
+      verified = upstream?.number === number && await verifiedDevelopmentMerge(upstream, pr.base.sha, api);
+    } else if (dependency.state === 'closed' && dependency.state_reason === 'completed' &&
+        (!isPeaIssue(dependency) || graph.packets.get(number)?.state === 'DONE')) {
+      closedPulls ??= await collect('/pulls?state=closed&base=' + encodeURIComponent(DEV_BRANCH));
+      const branch = field(dependency.body ?? '', 'Branch').replace(/^`|`$/g, '');
+      for (const candidate of closedPulls) {
+        if (taskIssueNumber(candidate.body ?? '') !== number || candidate.head?.ref !== branch) continue;
+        const upstream = await api('/pulls/' + candidate.number);
+        if (upstream?.number === candidate.number && upstream.head?.ref === branch &&
+            upstream.head.repo?.full_name === REPOSITORY && taskIssueNumber(upstream.body ?? '') === number &&
+            await verifiedDevelopmentMerge(upstream, pr.base.sha, api)) {
+          verified = true;
+          break;
+        }
+      }
+    }
+    if (!verified) errors.push((packet.start.includes(number) ? 'START' : 'INTEGRATION') + ' dependency #' + number + ' has no verified development integration.');
+  }
+
+  for (const other of await collect('/issues?state=open')) {
+    if (!isPeaIssue(other) || other.number === issue.number) continue;
+    const claim = parsePacket(other.body);
+    if (!CLAIM_STATES.has(claim.state) || (claim.state === 'BLOCKED' && !declaredExecutor(claim))) continue;
+    if (claim.branch === packet.branch || [...claim.owned, ...claim.shared].some(path => claimed.has(path))) {
+      errors.push('PEA-2 task claim conflicts with issue #' + other.number + '.');
+    }
+  }
+  for (const other of openPulls) {
+    if (other.number !== pr.number && other.base === DEV_BRANCH && other.files.some(path => claimed.has(path))) {
+      errors.push('PEA-2 task claim overlaps open PR #' + other.number + '.');
+    }
+  }
+  return errors;
+}
+
 async function enforceFromEvent() {
   const eventPath = process.env.GITHUB_EVENT_PATH;
   const token = process.env.GITHUB_TOKEN;
@@ -161,6 +289,15 @@ async function enforceFromEvent() {
     base: pr.base.ref, body: pr.body || '',
     files, issue, openPulls,
   });
+  if (!errors.length && isPeaIssue(issue)) {
+    errors.push(...await validatePeaPull({ issue, pr, files, openPulls, api, collect }));
+    const [latestPr, latestIssue] = await Promise.all([api(pullPath), api('/issues/' + task)]);
+    assertEventRevision(eventPull, latestPr);
+    if (latestPr.body !== pr.body || latestPr.draft !== pr.draft || latestIssue.state !== issue.state ||
+        latestIssue.body !== issue.body || latestIssue.updated_at !== issue.updated_at) {
+      errors.push('PR or PEA-2 task metadata changed during validation. Re-run Development CI.');
+    }
+  }
   for (const error of errors) console.error('::error::' + error.replace(/\r?\n/g, ' '));
   if (errors.length) throw new Error(errors.length + ' governance violation(s); see https://github.com/' + repository + '/issues/2.');
   console.log('PR #' + pr.number + ' passed workstream, task-ownership, shared-file and overlap checks.');
