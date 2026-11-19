@@ -73,7 +73,7 @@ test('no running adapter means no fabricated task run',async()=>{
  const broker=createClaimBroker({store:new InMemoryClaimStore()});
  const {lease}=await broker.acquire(req(1));
  assert.equal((await dispatchWithAdapter({adapter:null,issue:37,lease})).reason,'EXECUTOR_UNAVAILABLE');
- assert.equal((await dispatchWithAdapter({adapter:{start:async()=>({})},issue:37,lease})).reason,'START_NOT_CONFIRMED');
+ assert.equal((await dispatchWithAdapter({adapter:{start:async()=>({})},issue:37,lease,broker})).reason,'START_NOT_CONFIRMED');
 });
 test('explicit fictional adapter may return a test run ID',async()=>{
  const broker=createClaimBroker({store:new InMemoryClaimStore()});
