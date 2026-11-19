@@ -96,7 +96,7 @@ export function parsePacket(body){
 const dep=section(body,"Dependencies");
 const depValue=(key)=>dep.match(new RegExp("^\\s*-\\s*"+key+":\\s*(.*)$","im"))?.[1]??"";
 return {
-workstream:field(body,"Workstream"),branch:field(body,"Branch").replace(/^`|`$/g,""),target:field(body,"Target"),
+workstream:field(body,"Workstream"),branch:field(body,"Branch").replace(/^`|`$/g,""),target:field(body,"Target").replace(/^`|`$/g,""),
 lane:field(body,"Delivery lane"),priority:field(body,"Priority"),risk:field(body,"Risk"),
 state:section(body,"Execution state").split("\n")[0]?.trim()??"",executor:section(body,"Executor").split("\n")[0]?.trim()??"",
 outcome:section(body,"Outcome"),acceptance:section(body,"Acceptance"),
@@ -132,7 +132,7 @@ if(p.shared.some(x=>x.startsWith("/")||x.includes("..")||x.includes("*")||x.star
 if([p.outcome,p.acceptance,p.executor,p.branch,p.lane,p.risk,p.priority].some(x=>/REPLACE_WITH|describe one|one objectively|pending executable task/i.test(x)))errors.push("Unfilled template placeholder");
 if(number!==null&&[...p.start,...p.integration,...p.soft].includes(number))errors.push("Self dependency");
 if(new Set([...p.start,...p.integration,...p.soft]).size!==p.start.length+p.integration.length+p.soft.length)errors.push("Repeated dependency");
-if(p.state==="READY"&&p.executor!=="unclaimed")errors.push("READY task must be unclaimed");
+if(["BACKLOG","READY"].includes(p.state)&&p.executor!=="unclaimed")errors.push("BACKLOG/READY task must be unclaimed");
 // START completion is verified against live issue states in eligibleTask, not guessed from this static packet.
 if(["CLAIMED","BUILDING"].includes(p.state)&&p.executor==="unclaimed")errors.push("Active task needs real executor");
 return errors;
