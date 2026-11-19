@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parsePacket, validatePacket, changePaths, eligibleTask, integrationEligible,
-  detectCycles, nextStateLegal, rankReady,
+  detectCycles, validateGraph, nextStateLegal, rankReady,
 } from './parallel-task-policy.mjs';
 
 function taskBody(extra = {}) {
@@ -93,14 +93,30 @@ test('graph detects cycles across both blocking dependency classes', () => {
     {number:5,packet:{start:[],integration:[]}},
   ]).length,0);
 });
-test('integration requires verified review, exact-head CI and current base', () => {
+test('integration evidence must match exact PR head and current base', () => {
   const packet={...parsePacket(taskBody()),state:'READY_TO_INTEGRATE'};
-  assert.equal(integrationEligible(packet,{
+  const head='a'.repeat(40),base='b'.repeat(40);
+  const valid={
     issueStates:{24:'DONE'},
-    pr:{state:'open',headSha:'a'.repeat(40),baseSha:'b'.repeat(40)},
-    ciPassed:true,reviewVerified:true,baseCurrent:true,collisions:[],
-  }).eligible,true);
-  assert.match(integrationEligible(packet,{issueStates:{24:'BUILDING'}}).reasons.join('|'),/INTEGRATION dependency/);
+    pr:{state:'open',headSha:head,baseSha:base,executor:'agent-A'},
+    checks:[{headSha:head,name:'Development CI',conclusion:'success'}],
+    reviews:[{headSha:head,kind:'technical',verdict:'accepted',reviewer:'agent-B'}],
+    currentBaseSha:base,collisions:[],
+  };
+  assert.equal(integrationEligible(packet,valid).eligible,true);
+  assert.match(integrationEligible(packet,{...valid,issueStates:{24:'BUILDING'}}).reasons.join('|'),/INTEGRATION dependency/);
+  assert.match(integrationEligible(packet,{...valid,checks:[{...valid.checks[0],headSha:'c'.repeat(40)}]}).reasons.join('|'),/exact PR head/);
+  assert.match(integrationEligible(packet,{...valid,reviews:[{...valid.reviews[0],headSha:'d'.repeat(40)}]}).reasons.join('|'),/review evidence/);
+  assert.match(integrationEligible(packet,{...valid,reviews:[{...valid.reviews[0],reviewer:'agent-A'}]}).reasons.join('|'),/review evidence/);
+  assert.match(integrationEligible(packet,{...valid,currentBaseSha:'f'.repeat(40)}).reasons.join('|'),/base not reconciled/);
+});
+test('graph rejects missing or cyclic references while allowing known PR IDs', () => {
+  assert.match(validateGraph([{number:10,packet:{start:[11],integration:[],soft:[]}}]).join('|'),/missing START/);
+  assert.match(validateGraph([
+    {number:10,packet:{start:[11],integration:[],soft:[]}},
+    {number:11,packet:{start:[],integration:[10],soft:[]}},
+  ]).join('|'),/Dependency cycle/);
+  assert.deepEqual(validateGraph([{number:10,packet:{start:[],integration:[24],soft:[]}}],{knownPullRequests:[24]}),[]);
 });
 test('state transitions cannot skip review or integration', () => {
   assert.equal(nextStateLegal('BACKLOG','DONE'),false);
