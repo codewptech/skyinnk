@@ -78,6 +78,32 @@ test('no running adapter means no fabricated task run',async()=>{
 test('explicit fictional adapter may return a test run ID',async()=>{
  const broker=createClaimBroker({store:new InMemoryClaimStore()});
  const {lease}=await broker.acquire(req(1));
- const result=await dispatchWithAdapter({adapter:{start:async()=>({runId:'fictional-test-run'})},issue:37,lease});
+ const result=await dispatchWithAdapter({adapter:{start:async()=>({runId:'fictional-test-run'})},issue:37,lease,broker});
  assert.equal(result.ok,true);
+});
+
+test('dispatch cannot start without verifying current lease in claim broker',async()=>{
+ const broker=createClaimBroker({store:new InMemoryClaimStore()});
+ const {lease}=await broker.acquire(req(1));
+ const fake={start:async()=>({runId:'should-not-run'})};
+ assert.equal((await dispatchWithAdapter({adapter:fake,issue:37,lease})).reason,'CLAIM_VERIFICATION_REQUIRED');
+});
+test('expired, stale and released claims cannot launch executor',async()=>{
+ let now=1000,startCount=0;
+ const broker=createClaimBroker({store:new InMemoryClaimStore(),clock:()=>now});
+ const {lease}=await broker.acquire(req(1));
+ const adapter={start:async()=>{startCount++;return {runId:'not-allowed'};}};
+ now=2500;
+ assert.equal((await dispatchWithAdapter({adapter,issue:37,lease,broker})).reason,'EXPIRED_REQUIRES_RECONCILIATION');
+ assert.equal(startCount,0);
+});
+test('adapter exceptions are recorded without claiming successful start',async()=>{
+ const broker=createClaimBroker({store:new InMemoryClaimStore()});
+ const {lease}=await broker.acquire(req(1));
+ const result=await dispatchWithAdapter({
+   adapter:{start:async()=>{throw Error('runtime disconnected');}},
+   issue:37,lease,broker
+ });
+ assert.equal(result.reason,'START_FAILED');
+ assert.equal(result.ok,false);
 });
