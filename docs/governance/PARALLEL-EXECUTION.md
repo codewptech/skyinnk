@@ -23,14 +23,14 @@ A **lane** describes delivery purpose, a **Workstream** determines source-path p
 | Quality/Remediation | Audit, reproductions, security and regression work | Work / Chat 03 / Chat 01 according to exact changed files |
 | Governance | Architecture and policy code | Chat 01 |
 
-No invented \`quality/*\` branch: existing CI accepts \`work/task-*\`, \`chat03/task-*\` and \`chat01/task-*\` only. An independent auditor may review any lane read-only; an auditor implementing a fix must use an authorized owner-role task and review route.
+No invented `quality/*` branch: existing CI accepts `work/task-*`, `chat03/task-*` and `chat01/task-*` only. An independent auditor may review any lane read-only; an auditor implementing a fix must use an authorized owner-role task and review route.
 
 ## 2. Guaranteed versus advisory controls
 
 | Control | Current guarantee | Target verification |
 | --- | --- | --- |
 | Protected main/development branches and required Development CI | Existing active repository rulesets | Read effective GitHub settings and commit checks |
-| Task branch namespace, declared issue, workstream role, exact shared reservations and open-PR path overlap | Existing Development CI, only after PR exists | Check current merged \`scripts/verify-pr-governance.mjs\` |
+| Task branch namespace, declared issue, workstream role, exact shared reservations and open-PR path overlap | Existing Development CI, only after PR exists | Check current merged `scripts/verify-pr-governance.mjs` |
 | Concurrency among multiple unpublished implementation branches | **NOT enforced**: PR-only checker sees neither unpublished edits nor task claims atomically | Dispatcher grants exclusive atomic leases before work |
 | READY task and dependency validation | **Advisory issue metadata only** until follow-on issue #33/#34 merges | Policy tests and live invalid/valid PR acceptance |
 | Start/resume Work or Codex tasks automatically | **NOT available merely from GitHub issues or ordinary chat instructions** | Connected supported execution adapter logs a real start and completion |
@@ -44,24 +44,24 @@ Do not claim "fully enforced", "running agents" or "reviewed" when only a docume
 
 Every **new PEA-2** task must contain these typed, unambiguous fields (historical open issues retain the old contract until migrated deliberately):
 
-- \`Workstream:\` exact \`Work\`, \`Chat 03\` or \`Chat 01\`.
-- \`Branch:\` exact role-matching \`work/task-...\`, \`chat03/task-...\`, \`chat01/task-...\`.
-- \`Target:\` \`development/v1-public-launch\`.
-- \`Delivery lane:\` one of the four lane names in section 1.
-- \`Priority:\` \`P0\`, \`P1\`, \`P2\`, or \`P3\`. P0 = urgent safety, P1 = launch-critical, P2 = committed enablement, P3 = optional quality; never fabricate urgency.
-- \`Execution state:\` one canonical state from section 4. New issues always start as \`BACKLOG\` until validated; READY is not the default.
-- \`Risk:\` \`ordinary\`, \`shared-interface\`, \`sensitive-governance\`, \`release-gated\`.
-- \`Executor:\` actual task/run ID with tool or \`unclaimed\`. Do not put a chat name here and pretend it is working.
-- \`Claim lease:\` timestamp, expiry and claim generation ID **only after a capable claim broker grants it**; otherwise \`none / advisory\`.
-- \`Start dependencies:\` #issue IDs or \`none\`; must be DONE before execution can begin.
-- \`Integration dependencies:\` #PR/issue IDs or \`none\`; may allow isolated contract-based development but block merging until verified.
-- \`Soft dependencies:\` #IDs or \`none\`, with downstream compatibility checks.
-- \`External approvals:\` named owner-controlled condition(s), with exact blockable scope.
-- \`Owned / affected paths:\` explicit paths and planned changed files. No wildcard used to evade claims.
-- \`Reserved shared paths:\` exact paths required by existing governance, or \`none\`.
-- \`Outcome:\` one observable deliverable, acceptance checks and downstream interface implications.
-- \`Next eligible task:\` optional candidate; cannot override readiness validation.
-- \`Blocking decision:\` only if state is BLOCKED; identify blocker issue/actor, reason and unblock criterion.
+- `Workstream:` exact `Work`, `Chat 03` or `Chat 01`.
+- `Branch:` exact role-matching `work/task-...`, `chat03/task-...`, `chat01/task-...`.
+- `Target:` `development/v1-public-launch`.
+- `Delivery lane:` one of the four lane names in section 1.
+- `Priority:` `P0`, `P1`, `P2`, or `P3`. P0 = urgent safety, P1 = launch-critical, P2 = committed enablement, P3 = optional quality; never fabricate urgency.
+- `Execution state:` one canonical state from section 4. New issues always start as `BACKLOG` until validated; READY is not the default.
+- `Risk:` `ordinary`, `shared-interface`, `sensitive-governance`, `release-gated`.
+- `Executor:` actual task/run ID with tool or `unclaimed`. Do not put a chat name here and pretend it is working.
+- `Claim lease:` timestamp, expiry and claim generation ID **only after a capable claim broker grants it**; otherwise `none / advisory`.
+- `Start dependencies:` #issue IDs or `none`; must be DONE before execution can begin.
+- `Integration dependencies:` #PR/issue IDs or `none`; may allow isolated contract-based development but block merging until verified.
+- `Soft dependencies:` #IDs or `none`, with downstream compatibility checks.
+- `External approvals:` named owner-controlled condition(s), with exact blockable scope.
+- `Owned / affected paths:` explicit paths and planned changed files. No wildcard used to evade claims.
+- `Reserved shared paths:` exact paths required by existing governance, or `none`.
+- `Outcome:` one observable deliverable, acceptance checks and downstream interface implications.
+- `Next eligible task:` optional candidate; cannot override readiness validation.
+- `Blocking decision:` only if state is BLOCKED; identify blocker issue/actor, reason and unblock criterion.
 
 Invalid or placeholder packets remain BACKLOG. A status label alone is not authoritative. The existing PR checker still evaluates its historical syntax during migration: leave the exact Workstream, Branch, task-issue line and reservation heading intact.
 
@@ -86,7 +86,7 @@ Invalid or placeholder packets remain BACKLOG. A status label alone is not autho
 
 State is **not** derived only from mutable issue-body text. Target architecture reconciles issue claim + task executor/run + current branch SHA + linked PR state + current check conclusions + integration SHA. An issue never has to remain READY after it gains a PR. Recheck current GitHub state before transition; transition writes must be idempotent and reject stale generation numbers.
 
-During manual operation, GitHub issue body is the proposed intent; linked PR/CI/branch SHA is the evidence of actual progress. If these disagree, classify \`NEEDS_RECONCILIATION\` and avoid silently marking DONE.
+During manual operation, GitHub issue body is the proposed intent; linked PR/CI/branch SHA is the evidence of actual progress. If these disagree, classify `NEEDS_RECONCILIATION` and avoid silently marking DONE.
 
 ## 5. Dependencies: no loopholes
 
@@ -99,7 +99,7 @@ Reject self-dependencies, missing/closed-without-success prerequisites, cycles a
 
 ## 6. Priority, WIP and fairness
 
-Dispatch eligible READY tasks deterministically by \`Priority (P0→P3)\`, then declared dependency-unlock value (number of waiting committed tasks), then issue creation time, then issue number. Do not favor a lane because someone spoke last in HQ.
+Dispatch eligible READY tasks deterministically by `Priority (P0→P3)`, then declared dependency-unlock value (number of waiting committed tasks), then issue creation time, then issue number. Do not favor a lane because someone spoke last in HQ.
 
 - Maximum **one active BUILDING task per actual executor** and at most one additional review task; a whole delivery lane may use several separate actual executors if claims are disjoint.
 - **One integrator** advances one PR merge at a time. Reviewers do not stop builders.
@@ -132,11 +132,11 @@ A broker might be implemented with an approved GitHub-backed serialized workflow
 ## 8. Execution adapters and uninterrupted lanes
 
 An execution adapter is a real supported connector to a running agent environment. Its contract:
-1. \`start(issue, repo, baseSHA, paths, acceptance, claimGeneration)\` returns a genuine run ID; the adapter confirms the agent began the task.
-2. \`heartbeat(runID)\` proves liveness and claim ownership without granting unrelated privileges.
-3. \`checkpoint(runID, evidence, headSHA)\` records test/PR state and releases only appropriate execution slots.
-4. \`complete(runID, PR, evidence)\` moves the task to review.
-5. \`fail(runID, reason)\` places task in BLOCKED/PAUSED with recoverable evidence, never silently discards changes.
+1. `start(issue, repo, baseSHA, paths, acceptance, claimGeneration)` returns a genuine run ID; the adapter confirms the agent began the task.
+2. `heartbeat(runID)` proves liveness and claim ownership without granting unrelated privileges.
+3. `checkpoint(runID, evidence, headSHA)` records test/PR state and releases only appropriate execution slots.
+4. `complete(runID, PR, evidence)` moves the task to review.
+5. `fail(runID, reason)` places task in BLOCKED/PAUSED with recoverable evidence, never silently discards changes.
 
 Adapters may be built for Work/Codex **only where a real supported launch and status API is connected and authorized**. A GitHub issue cannot wake a dormant chat, and an automation that reports queue health does not execute code. Do not invent a Codex/Work API endpoint or say runs have started without a recorded run ID.
 
@@ -146,7 +146,7 @@ Adapters may be built for Work/Codex **only where a real supported launch and st
 
 Review is a staffed separate work queue, not an implicit step after every other task finishes:
 1. On PR_OPEN, attach exact head/base SHA, issue, changed paths, affected contract, tests and review categories. A review coordinator assigns a relevant actual reviewer; an already-running agent can inspect a different lane without modifying its branch.
-2. Reviewer examines source and relevant tests, records findings for the **exact head** and chooses \`CHANGES_REQUESTED\` or \`TECHNICALLY_ACCEPTABLE\`. An AI under the shared owner GitHub account must label this **advisory technical review**, not an independently authenticated GitHub approval.
+2. Reviewer examines source and relevant tests, records findings for the **exact head** and chooses `CHANGES_REQUESTED` or `TECHNICALLY_ACCEPTABLE`. An AI under the shared owner GitHub account must label this **advisory technical review**, not an independently authenticated GitHub approval.
 3. The integrator independently checks changed files, active leases/open PRs, current required CI, task approvals and blockers. Select a single candidate, reconcile its branch with latest development **without force-push/resetting others' work**, rerun exact-head CI.
 4. Normal non-production merge only after applicable technical review and existing protection rules. If the required independent review cannot be authenticated, record limitation and do not assert it occurred. Escalate only if a material policy decision is needed.
 5. Verify post-merge SHA, required CI and regression/integration acceptance; mark DONE only then. Recompute dependent task eligibility and queue next candidate. A failed candidate returns only that PR to implementation/review; independent lanes continue.
@@ -163,11 +163,11 @@ Use contract-first fixtures for independent frontend/API work. Do not block all 
 
 ## 11. Rollout, current queue and migration compatibility
 
-**Current observed baseline (19 Nov 2026):** development \`c1250c4\`; nine audit PRs #14/#16/#18/#20/#22/#24/#26/#28/#30 under review. PR #32 proposes this architecture. Ready tasks #35 (Work guest course discovery) and #36 (Chat 03 public API HTTP) are unclaimed, and **no independent agent start has been proved**. Codex remains the intended technical implementer for the nine audit remediation PRs, subject to genuine running-task availability.
+**Current observed baseline (19 Nov 2026):** development `c1250c4`; nine audit PRs #14/#16/#18/#20/#22/#24/#26/#28/#30 under review. PR #32 proposes this architecture. Ready tasks #35 (Work guest course discovery) and #36 (Chat 03 public API HTTP) are unclaimed, and **no independent agent start has been proved**. Codex remains the intended technical implementer for the nine audit remediation PRs, subject to genuine running-task availability.
 
 **Phase 0 — this PR:** approve architecture semantics and template, without changing currently reserved governance/CI files. Historical issues and open PRs remain valid and must not break from a new mandatory packet format.
 
-**Phase 1 — policy after existing PRs:** issue #33 updates active \`AGENTS.md\`, development workflow, governance checker and tests after #24 and #32. Preserve historical issue compatibility and reject incomplete new PEA-2 packets.
+**Phase 1 — policy after existing PRs:** issue #33 updates active `AGENTS.md`, development workflow, governance checker and tests after #24 and #32. Preserve historical issue compatibility and reject incomplete new PEA-2 packets.
 
 **Phase 2 — CI after policy:** issue #34 integrates validated task-state/dependency checks into required Development CI after #22/#33/#32; must use read-only GitHub scopes, fail closed on real violations, and never claim it can see unpublished competing edits without a broker.
 
@@ -175,7 +175,7 @@ Use contract-first fixtures for independent frontend/API work. Do not block all 
 
 **Phase 4 — concurrent pilot:** while Codex maintains its legitimate remediation PRs, start real Work #35 and Chat 03 #36 tasks in separate agent runtimes where supported. Require timestamps/run IDs/paths. Both produce exact-head CI PRs with no overlap; assign genuine technical reviewers concurrently; integrate at least one approved PR and record post-merge CI. Record owner interventions, review and merge waiting time. **The system does not pass this acceptance test simply because two issues exist.**
 
-**Rollout completion criteria:** (a) contract merged, (b) issue/task policy + CI checks effective and tested, (c) actual conflict-free concurrent execution observed, (d) reviews occur without owner relaying every step, (e) ordered integration passes post-merge checks, and (f) no unauthorized production writes. Publish status as \`DESIGNED\`, \`DOCUMENTED\`, \`CI_ENFORCED\`, \`EXECUTING\` and \`PILOT_VERIFIED\` separately.
+**Rollout completion criteria:** (a) contract merged, (b) issue/task policy + CI checks effective and tested, (c) actual conflict-free concurrent execution observed, (d) reviews occur without owner relaying every step, (e) ordered integration passes post-merge checks, and (f) no unauthorized production writes. Publish status as `DESIGNED`, `DOCUMENTED`, `CI_ENFORCED`, `EXECUTING` and `PILOT_VERIFIED` separately.
 
 ## 12. Failure handling
 
