@@ -109,18 +109,28 @@ if(!ROLES[p.workstream])errors.push("Invalid Workstream");
 if(!p.branch||!new RegExp("^"+(ROLES[p.workstream]??"invalid")+"/task-[a-z0-9]+(?:-[a-z0-9]+)*$").test(p.branch))errors.push("Branch does not match Workstream");
 if(p.target!=="development/v1-public-launch")errors.push("Invalid target branch");
 if(!["Learning Experience","Technical Foundation","Quality/Remediation","Governance"].includes(p.lane))errors.push("Invalid delivery lane");
+if(p.lane==="Learning Experience"&&p.workstream!=="Work")errors.push("Learning Experience requires Work ownership");
+if(p.lane==="Technical Foundation"&&p.workstream!=="Chat 03")errors.push("Technical Foundation requires Chat 03 ownership");
+if(p.lane==="Governance"&&p.workstream!=="Chat 01")errors.push("Governance requires Chat 01 ownership");
 if(!["P0","P1","P2","P3"].includes(p.priority))errors.push("Invalid priority");
 if(!["ordinary","shared-interface","sensitive-governance","release-gated"].includes(p.risk))errors.push("Invalid risk");
 if(!STATES.has(p.state))errors.push("Invalid execution state");
 if(!p.executor||!p.outcome||p.outcome.length<20||!p.acceptance.includes("- [ ]"))errors.push("Missing executor, outcome or acceptance");
 if(!p.depRaw||!p.external)errors.push("Missing dependencies or external approval");
+for(const type of ["START","INTEGRATION","SOFT"]){
+ const matches=[...p.depRaw.matchAll(new RegExp("^\\s*-\\s*"+type+":\\s*(.*)$","gmi"))];
+ if(matches.length!==1||!/^(none|#\\d+(?:[\\s,]+#\\d+)*)$/i.test(matches[0]?.[1]?.trim()??""))errors.push("Malformed "+type+" dependency list");
+}
+if(!p.external||/REPLACE_WITH/.test(p.external))errors.push("Invalid external approval field");
 if(!p.owned.length)errors.push("Missing exact affected path");
+if(new Set(p.owned).size!==p.owned.length||new Set(p.shared).size!==p.shared.length)errors.push("Duplicate path claim");
 if(p.owned.some(x=>x.startsWith("/")||x.includes("..")||x.includes("*")||x.startsWith("REPLACE")||x.trim()!==x))errors.push("Invalid affected path");
 if(p.shared.some(x=>x.startsWith("/")||x.includes("..")||x.includes("*")||x.startsWith("REPLACE")))errors.push("Invalid reserved path");
 if([p.outcome,p.acceptance,p.executor,p.branch,p.lane,p.risk,p.priority].some(x=>/REPLACE_WITH|describe one|one objectively|pending executable task/i.test(x)))errors.push("Unfilled template placeholder");
 if(number!==null&&[...p.start,...p.integration,...p.soft].includes(number))errors.push("Self dependency");
 if(new Set([...p.start,...p.integration,...p.soft]).size!==p.start.length+p.integration.length+p.soft.length)errors.push("Repeated dependency");
 if(p.state==="READY"&&p.executor!=="unclaimed")errors.push("READY task must be unclaimed");
+if(p.state==="READY"&&p.start.length>0)errors.push("READY state requires verified START dependency status; validate on live issue graph");
 if(["CLAIMED","BUILDING"].includes(p.state)&&p.executor==="unclaimed")errors.push("Active task needs real executor");
 return errors;
 }
@@ -141,6 +151,19 @@ for(const n of p.start)if(issueStates[n]!=="DONE")reasons.push("START dependency
 const owned=new Set([...p.owned,...p.shared]);
 for(const c of claims)if(c.branch!==p.branch&&changePaths(c.paths).some(x=>owned.has(x)))reasons.push("Active task claim conflict: "+c.id);
 for(const pr of openPRs)if(pr.branch!==p.branch&&changePaths(pr.files).some(x=>owned.has(x)))reasons.push("Open PR conflict: #"+pr.number);
+return {eligible:reasons.length===0,reasons};
+}
+
+
+export function integrationEligible(p,{issueStates={},pr=null,ciPassed=false,reviewVerified=false,baseCurrent=false,collisions=[]}={}){
+const reasons=[];
+if(p.state!=="READY_TO_INTEGRATE")reasons.push("Not ready-to-integrate");
+for(const n of p.integration)if(issueStates[n]!=="DONE")reasons.push("INTEGRATION dependency #"+n+" not DONE");
+if(!pr||pr.state!=="open"||!pr.headSha||!pr.baseSha)reasons.push("Missing exact-head open PR");
+if(!ciPassed)reasons.push("Exact-head required CI not successful");
+if(!reviewVerified)reasons.push("Independent technical review not verified");
+if(!baseCurrent)reasons.push("PR base not reconciled against current development");
+if(collisions.length)reasons.push("Unresolved changed-path collisions: "+collisions.join(", "));
 return {eligible:reasons.length===0,reasons};
 }
 
