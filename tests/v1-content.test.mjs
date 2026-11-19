@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
 import {
   readFileSync,
@@ -55,6 +56,7 @@ test("resource publication enforces local safe paths, review, type and truthful 
     url: "/resources/public/fixture.txt",
     type: "TXT",
     sizeBytes: 4,
+    sha256: createHash("sha256").update("test").digest("hex"),
     publication: { ...lesson.publication },
   };
   for (const unsafe of [
@@ -77,6 +79,14 @@ test("resource publication enforces local safe paths, review, type and truthful 
     assert.throws(() => checkPublicContent(root), /Missing or unsafe/);
     writeFileSync(join(root, "public/resources/public/fixture.txt"), "test");
     assert.doesNotThrow(() => checkPublicContent(root));
+    delete resource.sha256;
+    writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
+    assert.throws(() => checkPublicContent(root), /Missing approved resource SHA-256/);
+    resource.sha256 = createHash("sha256").update("test").digest("hex");
+    writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
+    writeFileSync(join(root, "public/resources/public/fixture.txt"), "edit");
+    assert.throws(() => checkPublicContent(root), /differs from approved bytes/);
+    writeFileSync(join(root, "public/resources/public/fixture.txt"), "test");
     writeFileSync(
       join(root, "public/resources/public/private.txt"),
       "not approved",
@@ -88,6 +98,31 @@ test("resource publication enforces local safe paths, review, type and truthful 
       "modified",
     );
     assert.throws(() => checkPublicContent(root), /Incorrect resource size/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("an approved digest cannot make text bytes a PDF", () => {
+  const value = publicCatalogueFixture();
+  const lesson = value.courses[0].modules[1].lessons[0];
+  const contents = "Fictional text, not a PDF.";
+  lesson.resources = [{
+    key: "fixture-pdf",
+    title: "Test worksheet",
+    url: "/resources/public/fixture.pdf",
+    type: "PDF",
+    sizeBytes: Buffer.byteLength(contents),
+    sha256: createHash("sha256").update(contents).digest("hex"),
+    publication: { ...lesson.publication },
+  }];
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-resource-format-"));
+  try {
+    mkdirSync(join(root, "content"));
+    mkdirSync(join(root, "public/resources/public"), { recursive: true });
+    writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
+    writeFileSync(join(root, "public/resources/public/fixture.pdf"), contents);
+    assert.throws(() => checkPublicContent(root), /Incorrect resource format/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
