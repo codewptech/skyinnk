@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, changedPaths, validatePolicy } from '../scripts/verify-pr-governance.mjs';
+import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, changedPaths, assertEventRevision, validatePolicy } from '../scripts/verify-pr-governance.mjs';
 
 const tick = String.fromCharCode(96);
 const issue = (role, branch, paths = []) => ({
@@ -11,6 +11,7 @@ const issue = (role, branch, paths = []) => ({
 });
 const base = (extra = {}) => ({
   number: 6, head: 'chat01/task-enforce-workflow',
+  headRepo: 'codewptech/skyinnk',
   base: 'development/v1-public-launch', body: 'Task issue: #5',
   files: ['AGENTS.md'],
   issue: issue('Chat 01', 'chat01/task-enforce-workflow', ['AGENTS.md']),
@@ -25,6 +26,16 @@ test('only task-prefixed workstream branches accepted', () => {
 test('exact task issue parsed', () => {
   assert.equal(taskIssueNumber('Task issue: #45\n'), 45);
   assert.equal(taskIssueNumber('see #45'), 0);
+  assert.equal(taskIssueNumber('Task issue: #45\nTask issue: #46'), 0);
+  assert.equal(taskIssueNumber('Task issue: #9007199254740992'), 0);
+});
+test('active policy rejects fork ownership and stale event revisions', () => {
+  assert.match(validatePolicy(base({ headRepo: 'fixture/skyinnk' })).join(' '), /internal feature branch/);
+  const current = { state: 'open', head: { sha: 'candidate', ref: 'work/task-lesson' },
+    base: { sha: 'base', ref: 'development/v1-public-launch' } };
+  assert.doesNotThrow(() => assertEventRevision(current, current));
+  assert.throws(() => assertEventRevision(current, { ...current, base: { ...current.base, sha: 'new' } }),
+    /PR revision changed/);
 });
 test('exact shared reservations parsed', () => {
   assert.deepEqual([...reservedPaths(issue('Chat 01','branch',['AGENTS.md','package.json']).body)],['AGENTS.md','package.json']);

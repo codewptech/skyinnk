@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 const DEV_BRANCH = 'development/v1-public-launch';
+const REPOSITORY = 'codewptech/skyinnk';
 const WORKSTREAM = { chat03: 'Chat 03', work: 'Work', chat01: 'Chat 01' };
 const TICK = String.fromCharCode(96);
 export function changedPaths(files) {
@@ -30,7 +31,9 @@ export function roleForBranch(branch) {
 }
 
 export function taskIssueNumber(body = '') {
-  return Number(/^Task issue:\s*#(\d+)\s*$/im.exec(body)?.[1] ?? 0);
+  const claims = [...body.matchAll(/^Task issue:[ \t]*#([1-9]\d*)[ \t]*\r?$/gim)];
+  const number = Number(claims[0]?.[1]);
+  return claims.length === 1 && Number.isSafeInteger(number) ? number : 0;
 }
 
 export function reservedPaths(issueBody = '') {
@@ -53,9 +56,10 @@ function isGovernanceOwnedPath(path) {
     || path === 'tests/governance.test.mjs';
 }
 
-export function validatePolicy({ number, head, base, body = '', files = [], issue = null, openPulls = [] }) {
+export function validatePolicy({ number, head, headRepo, base, body = '', files = [], issue = null, openPulls = [] }) {
   const errors = [];
   if (base !== DEV_BRANCH) errors.push('Base branch must be ' + DEV_BRANCH + '.');
+  if (headRepo !== REPOSITORY) errors.push('Head must be an internal feature branch in this repository.');
   const role = roleForBranch(head);
   if (!role) errors.push('Feature branch must be chat03/task-*, work/task-* or chat01/task-* (got ' + head + ').');
   const task = taskIssueNumber(body);
@@ -99,6 +103,17 @@ export function validatePolicy({ number, head, base, body = '', files = [], issu
   return errors;
 }
 
+export function assertEventRevision(eventPull, current) {
+  if (current.state !== 'open' ||
+      current.head?.sha !== eventPull.head?.sha ||
+      current.base?.sha !== eventPull.base?.sha ||
+      current.base?.ref !== eventPull.base?.ref ||
+      current.head?.ref !== eventPull.head?.ref ||
+      current.head?.repo?.full_name !== eventPull.head?.repo?.full_name) {
+    throw new Error('PR revision changed. Run Development CI for the current revision.');
+  }
+}
+
 async function enforceFromEvent() {
   const eventPath = process.env.GITHUB_EVENT_PATH;
   const token = process.env.GITHUB_TOKEN;
@@ -107,8 +122,8 @@ async function enforceFromEvent() {
     throw new Error('GITHUB_EVENT_PATH, GITHUB_TOKEN and valid GITHUB_REPOSITORY required.');
   }
   const event = JSON.parse(await readFile(eventPath, 'utf8'));
-  const pr = event.pull_request;
-  if (!pr) throw new Error('PR governance must run on pull_request.');
+  const eventPull = event.pull_request;
+  if (!Number.isSafeInteger(eventPull?.number)) throw new Error('PR governance must run on pull_request.');
   const api = async path => {
     const response = await fetch('https://api.github.com/repos/' + repository + path, {
       headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json',
@@ -128,18 +143,22 @@ async function enforceFromEvent() {
     }
     throw new Error('GitHub API list pagination limit exceeded.');
   };
-  const files = changedPaths(await collect('/pulls/' + pr.number + '/files'));
-  const task = taskIssueNumber(pr.body || '');
-  const issue = task ? await api('/issues/' + task) : null;
+  const pullPath = '/pulls/' + eventPull.number;
+  const files = changedPaths(await collect(pullPath + '/files'));
   const others = await collect('/pulls?state=open');
   const openPulls = [];
   for (const other of others) {
-    if (other.number === pr.number || other.base?.ref !== DEV_BRANCH) continue;
+    if (other.number === eventPull.number || other.base?.ref !== DEV_BRANCH) continue;
     openPulls.push({ number: other.number, base: other.base.ref,
       files: changedPaths(await collect('/pulls/' + other.number + '/files')) });
   }
+  const pr = await api(pullPath);
+  assertEventRevision(eventPull, pr);
+  const task = taskIssueNumber(pr.body || '');
+  const issue = task ? await api('/issues/' + task) : null;
   const errors = validatePolicy({
-    number: pr.number, head: pr.head.ref, base: pr.base.ref, body: pr.body || '',
+    number: pr.number, head: pr.head.ref, headRepo: pr.head.repo?.full_name,
+    base: pr.base.ref, body: pr.body || '',
     files, issue, openPulls,
   });
   for (const error of errors) console.error('::error::' + error.replace(/\r?\n/g, ' '));
