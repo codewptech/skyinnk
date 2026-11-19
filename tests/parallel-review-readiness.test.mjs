@@ -6,7 +6,7 @@ import {
 
 const DEV_SHA='a'.repeat(40), HEAD='b'.repeat(40), OTHER_HEAD='c'.repeat(40);
 const make=(number,changed=['app/a.vue'],extra={})=>({
- number,title:'PR #'+number,state:'open',draft:false,user:{login:'codewptech'},
+ number,title:'PR #'+number,state:'open',draft:false,mergeable:true,user:{login:'codewptech'},
  head:{sha:number===1?HEAD:OTHER_HEAD},
  base:{ref:'development/v1-public-launch',sha:DEV_SHA},
  body:'Task issue: #'+(number+100),
@@ -81,4 +81,17 @@ test('live adapter supports fully fictional GitHub responses',async()=>{
  const x=await inspectRepository({repository:'codewptech/skyinnk',apiFetch:fake});
  assert.equal(x.total,1);
  assert.equal(x.pendingReview,1);
+});
+
+test('latest changes-requested review overrides earlier approval',()=>{
+ const pr=make(1,['app/a.vue'],{reviews:[
+   {state:'APPROVED',commit_id:HEAD,user:{login:'reviewer'}},
+   {state:'CHANGES_REQUESTED',commit_id:HEAD,user:{login:'reviewer'}}
+ ]});
+ assert.equal(assessPullRequests({pullRequests:[pr],developmentSha:DEV_SHA}).pendingReview,1);
+});
+test('mergeability not confirmed cannot produce candidate',()=>{
+ const pr=make(1,['app/a.vue'],{mergeable:null,
+   reviews:[{state:'APPROVED',commit_id:HEAD,user:{login:'reviewer'}}]});
+ assert.equal(assessPullRequests({pullRequests:[pr],developmentSha:DEV_SHA}).candidates,0);
 });
