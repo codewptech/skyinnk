@@ -32,6 +32,11 @@ expose deployment credentials in these checks. GitHub requires a dispatchable
 workflow to exist on the default branch. Actual default-branch adoption and
 any settings or identity changes require a separate owner decision.
 
+The local gate contract runs with `node --test tests/release-authorization.test.mjs`.
+It verifies the repository, event, ref, actor, rerun actor and all three
+commit values without credentials. Staging must still establish that workflow
+contexts and the current remote tip feed that contract correctly.
+
 ## Release recovery preparation
 
 1. Record the healthy prior commit, immutable local image ID or registry
@@ -62,8 +67,10 @@ bash scripts/rehearse-v1-recovery.sh PRIOR_LOCAL_IMAGE [CANDIDATE_LOCAL_IMAGE]
 
 The rehearsal uses a local Unix socket, an internal Docker network, no host
 ports, and a disposable database with fictional settings. It creates the
-existing User schema with the repository SQL, confirms the initial image
-works, observes a live but database-unready candidate, then starts the exact
+existing User schema with the repository SQL and verifies a PostgreSQL dump
+and restore with a fictional record. It confirms the initial image works,
+probes the candidate against the restored schema while the prior image stays
+ready, observes a live but database-unready candidate, then starts the exact
 retained prior image against the same database and repeats both probes. Omit
 the second image to rehearse a deliberately invalid candidate configuration
 on the same artifact.

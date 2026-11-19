@@ -43,6 +43,17 @@ done
 "${docker_local[@]}" exec -i "$db" psql -X -v ON_ERROR_STOP=1 -U rehearsal -d rehearsal \
   < "$migration" >/dev/null
 
+"${docker_local[@]}" exec "$db" psql -X -v ON_ERROR_STOP=1 -U rehearsal -d rehearsal \
+  -c "INSERT INTO \"User\" (\"auth0Id\") VALUES ('fixture|rehearsal')" >/dev/null
+"${docker_local[@]}" exec "$db" pg_dump -U rehearsal -d rehearsal -Fc -f /tmp/rehearsal.dump
+"${docker_local[@]}" exec "$db" createdb -U rehearsal rehearsal_restored
+"${docker_local[@]}" exec "$db" pg_restore --exit-on-error -U rehearsal \
+  -d rehearsal_restored /tmp/rehearsal.dump
+restored_rows="$("${docker_local[@]}" exec "$db" psql -X -v ON_ERROR_STOP=1 -At -U rehearsal \
+  -d rehearsal_restored -c "SELECT count(*) FROM \"User\" WHERE \"auth0Id\" = 'fixture|rehearsal'")"
+[[ "$restored_rows" == 1 ]]
+printf '%s\n' 'Verified backup restore with a fictional record'
+
 start_app() {
   local name="$1" image="$2" database="$3"
   local id
@@ -80,6 +91,14 @@ broken_db="postgresql://rehearsal:local-fixture-only@127.0.0.1:1/rehearsal?conne
 start_app "$previous" "$prior_image" "$working_db"
 probe "$previous" /api/v1/health 200
 probe "$previous" /api/v1/ready 200
+
+staged="$network-staged"
+restored_db="postgresql://rehearsal:local-fixture-only@$db:5432/rehearsal_restored"
+start_app "$staged" "$candidate_image" "$restored_db"
+probe "$staged" /api/v1/health 200
+probe "$staged" /api/v1/ready 200
+probe "$previous" /api/v1/ready 200
+"${docker_local[@]}" stop "$staged" >/dev/null
 
 "${docker_local[@]}" stop "$previous" >/dev/null
 start_app "$candidate" "$candidate_image" "$broken_db"
