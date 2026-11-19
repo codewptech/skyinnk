@@ -16,6 +16,6 @@ This repository has **two protected long-lived branches**: `main` (production) a
 
 **Emergency bypass:** `codewptech` has an *Always allow* branch-ruleset exception, for owner-authorized emergency recovery only. An available bypass is **not** permission for agents to use it for routine commits or merges. The account owner retains release authority.
 
-**Grandfathered work:** Existing draft PR #1 uses pre-policy branch `work/v1-public-learning-integration`. Only its old branch/task issue/shared-file reservation metadata is exempted, and only for its 30 already-reviewed changed filenames. All role boundaries, PR target, overlap detection, CI/build checks and Chat 03 review still apply. One-time approval covers only its existing sitemap route and release-state document. New files and new PRs must follow the full policy.
+**Changed paths:** A rename counts as a change to both its old and new paths. Apply ownership, reservations and overlap checks to both.
 
 For details, read `docs/governance/DEVELOPMENT-WORKFLOW.md`. This file does not supersede the approved Skyinnk Architecture Decision Log or the V1/V2 scope.
