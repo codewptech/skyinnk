@@ -92,7 +92,40 @@ export function paths(raw){return [...raw.matchAll(/^\s*-\s*`([^`]+)`(?:\s*.*)?$
 
 export function refs(raw){if(/^\s*(none|none for implementation)\s*$/i.test(raw.trim()))return [];return [...raw.matchAll(/#(\d+)/g)].map(m=>Number(m[1]));}
 
+const PACKET_FIELDS = 'Workstream|Branch|Target|Delivery lane|Priority|Risk';
+const PACKET_SECTIONS = [
+  'Outcome', 'Execution state', 'Executor', 'Claim lease', 'Dependencies', 'Acceptance',
+  'Owned / affected paths', 'Reserved shared paths', 'Contract / integration',
+  'Reviewer / integration handoff', 'Risks and escalation', 'Next eligible task',
+  'Claim and operation notes',
+];
+
+function duplicateDeclarations(body) {
+  const fields = new RegExp('^(' + PACKET_FIELDS + '):', 'gmi');
+  const headings = /^###[ \t]+([^\n]+)$/gm;
+  const knownSections = new Set(PACKET_SECTIONS.map(name => name.toLowerCase()));
+  const declarations = [
+    ...[...body.matchAll(fields)].map(match => match[1].toLowerCase()),
+    ...[...body.matchAll(headings)].map(match => match[1].trim().toLowerCase())
+      .filter(name => knownSections.has(name)),
+  ];
+  const seen = new Set();
+  const duplicate = new Set();
+  for (const name of declarations) {
+    if (seen.has(name)) duplicate.add(name);
+    seen.add(name);
+  }
+  return [...duplicate];
+}
+
+function safePath(path) {
+  return typeof path === 'string' && path.length > 0 && path === path.trim() &&
+    !/[\x00-\x1f\x7f\\]/.test(path) &&
+    path.split('/').every(part => part !== '' && part !== '.' && part !== '..');
+}
+
 export function parsePacket(body){
+body = (typeof body === 'string' ? body : '').replace(/\r\n/g, '\n');
 const dep=section(body,"Dependencies");
 const depValue=(key)=>dep.match(new RegExp("^\\s*-\\s*"+key+":\\s*(.*)$","im"))?.[1]??"";
 return {
@@ -102,14 +135,14 @@ state:section(body,"Execution state").split("\n")[0]?.trim()??"",executor:sectio
 outcome:section(body,"Outcome"),acceptance:section(body,"Acceptance"),
 owned:paths(section(body,"Owned / affected paths")),shared:paths(section(body,"Reserved shared paths")),
 start:refs(depValue("START")),integration:refs(depValue("INTEGRATION")),soft:refs(depValue("SOFT")),
-external:depValue("External approval"),depRaw:dep,
+external:depValue("External approval"),depRaw:dep,duplicates:duplicateDeclarations(body),
 };
 }
 
 export function validatePacket(p,{number=null}={}){
-const errors=[];
-if(!ROLES[p.workstream])errors.push("Invalid Workstream");
-if(!p.branch||!new RegExp("^"+(ROLES[p.workstream]??"invalid")+"/task-[a-z0-9]+(?:-[a-z0-9]+)*$").test(p.branch))errors.push("Branch does not match Workstream");
+const errors=(p.duplicates??[]).map(name=>"Duplicate packet declaration: "+name);
+if(!Object.hasOwn(ROLES,p.workstream))errors.push("Invalid Workstream");
+if(!Object.hasOwn(ROLES,p.workstream)||!p.branch||!new RegExp("^"+ROLES[p.workstream]+"/task-[a-z0-9]+(?:-[a-z0-9]+)*$").test(p.branch))errors.push("Branch does not match Workstream");
 if(p.target!=="development/v1-public-launch")errors.push("Invalid target branch");
 if(!["Learning Experience","Technical Foundation","Quality/Remediation","Governance"].includes(p.lane))errors.push("Invalid delivery lane");
 if(p.lane==="Learning Experience"&&p.workstream!=="Work")errors.push("Learning Experience requires Work ownership");
@@ -124,11 +157,13 @@ for(const type of ["START","INTEGRATION","SOFT"]){
  const matches=[...p.depRaw.matchAll(new RegExp("^\\s*-\\s*"+type+":\\s*(.*)$","gmi"))];
  if(matches.length!==1||!/^(none|#\d+(?:[\s,]+#\d+)*)$/i.test(matches[0]?.[1]?.trim()??""))errors.push("Malformed "+type+" dependency list");
 }
-if(!p.external||/REPLACE_WITH/.test(p.external))errors.push("Invalid external approval field");
+const approvals = [...p.depRaw.matchAll(/^[ \t]*-[ \t]+External approval:[ \t]*([^\n]*)$/gmi)];
+if(approvals.length!==1||!p.external||/REPLACE_WITH/.test(p.external))errors.push("Invalid external approval field");
+if([...p.start,...p.integration,...p.soft].some(n=>!Number.isSafeInteger(n)||n<1))errors.push("Invalid dependency ID");
 if(!p.owned.length)errors.push("Missing exact affected path");
 if(new Set(p.owned).size!==p.owned.length||new Set(p.shared).size!==p.shared.length)errors.push("Duplicate path claim");
-if(p.owned.some(x=>x.startsWith("/")||x.includes("..")||x.includes("*")||x.startsWith("REPLACE")||x.trim()!==x))errors.push("Invalid affected path");
-if(p.shared.some(x=>x.startsWith("/")||x.includes("..")||x.includes("*")||x.startsWith("REPLACE")))errors.push("Invalid reserved path");
+if(p.owned.some(x=>!safePath(x)||x.includes("*")||x.startsWith("REPLACE")))errors.push("Invalid affected path");
+if(p.shared.some(x=>!safePath(x)||x.includes("*")||x.startsWith("REPLACE")))errors.push("Invalid reserved path");
 if([p.outcome,p.acceptance,p.executor,p.branch,p.lane,p.risk,p.priority].some(x=>/REPLACE_WITH|describe one|one objectively|pending executable task/i.test(x)))errors.push("Unfilled template placeholder");
 if(number!==null&&[...p.start,...p.integration,...p.soft].includes(number))errors.push("Self dependency");
 if(new Set([...p.start,...p.integration,...p.soft]).size!==p.start.length+p.integration.length+p.soft.length)errors.push("Repeated dependency");
@@ -143,8 +178,7 @@ const v=new Set();
 for(const f of files||[]){
  const entries=typeof f==="string"?[f]:f?.status==="renamed"?[f.previous_filename,f.filename]:[f?.filename];
  for(const name of entries){
-  if(typeof name!=="string"||!name||name.startsWith("/")||name.includes("\\")||
-     name.includes("\0")||name.trim()!==name||/(^|\/)\.\.(\/|$)/.test(name))
+  if(!safePath(name))
     throw new Error("Incomplete changed path");
   v.add(name);
 }
@@ -153,7 +187,7 @@ return [...v];
 }
 
 export function eligibleTask(p,{taskNumber=null,issueStates={},claims=[],openPRs=[]}={}){
-const reasons=[];
+const reasons=validatePacket(p,{number:taskNumber});
 if(p.state!=="READY")reasons.push("Not READY");
 for(const n of p.start)if(issueStates[n]!=="DONE")reasons.push("START dependency #"+n+" not DONE");
 const owned=new Set([...p.owned,...p.shared]);
@@ -211,7 +245,7 @@ for(const x of map.keys())dfs(x,[]);
 return cycles;
 }
 
-export function nextStateLegal(from,to){return (TRANSITIONS[from]??[]).includes(to);}
+export function nextStateLegal(from,to){return Object.hasOwn(TRANSITIONS,from)&&TRANSITIONS[from].includes(to);}
 
 export function rankReady(a,b){
   const score={"P0":0,"P1":1,"P2":2,"P3":3};

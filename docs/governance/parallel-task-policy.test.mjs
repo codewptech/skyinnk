@@ -154,3 +154,33 @@ test('ISO timestamp ordering remains stable', () => {
 test('BACKLOG with claimed executor is not an authorized start', () => {
   assert.match(validatePacket(parsePacket(taskBody({state:'BACKLOG',executor:'run:987'}))).join('|'),/BACKLOG\/READY task must be unclaimed/);
 });
+
+
+test('duplicate authority fields and sections cannot enter the ready queue', () => {
+  for (const duplicated of [
+    'workstream: Chat 03', '### Execution state\nBACKLOG',
+    '### Reserved shared paths\nNone.', '### Dependencies\n- START: #8'
+  ]) {
+    const packet = parsePacket(taskBody() + '\n' + duplicated);
+    assert.match(validatePacket(packet).join('|'), /Duplicate packet declaration/);
+    assert.equal(eligibleTask(packet).eligible, false);
+  }
+});
+
+test('duplicate approval and impossible issue numbers are rejected', () => {
+  const approval = taskBody().replace('### Acceptance','- External approval: required\n### Acceptance');
+  assert.match(validatePacket(parsePacket(approval)).join('|'), /Invalid external approval/);
+  for (const dependency of ['#0','#9007199254740993']) {
+    assert.match(validatePacket(parsePacket(taskBody({start:dependency}))).join('|'), /Invalid dependency ID/);
+  }
+});
+
+test('normal CRLF works and unsafe path segments fail at declaration and observation', () => {
+  assert.deepEqual(validatePacket(parsePacket(taskBody().replaceAll('\n','\r\n'))), []);
+  for (const path of ['app//file.vue','app/./file.vue','app\\file.vue']) {
+    assert.match(validatePacket(parsePacket(taskBody().replace('app/pages/courses/index.vue',path))).join('|'),
+      /Invalid affected path/);
+    assert.throws(() => changePaths([path]), /Incomplete changed path/);
+  }
+  assert.equal(nextStateLegal('constructor','READY'),false);
+});
