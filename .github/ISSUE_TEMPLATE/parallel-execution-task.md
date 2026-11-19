@@ -6,9 +6,9 @@ labels: []
 assignees: []
 ---
 
-Workstream: Chat 03
-Branch: \`chat03/task-short-name\`
-Target: \`development/v1-public-launch\`
+Workstream: REPLACE_WITH_Chat_03_OR_Work_OR_Chat_01
+Branch: `REPLACE_WITH_lane/task-slug`
+Target: `development/v1-public-launch`
 
 ### Outcome
 Describe one observable deliverable, not a broad theme.
@@ -30,10 +30,10 @@ Unclaimed — a running authorized agent may claim this task.
 - [ ] PR targets development, exact-head CI and reviewer evidence recorded.
 
 ### Owned / affected paths
-- \`path/to/owned-file\`
+- `path/to/owned-file`
 
 ### Reserved shared paths
-- \`path/to/exact-shared-file\`
+- `path/to/exact-shared-file`
 
 ### Contract / integration
 Specify any API/fixture used by other lanes. Name consumers and whether changes are compatible.
