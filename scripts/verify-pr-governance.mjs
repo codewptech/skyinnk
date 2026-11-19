@@ -129,6 +129,13 @@ export function assertEventRevision(eventPull, current) {
   }
 }
 
+export function assertDevelopmentRef(pr, reference) {
+  if (reference?.ref !== 'refs/heads/' + DEV_BRANCH || reference.object?.type !== 'commit' ||
+      !SHA.test(reference.object.sha ?? '') || reference.object.sha !== pr.base?.sha) {
+    throw new Error('Development base changed. Refresh the PR and re-run Development CI.');
+  }
+}
+
 export async function readPullFiles(pr, collect) {
   const files = await collect('/pulls/' + pr.number + '/files');
   if (!Number.isSafeInteger(pr.changed_files) || !Array.isArray(files) ||
@@ -295,8 +302,10 @@ async function enforceFromEvent() {
     throw new Error('GitHub API list pagination limit exceeded.');
   };
   const pullPath = '/pulls/' + eventPull.number;
-  const [pr, others] = await Promise.all([api(pullPath), collect('/pulls?state=open')]);
+  const basePath = '/git/ref/heads/' + DEV_BRANCH;
+  const [pr, others, baseRef] = await Promise.all([api(pullPath), collect('/pulls?state=open'), api(basePath)]);
   assertEventRevision(eventPull, pr);
+  assertDevelopmentRef(pr, baseRef);
   const files = await readPullFiles(pr, collect);
   const openPulls = [];
   for (const other of targetPulls(others, pr.number)) {
@@ -318,10 +327,11 @@ async function enforceFromEvent() {
     errors.push(...await validatePeaPull({ issue, pr, files, openPulls, api, collect }));
   }
   if (!errors.length) {
-    const [latestPr, latestIssue, latestOthers] = await Promise.all([
-      api(pullPath), api('/issues/' + task), collect('/pulls?state=open'),
+    const [latestPr, latestIssue, latestOthers, latestBaseRef] = await Promise.all([
+      api(pullPath), api('/issues/' + task), collect('/pulls?state=open'), api(basePath),
     ]);
     assertEventRevision(eventPull, latestPr);
+    assertDevelopmentRef(latestPr, latestBaseRef);
     assertOpenPullSnapshot(others, latestOthers, pr.number);
     if (latestPr.body !== pr.body || latestPr.draft !== pr.draft || latestPr.changed_files !== pr.changed_files ||
         latestIssue.number !== issue.number || latestIssue.state !== issue.state || latestIssue.body !== issue.body ||

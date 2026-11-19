@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, changedPaths, assertEventRevision,
-  assertOpenPullSnapshot, readPullFiles, validatePolicy, validatePeaPull } from '../scripts/verify-pr-governance.mjs';
+  assertDevelopmentRef, assertOpenPullSnapshot, readPullFiles, validatePolicy, validatePeaPull } from '../scripts/verify-pr-governance.mjs';
 
 const tick = String.fromCharCode(96);
 const issue = (role, branch, paths = []) => ({
@@ -126,6 +126,17 @@ test('a competing development PR opening, closing or changing head invalidates a
   for (const current of [[], [fixture, other], [{ ...fixture, head: { sha: 'c' } }]]) {
     assert.throws(() => assertOpenPullSnapshot([fixture], current, 76), /Competing development PRs changed/);
   }
+});
+
+test('stale PR metadata cannot overrule the live development ref', () => {
+  const pr = { number: 74, state: 'open', head: { sha: 'c'.repeat(40) },
+    base: { ref: 'development/v1-public-launch', sha: 'a'.repeat(40) } };
+  const ref = { ref: 'refs/heads/development/v1-public-launch', object: { type: 'commit', sha: pr.base.sha } };
+  assert.doesNotThrow(() => assertEventRevision(pr, pr));
+  assert.doesNotThrow(() => assertDevelopmentRef(pr, ref));
+  assert.throws(() => assertDevelopmentRef(pr, { ...ref, object: { ...ref.object, sha: 'b'.repeat(40) } }),
+    /Development base changed/);
+  assert.throws(() => assertDevelopmentRef(pr, undefined), /Development base changed/);
 });
 test('governance files are protected against Work even when reserved', () => {
   const head = 'work/task-catalogue';
