@@ -2,6 +2,8 @@
 
 **Status:** Owner-directed process reset, 19 November 2026. Proposed repository integration via a Chat 01-governed PR. This is a delivery/execution architecture, not a replacement for the app's product, security, data or V1/V2 decisions.
 
+**Precedence:** For task scheduling, workstream concurrency, review queues and execution escalation, PEA-1 supersedes older serial or implicit coordination habits when integrated. Protected-branch safety, file ownership, existing task claims, product scope, security and release approvals remain binding until separately changed through their authorized processes.
+
 **Single objective:** Maximize useful concurrently delivered work while preserving protected branches, reviewable code, verified integration and owner-controlled production. An audit, open PR, architecture conversation or release dependency must never freeze unrelated work.
 
 ## A. Non-negotiable invariants
