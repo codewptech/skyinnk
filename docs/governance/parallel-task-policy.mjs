@@ -119,7 +119,7 @@ if(!p.executor||!p.outcome||p.outcome.length<20||!p.acceptance.includes("- [ ]")
 if(!p.depRaw||!p.external)errors.push("Missing dependencies or external approval");
 for(const type of ["START","INTEGRATION","SOFT"]){
  const matches=[...p.depRaw.matchAll(new RegExp("^\\s*-\\s*"+type+":\\s*(.*)$","gmi"))];
- if(matches.length!==1||!/^(none|#\\d+(?:[\\s,]+#\\d+)*)$/i.test(matches[0]?.[1]?.trim()??""))errors.push("Malformed "+type+" dependency list");
+ if(matches.length!==1||!/^(none|#\d+(?:[\s,]+#\d+)*)$/i.test(matches[0]?.[1]?.trim()??""))errors.push("Malformed "+type+" dependency list");
 }
 if(!p.external||/REPLACE_WITH/.test(p.external))errors.push("Invalid external approval field");
 if(!p.owned.length)errors.push("Missing exact affected path");
