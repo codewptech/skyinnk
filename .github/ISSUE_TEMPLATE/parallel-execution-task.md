@@ -1,48 +1,68 @@
 ---
-name: Parallel execution task
-about: Claim one independently executable Skyinnk delivery with explicit dependencies, files and acceptance
-title: "[Lane] Observable deliverable"
+name: Parallel execution task (PEA-2)
+about: Create an independently executable task; newly created tasks remain BACKLOG until validated and explicitly claimed
+title: "[PEA] Short observable delivery"
 labels: []
 assignees: []
 ---
 
-Workstream: REPLACE_WITH_Chat_03_OR_Work_OR_Chat_01
-Branch: `REPLACE_WITH_lane/task-slug`
-Target: `development/v1-public-launch`
+<!-- Replace ALL PLACEHOLDERS. The existing governance checker requires the exact Workstream, Branch and Reserved shared paths headings. Leave a new task BACKLOG until a coordinator verifies real dependencies, file claims and executor availability. -->
+
+Workstream: REPLACE_WITH_Work_OR_Chat_03_OR_Chat_01
+Branch: \`REPLACE_WITH_role/task-short-name\`
+Target: \`development/v1-public-launch\`
+Delivery lane: REPLACE_WITH_Learning_Experience_OR_Technical_Foundation_OR_Quality_Remediation_OR_Governance
+Priority: REPLACE_WITH_P0_P1_P2_P3
+Risk: REPLACE_WITH_ordinary_OR_shared-interface_OR_sensitive-governance_OR_release-gated
 
 ### Outcome
-Describe one observable deliverable, not a broad theme.
+One objectively verifiable outcome, with no unrelated feature expansion.
 
 ### Execution state
-READY
+BACKLOG
 
 ### Executor
-Unclaimed — a running authorized agent may claim this task.
+unclaimed
+
+### Claim lease
+none / advisory — NEVER claim an atomic lock unless a working claim broker actually granted a generation and expiry.
 
 ### Dependencies
-- HARD: none
+- START: none
+- INTEGRATION: none
 - SOFT: none
-- External approval: none for coding
+- External approval: none for implementation
+
+<!-- Use #ISSUE for START, #ISSUE or #PR for INTEGRATION/SOFT; enumerate exact IDs. START dependencies MUST be DONE before beginning. INTEGRATION dependencies may allow isolated fixture-based work but block merge. Do not substitute "HARD or isolated" because hard prerequisites cannot be waived. -->
 
 ### Acceptance
-- [ ] Observable scenario / fixture passes.
-- [ ] Required regression tests pass.
-- [ ] PR targets development, exact-head CI and reviewer evidence recorded.
+- [ ] Objective behavior and negative case demonstrated.
+- [ ] New/updated regression tests executed with truthful output.
+- [ ] Current exact branch/head and required Development CI reported.
+- [ ] Relevant independent technical review completed or limitation recorded.
+- [ ] Post-merge development SHA and CI recorded before DONE.
 
 ### Owned / affected paths
-- `path/to/owned-file`
+- \`REPLACE_WITH_actual-file-path\`
 
 ### Reserved shared paths
-- `path/to/exact-shared-file`
+- \`REPLACE_WITH_exact-shared-path-or-remove-this-bullet\`
+
+<!-- If no shared paths, retain this heading and write 'None.' The new task checker must reject placeholders. Existing checker expects exact bullet paths only when a shared file is changed. Both old/new paths of renames are affected. -->
 
 ### Contract / integration
-Specify any API/fixture used by other lanes. Name consumers and whether changes are compatible.
+API, schema, fixture or UX interface consumed by other lanes; named downstream consumers; compatibility test.
+
+### Reviewer / integration handoff
+- Technical review lane: REPLACE_WITH_workstream
+- Exact-head review evidence: pending
+- Integration steward: Chat 03; protected-branch merge only after required review and CI
 
 ### Risks and escalation
-Ordinary task. If blocked, state the *specific* prerequisite, unblock owner and next READY task to claim instead.
+Specific blocked decision only if one exists. Otherwise 'none'. Do not ask HQ for routine permissions.
 
 ### Next eligible task
-- #ISSUE (optional).
+none
 
-### Implementation notes
-Do not start until correct branch/workstream/issue metadata and existing open-PR file claims have been checked. Preserve source history, protected branches and production restrictions.
+### Claim and operation notes
+Check open issue claims as well as open PR files BEFORE making any edits; the existing PR checker cannot detect unpublished concurrent editing. During manual operation, claim writes are advisory, not atomic. Record real executor/run identifier on starting and recheck files/claims after a claim update. Stop on ambiguous overlap. One BUILDING task per actual executor, independent review and integration queues. Do not modify production or bypass branch protection.
