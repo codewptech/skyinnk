@@ -4,7 +4,7 @@
 
 const ROLES = {"Chat 01":"chat01","Chat 03":"chat03","Work":"work"};
 
-const STATES = new Set(["BACKLOG","READY","CLAIMED","BUILDING","PR_OPEN","REVIEWING","CHANGES_REQUESTED","READY_TO_INTEGRATE","INTEGRATING","VERIFIED","DONE","BLOCKED","DEFERRED","CANCELLED","REOPENED"]);
+const STATES = new Set(["BACKLOG","READY","CLAIMED","BUILDING","PR_OPEN","REVIEWING","CHANGES_REQUESTED","READY_TO_INTEGRATE","INTEGRATING","VERIFIED","DONE","BLOCKED","PAUSED","DEFERRED","CANCELLED","REOPENED"]);
 
 const TRANSITIONS = {
   "BACKLOG": [
@@ -20,11 +20,13 @@ const TRANSITIONS = {
   ],
   "CLAIMED": [
     "BUILDING",
+    "PAUSED",
     "READY",
     "BLOCKED"
   ],
   "BUILDING": [
     "PR_OPEN",
+    "PAUSED",
     "BLOCKED",
     "CLAIMED",
     "CANCELLED"
@@ -66,6 +68,7 @@ const TRANSITIONS = {
     "PR_OPEN",
     "REVIEWING"
   ],
+  "PAUSED": ["CLAIMED", "BUILDING", "BLOCKED", "CANCELLED"],
   "DEFERRED": [
     "BACKLOG"
   ],
@@ -139,18 +142,23 @@ export function changePaths(files){
 const v=new Set();
 for(const f of files||[]){
  const entries=typeof f==="string"?[f]:f?.status==="renamed"?[f.previous_filename,f.filename]:[f?.filename];
- for(const name of entries){if(typeof name!=="string"||!name||name.startsWith("/"))throw new Error("Incomplete changed path");v.add(name);}
+ for(const name of entries){
+  if(typeof name!=="string"||!name||name.startsWith("/")||name.includes("\\")||
+     name.includes("\0")||name.trim()!==name||/(^|\/)\.\.(\/|$)/.test(name))
+    throw new Error("Incomplete changed path");
+  v.add(name);
+}
 }
 return [...v];
 }
 
-export function eligibleTask(p,{issueStates={},claims=[],openPRs=[]}={}){
+export function eligibleTask(p,{taskNumber=null,issueStates={},claims=[],openPRs=[]}={}){
 const reasons=[];
 if(p.state!=="READY")reasons.push("Not READY");
 for(const n of p.start)if(issueStates[n]!=="DONE")reasons.push("START dependency #"+n+" not DONE");
 const owned=new Set([...p.owned,...p.shared]);
-for(const c of claims)if(c.branch!==p.branch&&changePaths(c.paths).some(x=>owned.has(x)))reasons.push("Active task claim conflict: "+c.id);
-for(const pr of openPRs)if(pr.branch!==p.branch&&changePaths(pr.files).some(x=>owned.has(x)))reasons.push("Open PR conflict: #"+pr.number);
+for(const c of claims)if(c.id!==taskNumber&&changePaths(c.paths).some(x=>owned.has(x)))reasons.push("Active task claim conflict: "+c.id);
+for(const pr of openPRs)if(changePaths(pr.files).some(x=>owned.has(x)))reasons.push("Open PR conflict: #"+pr.number);
 return {eligible:reasons.length===0,reasons};
 }
 
@@ -206,7 +214,10 @@ return cycles;
 export function nextStateLegal(from,to){return (TRANSITIONS[from]??[]).includes(to);}
 
 export function rankReady(a,b){
-const score={"P0":0,"P1":1,"P2":2,"P3":3};
-return (score[a.priority]??9)-(score[b.priority]??9)||(b.unlocks??0)-(a.unlocks??0)||(a.created??0)-(b.created??0)||(a.number??0)-(b.number??0);
+  const score={"P0":0,"P1":1,"P2":2,"P3":3};
+  const dateValue=(v)=>typeof v==="number"?v:(Number.isFinite(Date.parse(v??""))?Date.parse(v):Number.MAX_SAFE_INTEGER);
+  return (score[a.priority]??9)-(score[b.priority]??9)||
+    (b.unlocks??0)-(a.unlocks??0)||
+    dateValue(a.created)-dateValue(b.created)||
+    (a.number??0)-(b.number??0);
 }
-
