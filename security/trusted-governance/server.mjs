@@ -5,6 +5,7 @@ import { GithubAppClient, evaluateOpenPulls, verifySignature } from './github-ap
 import { REPOSITORY } from './policy.mjs';
 
 const MAX_BODY_BYTES = 1024 * 1024;
+const SCAN_INTERVAL_MS = 5 * 60 * 1000;
 
 export function webhookServer({ secret, repository, installationId, evaluate, log = console }) {
   if (!secret || secret.length < 20) throw new Error('Long webhook secret required');
@@ -14,6 +15,7 @@ export function webhookServer({ secret, repository, installationId, evaluate, lo
   let running;
   let pendingReason;
   let lastSuccessAt = null;
+  let scanHealthy = false;
   function enqueue(reason) {
     pendingReason = reason;
     running ??= Promise.resolve().then(async () => {
@@ -24,10 +26,12 @@ export function webhookServer({ secret, repository, installationId, evaluate, lo
           pendingReason = undefined;
           try {
             const results = await evaluate();
-            if (!results.some(result => result.skipped))
+            scanHealthy = !results.some(result => result.skipped);
+            if (scanHealthy)
               lastSuccessAt = new Date().toISOString();
             log.info('trusted governance evaluated', nextReason, results.map(r => ({ number: r.number, ok: r.ok, skipped: !!r.skipped })));
           } catch (error) {
+            scanHealthy = false;
             log.error('trusted governance scan failed', String(error?.message || error));
           }
         }
@@ -41,6 +45,11 @@ export function webhookServer({ secret, repository, installationId, evaluate, lo
     if (req.method === 'GET' && req.url === '/healthz') {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       res.end(JSON.stringify({ status: 'up', lastSuccessAt })); return;
+    }
+    if (req.method === 'GET' && req.url === '/readyz') {
+      const ready = scanHealthy && Date.now() - Date.parse(lastSuccessAt) < 2 * SCAN_INTERVAL_MS;
+      res.writeHead(ready ? 200 : 503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ ready, lastSuccessAt })); return;
     }
     if (req.method !== 'POST' || req.url !== '/github/webhook') {
       res.writeHead(404); res.end(); return;
@@ -98,7 +107,7 @@ export function runFromEnvironment(env = process.env) {
     console.info('trusted governance webhook listening', port);
     enqueue('initial');
   });
-  const interval = setInterval(() => enqueue('periodic'), 5 * 60 * 1000);
+  const interval = setInterval(() => enqueue('periodic'), SCAN_INTERVAL_MS);
   const stop = () => { clearInterval(interval); server.close(); };
   process.once('SIGINT', stop);
   process.once('SIGTERM', stop);

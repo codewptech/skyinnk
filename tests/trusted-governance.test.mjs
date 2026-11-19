@@ -119,20 +119,28 @@ test('GitHub App requests narrow installation rights and publishes check on exac
   const mockFetch = async (url, opts) => {
     calls.push({ url, opts });
     if (url.endsWith('/access_tokens')) return { ok: true, json: async () => ({ token: 'mock-secret', expires_at: new Date(Date.now() + 3600000).toISOString() }) };
-    if (url.endsWith('/check-runs')) return { ok: true, json: async () => ({ id: 1 }) };
+    if (url.endsWith('/check-runs') || url.endsWith('/check-runs/1')) return { ok: true, json: async () => ({ id: 1 }) };
     throw new Error('Unexpected network path ' + url);
   };
   const api = new GithubAppClient({ appId: '123', privateKey: privateKey.export({ type: 'pkcs8', format: 'pem' }), installationId: '456', fetchImpl: mockFetch });
-  await api.check(HEAD, []);
-  assert.equal(calls.length, 2);
+  const id = await api.startCheck(HEAD);
+  await api.finishCheck(id, []);
+  assert.equal(calls.length, 3);
   const rights = JSON.parse(calls[0].opts.body).permissions;
   assert.deepEqual(rights, { checks: 'write', issues: 'read', pull_requests: 'read', metadata: 'read' });
   const check = JSON.parse(calls[1].opts.body);
   assert.equal(check.head_sha, HEAD);
   assert.equal(check.name, CHECK_NAME);
-  assert.equal(check.conclusion, 'success');
+  assert.equal(check.status, 'in_progress');
+  assert.equal(calls[2].opts.method, 'PATCH');
+  assert.equal(JSON.parse(calls[2].opts.body).conclusion, 'success');
   assert.equal(calls.every(x => !x.url.includes('/contents/') && !x.url.includes('/git/blobs/')), true);
 });
+function evaluateFixture(client) {
+  return evaluateOpenPulls({
+    ...client, startCheck: client.startCheck ?? (async sha => sha), finishCheck: client.check,
+  });
+}
 test('full evaluation fetches GitHub metadata only and fails invalid task claim', async () => {
   const branch = 'work/task-catalogue';
   const pr = { number: 12, state: 'open', body: 'Task issue: #7',
@@ -145,7 +153,7 @@ test('full evaluation fetches GitHub metadata only and fails invalid task claim'
     issue: async () => claim('Work', branch),
     check: async (sha, errors) => entries.push({ sha, errors }),
   };
-  const result = await evaluateOpenPulls(client);
+  const result = await evaluateFixture(client);
   assert.equal(result.length, 1);
   assert.equal(result[0].ok, false);
   assert.match(entries[0].errors.join(' '), /Workstream protected/);
@@ -161,24 +169,24 @@ test('cross-PR overlap re-evaluates both competitors and rejects both', async ()
     issue: async () => claim('Chat 03', 'chat03/task-one'),
     check: async (sha, errs) => checked.push({ sha, errs }),
   };
-  const result = await evaluateOpenPulls(client);
+  const result = await evaluateFixture(client);
   assert.equal(result.length, 2);
   assert.equal(result.every(x => !x.ok), true);
   assert.equal(checked.every(x => x.errs.some(e => e.includes('Overlapping'))), true);
 });
 test('evaluation does not publish a stale success after PR head changes', async () => {
   const original = { number: 13, state: 'open', body: 'Task issue: #7', head: { ref: 'chat03/task-one', sha: HEAD, repo: { full_name: REPO } }, base: { ref: DEVELOPMENT } };
-  let fetches = 0; let published = false;
+  let fetches = 0; const published = [];
   const client = {
     openPulls: async () => [original],
     pull: async () => { fetches++; return fetches === 1 ? original : { ...original, head: { ...original.head, sha: 'c'.repeat(40) } }; },
     files: async () => ['server/api/v1/health.get.ts'],
     issue: async () => claim('Chat 03', 'chat03/task-one'),
-    check: async () => { published = true; },
+    check: async (_sha, errors) => published.push(errors),
   };
-  const result = await evaluateOpenPulls(client);
+  const result = await evaluateFixture(client);
   assert.equal(result[0].skipped, true);
-  assert.equal(published, false);
+  assert.match(published.flat().join(' '), /changed during governance/);
 });
 test('evaluation stops when a competing PR changes during the metadata scan', async () => {
   const one = { number: 13, state: 'open', body: 'Task issue: #7',
@@ -191,12 +199,36 @@ test('evaluation stops when a competing PR changes during the metadata scan', as
       [one, { ...two, head: { ...two.head, sha: 'c'.repeat(40) } }],
     pull: async n => n === 13 ? one : two,
     files: async () => ['app/pages/index.vue'],
-    check: async () => assert.fail('stale snapshot must not be published'),
+    check: async (_sha, errors) => assert.ok(errors.length, 'stale snapshot must not pass'),
   };
-  const results = await evaluateOpenPulls(client);
+  const results = await evaluateFixture(client);
   assert.deepEqual(results.map(result => result.skipped), [true, true]);
 });
 
+test('shared SHA receives one decision and any failed PR prevents success', async () => {
+  const one = { number: 13, state: 'open', body: 'Task issue: #7',
+    head: { ref: 'chat03/task-one', sha: HEAD, repo: { full_name: REPO } },
+    base: { ref: DEVELOPMENT } };
+  const two = { ...one, number: 14, body: 'missing claim' };
+  const opened = [];
+  const finished = [];
+  const client = {
+    openPulls: async () => [one, two],
+    pull: async number => number === 13 ? one : two,
+    files: async number => [number + '.md'],
+    issue: async () => claim('Chat 03', 'chat03/task-one'),
+    startCheck: async sha => { opened.push(sha); return 7; },
+    check: async (id, errors) => finished.push({ id, errors }),
+  };
+  assert.deepEqual((await evaluateFixture(client)).map(decision => decision.ok), [true, false]);
+  assert.deepEqual(opened, [HEAD]);
+  assert.equal(finished.length, 1);
+  assert.equal(finished[0].id, 7);
+  assert.ok(finished[0].errors.every(error => error.startsWith('PR #14')));
+  client.files = async () => { throw new Error('metadata unavailable'); };
+  await assert.rejects(evaluateFixture(client), /metadata unavailable/);
+  assert.match(finished[1].errors.join(' '), /could not verify/);
+});
 test('trusted scans coalesce bursts into one pending scan and recover after failure', async () => {
   const started = Promise.withResolvers();
   const unblocked = Promise.withResolvers();
@@ -240,11 +272,13 @@ test('webhook handler rejects invalid HMAC and wrong installation, accepts signe
     }, body });
   }
   try {
+    assert.equal((await fetch(`http://127.0.0.1:${port}/readyz`)).status, 503);
     assert.equal((await send({ repository: { full_name: REPO }, installation: { id: 456 } }, false)).status, 401);
     assert.equal((await send({ repository: { full_name: REPO }, installation: { id: 999 } })).status, 403);
     assert.equal((await send(null)).status, 403);
     assert.equal((await send({ repository: { full_name: REPO }, installation: { id: 456 } })).status, 202);
     await waitUntilIdle();
     assert.equal(calls, 1);
+    assert.equal((await fetch(`http://127.0.0.1:${port}/readyz`)).status, 200);
   } finally { server.close(); await once(server, 'close'); }
 });

@@ -87,17 +87,23 @@ export class GithubAppClient {
     return [...paths];
   }
   async issue(number) { return this.get(`/issues/${number}`); }
-  async check(sha, errors) {
+  async startCheck(sha) {
     if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('Invalid commit SHA');
+    const check = await this.post('/check-runs', {
+      name: CHECK_NAME, head_sha: sha, status: 'in_progress',
+    });
+    if (!Number.isSafeInteger(check?.id) || check.id <= 0)
+      throw new Error('Missing governance check run ID');
+    return check.id;
+  }
+  async finishCheck(id, errors) {
     const summary = errors.length ? errors.map(x => `- ${x}`).join('\n').slice(0, 60000) :
       'Task claim, branch ownership, protected paths, reservations and open-PR overlap verified against live GitHub metadata by a separately hosted GitHub App. No PR code executed.';
-    return this.post('/check-runs', {
-      name: CHECK_NAME,
-      head_sha: sha,
+    return this.request('PATCH', `/repos/${this.repository}/check-runs/${id}`, {
       status: 'completed',
       conclusion: errors.length ? 'failure' : 'success',
       output: { title: errors.length ? 'Governance policy rejected' : 'Trusted governance accepted', summary },
-    });
+    }, await this.token());
   }
 }
 
@@ -114,8 +120,7 @@ function samePullInputs(pr, current) {
  * passes after a task issue is closed, a competing PR opens, or base moves.
  * Serial execution in server.mjs avoids concurrent stale success overwrites.
  */
-export async function evaluateOpenPulls(client) {
-  const pulls = (await client.openPulls()).filter(p => p.base?.ref === DEVELOPMENT);
+async function collectDecisions(client, pulls) {
   const snapshots = [];
   for (const item of pulls) {
     // Always GET current PR metadata; webhook payload is never authorization.
@@ -157,8 +162,37 @@ export async function evaluateOpenPulls(client) {
       number: pr.number, head: pr.head.ref, headRepo: pr.head.repo?.full_name,
       base: pr.base.ref, body: pr.body || '', files, issue, openPulls: others,
     });
-    await client.check(pr.head.sha, errors);
     outcomes.push({ number: pr.number, sha: pr.head.sha, ok: errors.length === 0, errors });
   }
   return outcomes;
+}
+
+export async function evaluateOpenPulls(client) {
+  const pulls = (await client.openPulls()).filter(p => p.base?.ref === DEVELOPMENT);
+  const heads = new Set(pulls.filter(pr => pr.head?.repo?.full_name === REPOSITORY)
+    .map(pr => pr.head.sha));
+  const pending = new Map();
+  try {
+    // The check is commit-scoped. Every PR sharing the SHA contributes to its decision.
+    for (const sha of heads) pending.set(sha, await client.startCheck(sha));
+    const decisions = await collectDecisions(client, pulls);
+    const byNumber = new Map(decisions.map(decision => [decision.number, decision]));
+    const incomplete = decisions.some(decision => decision.skipped);
+    for (const [sha, id] of pending) {
+      const errors = pulls.filter(pr => pr.head?.sha === sha).flatMap(pr => {
+        const decision = byNumber.get(pr.number);
+        if (incomplete || decision?.sha !== sha)
+          return [`PR #${pr.number} changed during governance evaluation. Await a fresh scan.`];
+        return decision.errors.map(error => `PR #${pr.number}: ${error}`);
+      });
+      await client.finishCheck(id, errors);
+      pending.delete(sha);
+    }
+    return decisions;
+  } catch (error) {
+    await Promise.allSettled([...pending.values()].map(async id => {
+      await client.finishCheck(id, ['Governance could not verify current metadata. Await a fresh scan.']);
+    }));
+    throw error;
+  }
 }

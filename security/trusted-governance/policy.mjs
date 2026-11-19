@@ -13,7 +13,9 @@ export function roleForBranch(branch) {
   return /^(chat01|chat03|work)\/task-[a-z0-9]+(?:-[a-z0-9]+)*$/.exec(branch)?.[1] ?? null;
 }
 export function taskIssueNumber(body = '') {
-  return Number(/^Task issue:\s*#([1-9]\d*)\s*$/im.exec(body)?.[1] ?? 0);
+  const claims = [...body.matchAll(/^Task issue:[ \t]*#([1-9]\d*)[ \t]*\r?$/gim)];
+  const number = Number(claims[0]?.[1]);
+  return claims.length === 1 && Number.isSafeInteger(number) ? number : 0;
 }
 export function reservedPaths(issueBody = '') {
   const m = /^###?\s+Reserved shared paths[^\n]*\n([\s\S]*?)(?=^#{2,3}\s|$(?![\s\S]))/im.exec(issueBody);
@@ -40,7 +42,7 @@ function workProtected(path) {
  * Every input must come from live GitHub API metadata, never from PR code.
  * Report all errors rather than failing early.
  */
-export function validatePolicy({ number, head, headRepo = REPOSITORY,
+export function validatePolicy({ number, head, headRepo,
   base, body = '', files = [], issue = null, openPulls = [] }) {
   const errors = [];
   if (base !== DEVELOPMENT) errors.push('PR target must be development integration.');
