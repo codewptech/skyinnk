@@ -15,7 +15,7 @@ function taskBody(extra = {}) {
   return [
     'Workstream: ' + lines.workstream,
     'Branch: `' + lines.branch + '`',
-    'Target: development/v1-public-launch',
+    'Target: `development/v1-public-launch`',
     'Delivery lane: ' + lines.lane, 'Priority: ' + lines.priority,
     'Risk: ' + lines.risk,
     '### Outcome',
@@ -149,4 +149,8 @@ test('PAUSED tasks are not falsely READY, but can resume through a claim', () =>
 test('ISO timestamp ordering remains stable', () => {
   assert.ok(rankReady({priority:'P1',unlocks:0,created:'2026-11-19T04:00:00Z'},
                       {priority:'P1',unlocks:0,created:'2026-11-19T05:00:00Z'})<0);
+});
+
+test('BACKLOG with claimed executor is not an authorized start', () => {
+  assert.match(validatePacket(parsePacket(taskBody({state:'BACKLOG',executor:'run:987'}))).join('|'),/BACKLOG\/READY task must be unclaimed/);
 });
