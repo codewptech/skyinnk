@@ -12,9 +12,9 @@ The original `Development CI` governance script is inside the PR merge checkout.
 
 The new self-contained checker lives in `security/trusted-governance/`:
 
-- `policy.mjs`: trusted policy over GitHub API metadata only, with exact frozen PR #1 legacy path allowlist. Validates branch namespace, open task issue, workstream and branch claim, mandatory exact shared-file reservations, workstream-specific protections, governance files and overlaps with all other open development PRs.
+- `policy.mjs`: trusted policy over GitHub API metadata only, with both prior and destination paths counted for renames. Validates branch namespace, open task issue, workstream and branch claim, mandatory exact shared-file reservations, workstream-specific protections, governance files and overlaps with all other open development PRs.
 - `github-app.mjs`: signs short-lived GitHub App JWTs; requests narrowly scoped installation tokens; retrieves fresh GitHub PR/issue/file-name metadata; publishes `Skyinnk Trusted Governance` **check runs** on exact PR HEAD SHAs using the App identity.
-- `server.mjs`: standalone webhook HTTP server with raw-body HMAC-SHA256 verification, repository and installation matching, limited request sizes, queued serial reconciliation, initial scan, five-minute periodic rescan (including base changes) and fast webhook acknowledgment.
+- `server.mjs`: standalone webhook HTTP server with raw-body HMAC-SHA256 verification, repository and installation matching, limited request sizes, serial reconciliation with one coalesced pending scan, initial scan, five-minute periodic rescan (including base changes) and fast webhook acknowledgment.
 - `Dockerfile`: dependency-free Node 24 container entrypoint. Build with `docker build -f security/trusted-governance/Dockerfile security/trusted-governance` (narrow build context; does not include any application or `.env` files). **No deployment performed.**
 - `tests/trusted-governance.test.mjs`: positive/negative policy, HMAC, JWT, mocked check-run API and event-path tests.
 
@@ -63,12 +63,14 @@ node --test tests/trusted-governance.test.mjs
 | Two open development PRs edit the same path | `failure` on each after reconciliation |
 | PR edits `scripts/verify-pr-governance.mjs` or even PR-controlled workflow code to return success | Service still evaluates its own trusted policy; unauthorized change is rejected where role-disallowed; PR-supplied script is never executed. |
 
-A legitimate Chat 03 task with correctly claimed files is accepted. Draft legacy PR #1 retains **only** its exact historical metadata/path exemption. It cannot add new filenames, bypass ownership or overlap checks, nor target `main`.
+A legitimate Chat 03 task with correctly claimed files is accepted. PR #1's
+temporary exception ended when that PR merged.
 
 ### Limits and additional hardening
 
 - Current policy validates **declared task and branch claims**, not the human behind the submitter. Genuine identity isolation is essential and requires the owner's account changes in `ISSUE-7-OWNER-IDENTITIES.md`.
 - This service has separate `checks:write`, so **do not grant that permission to Chat 03 or Work coder Apps**. GitHub ruleset must pin expected check source to this App; a similarly named check from another actor is not sufficient.
+- Each scan rechecks the open PR set and revisions before publishing, refreshes the target PR and reads its current task issue. A skipped scan does not advance the last completed scan timestamp.
 - GitHub required checks attach to a commit SHA; strict up-to-date rules protect base changes. Webhook and five-minute scans reduce stale-issue/overlap windows, but delayed/lost webhooks and service outages require operational monitoring. A previously successful check on an unchanged SHA can remain green until a subsequent scan updates it. Use a durable queue/HA design before claiming continuous high-assurance enforcement.
 - GitHub may display test-merge commit checks versus head checks. Inspect the actual required-check box during live tests and ensure the dedicated App check is recognized on the required SHA. Do not enable a check with no valid source/recent run.
 - Treat the running service's code/image and admin credentials as **owner-controlled security infrastructure**, not auto-updated through a feature PR. Any change to its deployed code requires separate authorized release and tests.

@@ -11,18 +11,31 @@ export function webhookServer({ secret, repository, installationId, evaluate, lo
   if (repository !== REPOSITORY) throw new Error('Wrong fixed repository');
   if (!/^\d+$/.test(String(installationId))) throw new Error('Expected GitHub installation required');
   // All reconciliations serialize so a delayed evaluation cannot replace a newer result.
-  let queue = Promise.resolve();
+  let running;
+  let pendingReason;
   let lastSuccessAt = null;
   function enqueue(reason) {
-    queue = queue.then(async () => {
-      const results = await evaluate();
-      lastSuccessAt = new Date().toISOString();
-      log.info('trusted governance evaluated', reason, results.map(r => ({ number: r.number, ok: r.ok, skipped: !!r.skipped })));
-    }).catch(error => {
-      // A failed scan MUST NOT publish a success. Next webhook/periodic scan retries.
-      log.error('trusted governance scan failed', String(error.message || error));
+    pendingReason = reason;
+    running ??= Promise.resolve().then(async () => {
+      try {
+        // A burst of deliveries needs only one fresh scan after the running one.
+        while (pendingReason !== undefined) {
+          const nextReason = pendingReason;
+          pendingReason = undefined;
+          try {
+            const results = await evaluate();
+            if (!results.some(result => result.skipped))
+              lastSuccessAt = new Date().toISOString();
+            log.info('trusted governance evaluated', nextReason, results.map(r => ({ number: r.number, ok: r.ok, skipped: !!r.skipped })));
+          } catch (error) {
+            log.error('trusted governance scan failed', String(error?.message || error));
+          }
+        }
+      } finally {
+        running = undefined;
+      }
     });
-    return queue;
+    return running;
   }
   const server = createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/healthz') {
@@ -50,7 +63,7 @@ export function webhookServer({ secret, repository, installationId, evaluate, lo
     let data;
     try { data = JSON.parse(body.toString('utf8')); }
     catch { res.writeHead(400); res.end(); return; }
-    if (data.repository?.full_name !== repository ||
+    if (data?.repository?.full_name !== repository ||
         data.installation?.id !== Number(installationId)) {
       res.writeHead(403); res.end(); return;
     }
@@ -62,7 +75,7 @@ export function webhookServer({ secret, repository, installationId, evaluate, lo
     res.writeHead(202); res.end();
     enqueue(event);
   });
-  return { server, enqueue, waitUntilIdle: () => queue };
+  return { server, enqueue, waitUntilIdle: () => running ?? Promise.resolve() };
 }
 
 export function runFromEnvironment(env = process.env) {

@@ -9,25 +9,6 @@ export const REPOSITORY = 'codewptech/skyinnk';
 
 const ROLE = { chat01: 'Chat 01', chat03: 'Chat 03', work: 'Work' };
 const TICK = String.fromCharCode(96);
-const LEGACY_BRANCH = 'work/v1-public-learning-integration';
-// Immutable metadata-only exception for pre-protocol PR #1; never allow new paths.
-export const LEGACY_FILES = new Set([
-  '.dockerignore', 'README.md', 'app/app.vue', 'app/components/LegalPage.vue',
-  'app/components/MarkdownNotes.vue', 'app/components/classroom/Syllabus.vue',
-  'app/pages/courses/[courseSlug]/index.vue',
-  'app/pages/courses/[courseSlug]/lessons/[lessonSlug].vue',
-  'app/pages/courses/index.vue', 'app/pages/index.vue',
-  'app/utils/public-catalogue.ts', 'app/utils/render-markdown.ts',
-  'content/catalogue.json', 'docs/releases/V1-CONTENT-INTAKE.md',
-  'docs/releases/V1-INTEGRATION-HANDOFF.md', 'docs/releases/V1-RELEASE-STATE.md',
-  'docs/releases/V1-REVIEW.md', 'docs/releases/V1-TECHNICAL-BACKLOG.md',
-  'nuxt.config.ts', 'package-lock.json', 'package.json', 'public/robots.txt',
-  'scripts/smoke-v1.mjs', 'scripts/validate-public-content.ts',
-  'server/routes/sitemap.xml.get.ts', 'shared/public-content.ts',
-  'tests/fixtures/public-catalogue.mjs', 'tests/markdown.test.mjs',
-  'tests/routes.test.mjs', 'tests/v1-content.test.mjs',
-]);
-
 export function roleForBranch(branch) {
   return /^(chat01|chat03|work)\/task-[a-z0-9]+(?:-[a-z0-9]+)*$/.exec(branch)?.[1] ?? null;
 }
@@ -57,42 +38,37 @@ function workProtected(path) {
 }
 /**
  * Every input must come from live GitHub API metadata, never from PR code.
- * Report all errors rather than failing early, including for grandfathered PR #1.
+ * Report all errors rather than failing early.
  */
 export function validatePolicy({ number, head, headRepo = REPOSITORY,
   base, body = '', files = [], issue = null, openPulls = [] }) {
   const errors = [];
   if (base !== DEVELOPMENT) errors.push('PR target must be development integration.');
   if (headRepo !== REPOSITORY) errors.push('Head must be an internal feature branch in this repository.');
-  const legacy = number === 1 && head === LEGACY_BRANCH;
-  const role = legacy ? 'work' : roleForBranch(head);
+  const role = roleForBranch(head);
   if (!role) errors.push('Invalid task-specific branch/role.');
   const task = taskIssueNumber(body);
-  if (!legacy) {
-    if (!task) errors.push('Missing Task issue: #NUMBER in PR body.');
-    if (!issue || issue.number !== task || issue.state !== 'open' || issue.pull_request) {
-      errors.push('Missing, invalid, closed or non-issue task ownership.');
-    }
-    const claim = issue?.body ?? '';
-    if (role && !claim.split('\n').some(line => line.trim().toLowerCase() === ('Workstream: ' + ROLE[role]).toLowerCase())) {
-      errors.push('Task ownership workstream does not match feature branch.');
-    }
-    if (!claim.split('\n').some(line => line.trim() === 'Branch: ' + TICK + head + TICK)) {
-      errors.push('Task ownership branch claim does not match feature branch.');
-    }
+  if (!task) errors.push('Missing Task issue: #NUMBER in PR body.');
+  if (!issue || issue.number !== task || issue.state !== 'open' || issue.pull_request) {
+    errors.push('Missing, invalid, closed or non-issue task ownership.');
+  }
+  const claim = issue?.body ?? '';
+  if (role && !claim.split('\n').some(line => line.trim().toLowerCase() === ('Workstream: ' + ROLE[role]).toLowerCase())) {
+    errors.push('Task ownership workstream does not match feature branch.');
+  }
+  if (!claim.split('\n').some(line => line.trim() === 'Branch: ' + TICK + head + TICK)) {
+    errors.push('Task ownership branch claim does not match feature branch.');
   }
   const reserved = reservedPaths(issue?.body ?? '');
   for (const path of files) {
     if (typeof path !== 'string' || !path || path.startsWith('/') || path.includes('\\')) {
       errors.push('Invalid changed path.'); continue;
     }
-    if (legacy && !LEGACY_FILES.has(path)) errors.push('Legacy PR #1 added unreviewed path: ' + path);
     if (role && role !== 'chat01' && isGovernance(path)) errors.push('Unauthorized governance modification: ' + path);
-    const legacyAllowed = legacy && (path === 'docs/releases/V1-RELEASE-STATE.md' || path === 'server/routes/sitemap.xml.get.ts');
-    if (role === 'work' && workProtected(path) && !legacyAllowed) errors.push('Workstream protected file violation: ' + path);
+    if (role === 'work' && workProtected(path)) errors.push('Workstream protected file violation: ' + path);
     if (role === 'chat01' && !chat01Allowed(path)) errors.push('Chat 01 may only change owned governance: ' + path);
     if (role === 'chat03' && (/^app\/pages\//.test(path) || /^app\/components\/classroom\//.test(path)) && !reserved.has(path)) errors.push('Chat 03 needs coordinated UI reservation: ' + path);
-    if (!legacy && isShared(path) && !reserved.has(path)) errors.push('Missing exact shared-file reservation: ' + path);
+    if (isShared(path) && !reserved.has(path)) errors.push('Missing exact shared-file reservation: ' + path);
   }
   const touched = new Set(files);
   for (const other of openPulls) {

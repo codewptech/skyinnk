@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHmac, generateKeyPairSync, verify } from 'node:crypto';
 import { once } from 'node:events';
 import {
-  DEVELOPMENT, CHECK_NAME, LEGACY_FILES, validatePolicy,
+  DEVELOPMENT, CHECK_NAME, validatePolicy,
 } from '../security/trusted-governance/policy.mjs';
 import {
   appJwt, verifySignature, GithubAppClient, evaluateOpenPulls,
@@ -70,13 +70,22 @@ test('overlap with competing open PR is blocked even with a valid issue/reservat
     openPulls: [{ number: 10, base: DEVELOPMENT, files: ['server/api/v1/health.get.ts'] }],
   })), /Overlapping open PR #10/);
 });
-test('legacy PR #1 allows only frozen reviewed filenames and retains safety/overlap', () => {
+test('merged PR #1 cannot use a legacy exception', () => {
   const legacy = valid({ number: 1, head: 'work/v1-public-learning-integration',
-    body: '', issue: null, files: [...LEGACY_FILES] });
-  assert.deepEqual(validatePolicy(legacy), []);
-  assert.match(errors({ ...legacy, files: [...legacy.files, 'server/api/v1/private.post.ts'] }), /unreviewed path/);
-  assert.match(errors({ ...legacy, files: ['package.json'],
-    openPulls: [{ number: 22, base: DEVELOPMENT, files: ['package.json'] }] }), /Overlapping open PR #22/);
+    body: '', issue: null, files: ['package.json'] });
+  assert.match(errors(legacy), /Invalid task-specific/);
+  assert.match(errors(legacy), /Missing Task issue/);
+});
+test('trusted file lookup retains both names and rejects incomplete rename metadata', async () => {
+  const client = new GithubAppClient({ appId: 123, installationId: 456 });
+  client.list = async () => [{ status: 'renamed',
+    previous_filename: 'server/api/v1/health.get.ts', filename: 'app/health.ts' }];
+  const files = await client.files(13);
+  const branch = 'work/task-content';
+  assert.match(errors(valid({ head: branch, files, issue: claim('Work', branch) })),
+    /Workstream protected file violation: server/);
+  client.list = async () => [{ status: 'renamed', filename: 'app/health.ts' }];
+  await assert.rejects(client.files(13), /Invalid GitHub changed-file metadata/);
 });
 test('source tampering in PR cannot alter trusted policy; the malicious file is rejected', () => {
   const branch = 'work/task-bypass';
@@ -171,6 +180,49 @@ test('evaluation does not publish a stale success after PR head changes', async 
   assert.equal(result[0].skipped, true);
   assert.equal(published, false);
 });
+test('evaluation stops when a competing PR changes during the metadata scan', async () => {
+  const one = { number: 13, state: 'open', body: 'Task issue: #7',
+    head: { ref: 'chat03/task-one', sha: HEAD, repo: { full_name: REPO } },
+    base: { ref: DEVELOPMENT, sha: 'd'.repeat(40) } };
+  const two = { ...one, number: 14, head: { ...one.head, sha: 'b'.repeat(40) } };
+  let listings = 0;
+  const client = {
+    openPulls: async () => ++listings === 1 ? [one, two] :
+      [one, { ...two, head: { ...two.head, sha: 'c'.repeat(40) } }],
+    pull: async n => n === 13 ? one : two,
+    files: async () => ['app/pages/index.vue'],
+    check: async () => assert.fail('stale snapshot must not be published'),
+  };
+  const results = await evaluateOpenPulls(client);
+  assert.deepEqual(results.map(result => result.skipped), [true, true]);
+});
+
+test('trusted scans coalesce bursts into one pending scan and recover after failure', async () => {
+  const started = Promise.withResolvers();
+  const unblocked = Promise.withResolvers();
+  let calls = 0;
+  const failures = [];
+  const { enqueue, waitUntilIdle } = webhookServer({
+    secret: 'long-webhook-secret-for-local-tests', repository: REPO, installationId: 456,
+    evaluate: async () => {
+      if (++calls !== 1) return [];
+      started.resolve();
+      await unblocked.promise;
+      throw new Error('fixture outage');
+    },
+    log: { info() {}, error: (...args) => failures.push(args) },
+  });
+  const first = enqueue('initial');
+  await started.promise;
+  for (let i = 0; i < 50; i++) assert.equal(enqueue('changed'), first);
+  unblocked.resolve();
+  await waitUntilIdle();
+  assert.equal(calls, 2);
+  assert.equal(failures.length, 1);
+  await enqueue('later');
+  assert.equal(calls, 3);
+});
+
 test('webhook handler rejects invalid HMAC and wrong installation, accepts signed request', async () => {
   const secret = 'random-strong-webhook-secret-for-tests';
   let calls = 0;
@@ -190,6 +242,7 @@ test('webhook handler rejects invalid HMAC and wrong installation, accepts signe
   try {
     assert.equal((await send({ repository: { full_name: REPO }, installation: { id: 456 } }, false)).status, 401);
     assert.equal((await send({ repository: { full_name: REPO }, installation: { id: 999 } })).status, 403);
+    assert.equal((await send(null)).status, 403);
     assert.equal((await send({ repository: { full_name: REPO }, installation: { id: 456 } })).status, 202);
     await waitUntilIdle();
     assert.equal(calls, 1);

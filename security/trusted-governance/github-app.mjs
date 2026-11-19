@@ -72,7 +72,20 @@ export class GithubAppClient {
   }
   async openPulls() { return this.list('/pulls?state=open'); }
   async pull(number) { return this.get('/pulls/' + number); }
-  async files(number) { return (await this.list(`/pulls/${number}/files`)).map(x => x.filename); }
+  async files(number) {
+    const paths = new Set();
+    for (const file of await this.list(`/pulls/${number}/files`)) {
+      const names = file?.status === 'renamed'
+        ? [file.previous_filename, file.filename]
+        : [file?.filename];
+      for (const path of names) {
+        if (typeof path !== 'string' || !path || path.startsWith('/'))
+          throw new Error('Invalid GitHub changed-file metadata.');
+        paths.add(path);
+      }
+    }
+    return [...paths];
+  }
   async issue(number) { return this.get(`/issues/${number}`); }
   async check(sha, errors) {
     if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('Invalid commit SHA');
@@ -88,6 +101,14 @@ export class GithubAppClient {
   }
 }
 
+function samePullInputs(pr, current) {
+  return current?.state === 'open' && current.head?.sha === pr.head?.sha &&
+    current.head?.ref === pr.head?.ref &&
+    current.head?.repo?.full_name === pr.head?.repo?.full_name &&
+    current.base?.ref === pr.base?.ref && current.base?.sha === pr.base?.sha &&
+    current.body === pr.body;
+}
+
 /**
  * Re-evaluate every open PR, not only the webhook's PR. This invalidates stale
  * passes after a task issue is closed, a competing PR opens, or base moves.
@@ -101,7 +122,26 @@ export async function evaluateOpenPulls(client) {
     const pr = await client.pull(item.number);
     if (pr.state !== 'open' || pr.base?.ref !== DEVELOPMENT) continue;
     const files = await client.files(pr.number);
-    const task = taskIssueNumber(pr.body || '');
+    snapshots.push({ pr, files });
+  }
+  const fresh = new Map((await client.openPulls())
+    .filter(pr => pr.base?.ref === DEVELOPMENT).map(pr => [pr.number, pr]));
+  if (fresh.size !== snapshots.length ||
+      snapshots.some(({ pr }) => !samePullInputs(pr, fresh.get(pr.number)))) {
+    const changed = new Set([...snapshots.map(({ pr }) => pr.number), ...fresh.keys()]);
+    return [...changed].map(number => ({
+      number, skipped: true, reason: 'Open PR inputs changed during evaluation',
+    }));
+  }
+  const outcomes = [];
+  for (const { pr, files } of snapshots) {
+    const current = await client.pull(pr.number);
+    if (!samePullInputs(pr, current)) {
+      outcomes.push({ number: pr.number, skipped: true, reason: 'PR changed during evaluation' });
+      continue;
+    }
+    // Task ownership can change without a PR update. Read it before deciding.
+    const task = taskIssueNumber(current.body || '');
     let issue = null;
     if (task) {
       try { issue = await client.issue(task); }
@@ -110,11 +150,6 @@ export async function evaluateOpenPulls(client) {
         if (!/HTTP 404$/.test(String(error))) throw error;
       }
     }
-    snapshots.push({ pr, files, issue });
-  }
-  const outcomes = [];
-  for (const entry of snapshots) {
-    const { pr, files, issue } = entry;
     const others = snapshots.filter(o => o.pr.number !== pr.number).map(o => ({
       number: o.pr.number, base: o.pr.base.ref, files: o.files,
     }));
@@ -122,13 +157,6 @@ export async function evaluateOpenPulls(client) {
       number: pr.number, head: pr.head.ref, headRepo: pr.head.repo?.full_name,
       base: pr.base.ref, body: pr.body || '', files, issue, openPulls: others,
     });
-    // Fail closed if the head changed during evaluation: new push will need a new check.
-    const current = await client.pull(pr.number);
-    if (current.state !== 'open' || current.head?.sha !== pr.head?.sha ||
-        current.base?.ref !== DEVELOPMENT || current.body !== pr.body) {
-      outcomes.push({ number: pr.number, skipped: true, reason: 'PR changed during evaluation; scheduled next pass' });
-      continue;
-    }
     await client.check(pr.head.sha, errors);
     outcomes.push({ number: pr.number, sha: pr.head.sha, ok: errors.length === 0, errors });
   }
