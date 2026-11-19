@@ -16,7 +16,7 @@ Every task starts from the **latest remote development HEAD** on a fresh short-l
 
 ## Task ownership — before changing files
 
-Create one GitHub task issue using `.github/ISSUE_TEMPLATE/development-task.md`. Required metadata:
+Create one GitHub task issue using the PEA-2 template. The earlier development-task template governs existing historical tasks. Both formats include the following ownership metadata:
 
 ```text
 Workstream: Work
@@ -46,6 +46,13 @@ Shared hotspots include `package.json`, `package-lock.json`, `nuxt.config.ts`, `
 6. Chat 03 reviews cross-layer compatibility and manages **one non-production integration at a time**. Reconcile the feature branch against latest development and rerun checks before merging.
 7. After merge, close the task and start new tasks from the latest development HEAD.
 8. Release to `main` requires **separate explicit human owner approval**, a verified production release PR, required `CI`, and release/rollback checks. A development merge never authorizes production.
+
+## PEA-2 task packet checks
+
+- The migration boundary is GitHub issue number #43. Existing task issues through #43 retain the legacy contract, including the nine historical audit PRs and the in-progress rollout tasks. New task issues above #43 use the [PEA-2 template](../../.github/ISSUE_TEMPLATE/parallel-execution-task.md). The gate uses the repository-issued number, so editing the issue title or labels cannot change the format requirement.
+- At PR validation the linked open issue must contain a valid typed packet. Its branch, workstream, and target must agree with the actual PR. Record an executor and advisory claim, cover every changed filename including both sides of a rename, and record `PR_OPEN`, `REVIEWING`, `READY_TO_INTEGRATE`, or `INTEGRATING` as applicable. `CHANGES_REQUESTED` blocks this check and retains the claim. A draft may be under review but cannot be ready for integration. After an issue-only change, rerun Development CI for the current PR.
+- Both `START` and `INTEGRATION` dependencies must have verified development integration before the PR can pass the gate. `START` names a task issue. `INTEGRATION` can name a task or PR. A completed issue must link to a normally merged development PR, and a new typed dependency issue must also declare `DONE`. The merged revision must be an ancestor of the current base and have a successful latest `Development CI` check from the development push workflow. An unfinished `SOFT` dependency can remain open. Its reference must resolve. The gate rejects cycles along hard task edges.
+- Current open PRs and active new-format issue claims contribute to conflict checks. The checkout consumes GitHub metadata through read-only API calls. Claims and executor fields are advisory snapshots, with no atomic lock or authenticated runtime proof. Lifecycle validation checks the current packet against the PR. Multi-event transition history, automatic reruns on issue edits, and independent check-source trust remain follow-on work. Issue #34 owns workflow wiring and permission verification, including read access to Actions and Checks and the separately focused policy suite.
 
 ## Emergency operations and limits
 
