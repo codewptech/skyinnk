@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, changedPaths, assertEventRevision, validatePolicy } from '../scripts/verify-pr-governance.mjs';
+import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, changedPaths, assertEventRevision,
+  assertDevelopmentRef, assertOpenPullSnapshot, readPullFiles, validatePolicy, validatePeaPull } from '../scripts/verify-pr-governance.mjs';
 
 const tick = String.fromCharCode(96);
 const issue = (role, branch, paths = []) => ({
@@ -103,6 +104,40 @@ test('missing old path metadata rejects a rename', () => {
   assert.throws(() => changedPaths([{ status: 'renamed', filename: 'app/lesson.vue' }]),
     /Invalid GitHub changed-file metadata/);
 });
+
+test('file evidence must be complete and canonical before policy can pass', async () => {
+  const pr = { number: 74, changed_files: 2 };
+  const rename = { status: 'renamed', previous_filename: 'app/old.vue', filename: 'app/new.vue' };
+  await assert.rejects(readPullFiles(pr, async () => [rename]), /Incomplete GitHub changed-file evidence/);
+  await assert.rejects(readPullFiles(pr, async () => [rename, rename]), /Incomplete GitHub changed-file evidence/);
+  assert.deepEqual(await readPullFiles(pr, async path => {
+    assert.equal(path, '/pulls/74/files');
+    return [rename, { status: 'removed', filename: 'app/obsolete.vue' }];
+  }), ['app/old.vue', 'app/new.vue', 'app/obsolete.vue']);
+  for (const filename of ['app/../main.vue', 'app//a.vue', 'app\\a.vue', 'app/a.vue\n']) {
+    assert.throws(() => changedPaths([{ filename }]), /Invalid GitHub changed-file metadata/);
+  }
+});
+
+test('a competing development PR opening, closing or changing head invalidates a snapshot', () => {
+  const fixture = { number: 74, state: 'open', head: { sha: 'a' }, base: { ref: 'development/v1-public-launch', sha: 'b' } };
+  const other = { ...fixture, number: 75 };
+  assert.doesNotThrow(() => assertOpenPullSnapshot([fixture, other], [other, fixture], 76));
+  for (const current of [[], [fixture, other], [{ ...fixture, head: { sha: 'c' } }]]) {
+    assert.throws(() => assertOpenPullSnapshot([fixture], current, 76), /Competing development PRs changed/);
+  }
+});
+
+test('stale PR metadata cannot overrule the live development ref', () => {
+  const pr = { number: 74, state: 'open', head: { sha: 'c'.repeat(40) },
+    base: { ref: 'development/v1-public-launch', sha: 'a'.repeat(40) } };
+  const ref = { ref: 'refs/heads/development/v1-public-launch', object: { type: 'commit', sha: pr.base.sha } };
+  assert.doesNotThrow(() => assertEventRevision(pr, pr));
+  assert.doesNotThrow(() => assertDevelopmentRef(pr, ref));
+  assert.throws(() => assertDevelopmentRef(pr, { ...ref, object: { ...ref.object, sha: 'b'.repeat(40) } }),
+    /Development base changed/);
+  assert.throws(() => assertDevelopmentRef(pr, undefined), /Development base changed/);
+});
 test('governance files are protected against Work even when reserved', () => {
   const head = 'work/task-catalogue';
   const files = ['docs/governance/DEVELOPMENT-WORKFLOW.md', '.github/pull_request_template.md',
@@ -141,4 +176,154 @@ test('issue template and architecture documentation require exact shared reserva
     'docs/architecture/ARCHITECTURE-DECISIONS.md'];
   const errors = validatePolicy(base({ files, issue: issue('Chat 01', 'chat01/task-enforce-workflow') }));
   assert.equal(errors.filter(e => e.includes('must be reserved')).length, 2);
+});
+
+const dev = 'development/v1-public-launch';
+const repo = { full_name: 'codewptech/skyinnk' };
+const currentBase = 'a'.repeat(40);
+const prerequisiteMerge = 'b'.repeat(40);
+const claimBranch = 'work/task-learning-fixture';
+const lesson = 'app/pages/courses/lesson.vue';
+const passingCheck = { id: 1, name: 'Development CI', app: { id: 15368 }, head_sha: prerequisiteMerge,
+  status: 'completed', conclusion: 'success', details_url: 'https://github.com/codewptech/skyinnk/actions/runs/100/job/1' };
+const pushRun = { id: 100, event: 'push', head_sha: prerequisiteMerge, head_branch: dev,
+  path: '.github/workflows/development-ci.yml', status: 'completed', conclusion: 'success' };
+
+function peaIssue(number, {
+  branch = claimBranch, status = 'PR_OPEN', executor = 'codex fixture-run-id',
+  start = 'none', integration = 'none', soft = 'none', owned = '- `' + lesson + '`',
+  lease = 'none / advisory', state = 'open', state_reason = null,
+} = {}) {
+  return { number, state, state_reason, body: [
+    'Workstream: Work', 'Branch: `' + branch + '`', 'Target: `' + dev + '`',
+    'Delivery lane: Learning Experience', 'Priority: P1', 'Risk: ordinary',
+    '### Outcome', 'Verify a public course and lesson with local fixtures.',
+    '### Execution state', status, '### Executor', executor, '### Claim lease', lease,
+    '### Dependencies', '- START: ' + start, '- INTEGRATION: ' + integration, '- SOFT: ' + soft,
+    '- External approval: none', '### Acceptance', '- [ ] Test the fixture.',
+    '### Owned / affected paths', owned, '### Reserved shared paths', 'None.',
+  ].join('\n') };
+}
+
+function mergedDependency(number, task = null, branch = 'work/task-earlier-work') {
+  return {
+    number, merged: true, merge_commit_sha: prerequisiteMerge, body: task ? 'Task issue: #' + task : '',
+    head: { ref: branch, repo }, base: { ref: dev, repo },
+  };
+}
+
+function gate({ task = peaIssue(44), routes = {}, open = [], oldPulls = [],
+  openPulls = [], files = [lesson], draft = false, head = claimBranch } = {}) {
+  const calls = [];
+  const get = {
+    ['/commits/' + prerequisiteMerge + '/check-runs?filter=all&per_page=100']: { total_count: 1, check_runs: [passingCheck] },
+    '/actions/runs/100': pushRun,
+    ['/compare/' + prerequisiteMerge + '...' + currentBase]: { status: 'ahead', merge_base_commit: { sha: prerequisiteMerge } },
+    ...routes,
+  };
+  const lists = {
+    '/issues?state=open': [task, ...open],
+    ['/pulls?state=closed&base=' + encodeURIComponent(dev)]: oldPulls,
+  };
+  const read = map => async path => {
+    calls.push(path);
+    assert.ok(Object.hasOwn(map, path), 'Unexpected GitHub read ' + path);
+    return map[path];
+  };
+  const pr = { number: 80, draft, head: { ref: head }, base: { ref: dev, sha: currentBase } };
+  return { calls, run: () => validatePeaPull({ issue: task, pr, files, openPulls, api: read(get), collect: read(lists) }) };
+}
+
+test('existing issues stay on the legacy contract and new issues must use the typed packet', async () => {
+  const legacy = gate({ task: { ...issue('Work', claimBranch), number: 43 } });
+  assert.deepEqual(await legacy.run(), []);
+  assert.deepEqual(legacy.calls, []);
+  const current = gate({ task: { ...issue('Work', claimBranch), number: 44 } });
+  assert.match((await current.run()).join('|'), /Invalid delivery lane/);
+  assert.deepEqual(current.calls, []);
+  assert.deepEqual(await gate().run(), []);
+});
+
+test('actual PR metadata, every changed path and a valid claim are required', async () => {
+  assert.match((await gate({ head: 'work/task-other' }).run()).join('|'), /match the actual PR/);
+  const files = changedPaths([{ status: 'renamed', previous_filename: 'app/old.vue', filename: lesson }]);
+  assert.match((await gate({ files }).run()).join('|'), /outside the PEA-2 claim: app\/old.vue/);
+  const both = peaIssue(44, { owned: '- `app/old.vue`\n- `' + lesson + '`' });
+  assert.deepEqual(await gate({ files, task: both }).run(), []);
+  const malformed = peaIssue(44, { owned: '- `' + lesson + '`\n- app/old.vue' });
+  assert.match((await gate({ task: malformed }).run()).join('|'), /Malformed affected path/);
+  assert.match((await gate({ task: peaIssue(44, { lease: '', executor: 'unclaimed' }) }).run()).join('|'), /executor and an advisory or lease claim/);
+});
+
+test('PR lifecycle rejects work that has not reached a PR and rejects a draft ready for integration', async () => {
+  for (const status of ['BACKLOG', 'READY', 'CLAIMED', 'BUILDING', 'PAUSED', 'DONE', 'CHANGES_REQUESTED']) {
+    assert.match((await gate({ task: peaIssue(44, { status }) }).run()).join('|'), /PR or review state/);
+  }
+  const candidate = peaIssue(44, { status: 'READY_TO_INTEGRATE' });
+  assert.match((await gate({ task: candidate, draft: true }).run()).join('|'), /consistent with this pull request/);
+  assert.deepEqual(await gate({ task: candidate }).run(), []);
+  assert.deepEqual(await gate({ draft: true }).run(), []);
+  const unresolved = peaIssue(45, { status: 'CHANGES_REQUESTED', owned: '- `app/other.vue`' });
+  assert.match((await gate({ open: [unresolved] }).run()).join('|'), /conflicts with issue #45/);
+});
+
+test('a declared competing branch or reserved path blocks a PR across states', async () => {
+  const same = peaIssue(45, { status: 'PAUSED', owned: '- `app/other.vue`' });
+  assert.match((await gate({ open: [same] }).run()).join('|'), /conflicts with issue #45/);
+  const disjoint = peaIssue(46, { branch: 'work/task-other', owned: '- `app/other.vue`' });
+  assert.deepEqual(await gate({ open: [disjoint] }).run(), []);
+  const crossBranch = peaIssue(46, { branch: 'work/task-other' });
+  assert.match((await gate({ open: [crossBranch] }).run()).join('|'), /conflicts with issue #46/);
+  const task = peaIssue(44, { owned: '- `' + lesson + '`\n- `app/future.vue`' });
+  const openPulls = [{ number: 82, base: dev, files: ['app/future.vue'] }];
+  assert.match((await gate({ task, openPulls }).run()).join('|'), /overlaps open PR #82/);
+});
+
+test('START requires a task and does not accept a closed task without verified integration', async () => {
+  const task = peaIssue(44, { start: '#45' });
+  const wrongType = { number: 45, pull_request: {} };
+  assert.match((await gate({ task, routes: { '/issues/45': wrongType } }).run()).join('|'), /missing START issue #45/);
+  const closed = peaIssue(45, { status: 'DONE', state: 'closed', state_reason: 'completed' });
+  assert.match((await gate({ task, routes: { '/issues/45': closed } }).run()).join('|'), /START dependency #45.*no verified/);
+  const done = mergedDependency(61, 45, claimBranch);
+  const options = { task, oldPulls: [done], routes: { '/issues/45': closed, '/pulls/61': done } };
+  assert.deepEqual(await gate(options).run(), []);
+  const stale = { ...closed, state: 'open' };
+  assert.match((await gate({ ...options, routes: { ...options.routes, '/issues/45': stale } }).run()).join('|'), /START dependency #45/);
+});
+
+test('INTEGRATION needs the merged ancestor and latest successful required check', async () => {
+  const task = peaIssue(44, { integration: '#45' });
+  const upstream = mergedDependency(45);
+  const routes = { '/issues/45': { number: 45, pull_request: {} }, '/pulls/45': upstream };
+  assert.deepEqual(await gate({ task, routes }).run(), []);
+  for (const invalid of [{ ...upstream, merged: false }, { ...upstream, base: { ref: 'main', repo } }]) {
+    assert.match((await gate({ task, routes: { ...routes, '/pulls/45': invalid } }).run()).join('|'), /INTEGRATION dependency #45/);
+  }
+  const checks = { total_count: 2, check_runs: [passingCheck, { ...passingCheck, id: 2, conclusion: 'failure' }] };
+  const checkRoute = '/commits/' + prerequisiteMerge + '/check-runs?filter=all&per_page=100';
+  assert.match((await gate({ task, routes: { ...routes, [checkRoute]: checks } }).run()).join('|'), /INTEGRATION dependency #45/);
+  const compareRoute = '/compare/' + prerequisiteMerge + '...' + currentBase;
+  const diverged = { ...routes, [compareRoute]: { status: 'diverged', merge_base_commit: { sha: 'c'.repeat(40) } } };
+  assert.match((await gate({ task, routes: diverged }).run()).join('|'), /INTEGRATION dependency #45/);
+});
+
+test('hard dependency proof rejects partial check lists and PR runs that did not verify development', async () => {
+  const task = peaIssue(44, { integration: '#45' });
+  const routes = { '/issues/45': { number: 45, pull_request: {} }, '/pulls/45': mergedDependency(45) };
+  const checkRoute = '/commits/' + prerequisiteMerge + '/check-runs?filter=all&per_page=100';
+  await assert.rejects(gate({ task, routes: { ...routes, [checkRoute]: { total_count: 2, check_runs: [passingCheck] } } }).run(),
+    /Incomplete GitHub check evidence/);
+  assert.match((await gate({ task, routes: { ...routes, '/actions/runs/100': { ...pushRun, event: 'pull_request' } } }).run()).join('|'),
+    /INTEGRATION dependency #45/);
+});
+
+test('SOFT accepts unfinished work and hard dependency cycles fail before CI proof', async () => {
+  const optional = peaIssue(45, { status: 'BACKLOG', executor: 'unclaimed' });
+  const soft = gate({ task: peaIssue(44, { soft: '#45' }), routes: { '/issues/45': optional } });
+  assert.deepEqual(await soft.run(), []);
+  assert.deepEqual(soft.calls, ['/issues/45', '/issues?state=open']);
+  const dependency = peaIssue(45, { start: '#44', status: 'DONE', state: 'closed', state_reason: 'completed' });
+  const cycle = gate({ task: peaIssue(44, { integration: '#45' }), routes: { '/issues/45': dependency } });
+  assert.match((await cycle.run()).join('|'), /Dependency cycle/);
 });
