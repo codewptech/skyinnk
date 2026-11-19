@@ -1,5 +1,7 @@
 # Analytics and legal review
 
+This implementation record describes the earlier homepage and baseline analytics settings. Review the actual V1 learning, media and account practices with the owner before publishing final legal copy. The [canonical release state](releases/V1-RELEASE-STATE.md) records current gates.
+
 ## Changed files
 
 | Files                                                            | Change                                                                  |

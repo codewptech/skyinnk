@@ -1,5 +1,7 @@
 # Skyinnk V1 — Shared execution checklist
 
+This table records the original V1 implementation milestones. For subsequent merges, successful fictional Chromium coverage and current release gates, see the [canonical release state](V1-RELEASE-STATE.md).
+
 Updated: 11 November 2026. Target: 18 November 2026, conditional on release gates.
 Integration owner: V1 Work/Codex; Chat 03 remains backend/V2 owner. Branch: `work/v1-public-learning-integration` (published on GitHub); target `development/v1-public-launch`.
 

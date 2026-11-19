@@ -1,5 +1,7 @@
 # V1 direct GitHub development workflow
 
+This is the historical pre-merge integration handoff. For verified merged routes, current test evidence and release gates, see the [canonical release state](V1-RELEASE-STATE.md).
+
 Permanent workflow: **GitHub → Codex/Work → tested commits → development branch → controlled release**. Manual ZIP and patch integration is retired as the normal workflow.
 
 Repository: `codewptech/skyinnk`.
