@@ -155,16 +155,45 @@ return {eligible:reasons.length===0,reasons};
 }
 
 
-export function integrationEligible(p,{issueStates={},pr=null,ciPassed=false,reviewVerified=false,baseCurrent=false,collisions=[]}={}){
-const reasons=[];
-if(p.state!=="READY_TO_INTEGRATE")reasons.push("Not ready-to-integrate");
-for(const n of p.integration)if(issueStates[n]!=="DONE")reasons.push("INTEGRATION dependency #"+n+" not DONE");
-if(!pr||pr.state!=="open"||!pr.headSha||!pr.baseSha)reasons.push("Missing exact-head open PR");
-if(!ciPassed)reasons.push("Exact-head required CI not successful");
-if(!reviewVerified)reasons.push("Independent technical review not verified");
-if(!baseCurrent)reasons.push("PR base not reconciled against current development");
-if(collisions.length)reasons.push("Unresolved changed-path collisions: "+collisions.join(", "));
-return {eligible:reasons.length===0,reasons};
+// Evidence must be tied to the immutable PR head; caller must fetch trusted GitHub data.
+// A model-reported technical review is advisory, NOT GitHub's authenticated approval.
+export function integrationEligible(p,{
+  issueStates={},pr=null,checks=[],reviews=[],currentBaseSha="",collisions=[]
+}={}){
+  const reasons=[];
+  if(p.state!=="READY_TO_INTEGRATE")reasons.push("Not ready-to-integrate");
+  for(const n of p.integration)if(issueStates[n]!=="DONE")reasons.push("INTEGRATION dependency #"+n+" not DONE");
+  const sha=/^[a-f0-9]{40}$/i;
+  if(!pr||pr.state!=="open"||!sha.test(pr.headSha??"")||!sha.test(pr.baseSha??"")){
+    reasons.push("Missing exact-head open PR");
+  }else{
+    if(pr.baseSha!==currentBaseSha)reasons.push("PR base not reconciled against current development");
+    if(!checks.some(c=>c.headSha===pr.headSha&&c.name==="Development CI"&&c.conclusion==="success")){
+      reasons.push("Required CI has no success evidence for exact PR head");
+    }
+    if(!reviews.some(r=>r.headSha===pr.headSha&&r.kind==="technical"&&r.verdict==="accepted"&&
+          typeof r.reviewer==="string"&&r.reviewer&&r.reviewer!==pr.executor)){
+      reasons.push("Independent technical review evidence missing for exact PR head");
+    }
+  }
+  if(collisions.length)reasons.push("Unresolved changed-path collisions: "+collisions.join(", "));
+  return {eligible:reasons.length===0,reasons};
+}
+
+// Only known issue/PR IDs can be dependencies. START must refer to task issues.
+export function validateGraph(tasks,{knownPullRequests=[]}={}){
+  const issues=new Map(tasks.map(t=>[t.number,t.packet]));
+  const prs=new Set(knownPullRequests);
+  const errors=[];
+  if(issues.size!==tasks.length)errors.push("Duplicate issue number in graph");
+  for(const t of tasks){
+    for(const n of t.packet.start??[])if(!issues.has(n))errors.push("#"+t.number+" missing START issue #"+n);
+    for(const kind of ["integration","soft"]){
+      for(const n of t.packet[kind]??[])if(!issues.has(n)&&!prs.has(n))errors.push("#"+t.number+" missing "+kind+" reference #"+n);
+    }
+  }
+  for(const cycle of detectCycles(tasks))errors.push("Dependency cycle: "+cycle.join(" -> "));
+  return errors;
 }
 
 export function detectCycles(tasks){
