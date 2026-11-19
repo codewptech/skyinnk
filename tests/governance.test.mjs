@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, changedPaths, assertEventRevision, validatePolicy, validatePeaPull } from '../scripts/verify-pr-governance.mjs';
+import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, changedPaths, assertEventRevision,
+  assertOpenPullSnapshot, readPullFiles, validatePolicy, validatePeaPull } from '../scripts/verify-pr-governance.mjs';
 
 const tick = String.fromCharCode(96);
 const issue = (role, branch, paths = []) => ({
@@ -102,6 +103,29 @@ test('renamed paths retain old ownership, exact reservations and open-PR overlap
 test('missing old path metadata rejects a rename', () => {
   assert.throws(() => changedPaths([{ status: 'renamed', filename: 'app/lesson.vue' }]),
     /Invalid GitHub changed-file metadata/);
+});
+
+test('file evidence must be complete and canonical before policy can pass', async () => {
+  const pr = { number: 74, changed_files: 2 };
+  const rename = { status: 'renamed', previous_filename: 'app/old.vue', filename: 'app/new.vue' };
+  await assert.rejects(readPullFiles(pr, async () => [rename]), /Incomplete GitHub changed-file evidence/);
+  await assert.rejects(readPullFiles(pr, async () => [rename, rename]), /Incomplete GitHub changed-file evidence/);
+  assert.deepEqual(await readPullFiles(pr, async path => {
+    assert.equal(path, '/pulls/74/files');
+    return [rename, { status: 'removed', filename: 'app/obsolete.vue' }];
+  }), ['app/old.vue', 'app/new.vue', 'app/obsolete.vue']);
+  for (const filename of ['app/../main.vue', 'app//a.vue', 'app\\a.vue', 'app/a.vue\n']) {
+    assert.throws(() => changedPaths([{ filename }]), /Invalid GitHub changed-file metadata/);
+  }
+});
+
+test('a competing development PR opening, closing or changing head invalidates a snapshot', () => {
+  const fixture = { number: 74, state: 'open', head: { sha: 'a' }, base: { ref: 'development/v1-public-launch', sha: 'b' } };
+  const other = { ...fixture, number: 75 };
+  assert.doesNotThrow(() => assertOpenPullSnapshot([fixture, other], [other, fixture], 76));
+  for (const current of [[], [fixture, other], [{ ...fixture, head: { sha: 'c' } }]]) {
+    assert.throws(() => assertOpenPullSnapshot([fixture], current, 76), /Competing development PRs changed/);
+  }
 });
 test('governance files are protected against Work even when reserved', () => {
   const head = 'work/task-catalogue';
@@ -221,13 +245,15 @@ test('actual PR metadata, every changed path and a valid claim are required', as
 });
 
 test('PR lifecycle rejects work that has not reached a PR and rejects a draft ready for integration', async () => {
-  for (const status of ['BACKLOG', 'READY', 'CLAIMED', 'BUILDING', 'PAUSED', 'DONE']) {
+  for (const status of ['BACKLOG', 'READY', 'CLAIMED', 'BUILDING', 'PAUSED', 'DONE', 'CHANGES_REQUESTED']) {
     assert.match((await gate({ task: peaIssue(44, { status }) }).run()).join('|'), /PR or review state/);
   }
   const candidate = peaIssue(44, { status: 'READY_TO_INTEGRATE' });
   assert.match((await gate({ task: candidate, draft: true }).run()).join('|'), /consistent with this pull request/);
   assert.deepEqual(await gate({ task: candidate }).run(), []);
   assert.deepEqual(await gate({ draft: true }).run(), []);
+  const unresolved = peaIssue(45, { status: 'CHANGES_REQUESTED', owned: '- `app/other.vue`' });
+  assert.match((await gate({ open: [unresolved] }).run()).join('|'), /conflicts with issue #45/);
 });
 
 test('a declared competing branch or reserved path blocks a PR across states', async () => {

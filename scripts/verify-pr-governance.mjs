@@ -13,8 +13,8 @@ const TICK = String.fromCharCode(96);
 const LAST_LEGACY_ISSUE = 43;
 const ACTIONS_APP_ID = 15368;
 const SHA = /^[0-9a-f]{40}$/;
-const PR_STATES = new Set(['PR_OPEN', 'REVIEWING', 'CHANGES_REQUESTED', 'READY_TO_INTEGRATE', 'INTEGRATING']);
-const CLAIM_STATES = new Set(['CLAIMED', 'BUILDING', 'PAUSED', 'BLOCKED', ...PR_STATES]);
+const PR_STATES = new Set(['PR_OPEN', 'REVIEWING', 'READY_TO_INTEGRATE', 'INTEGRATING']);
+const CLAIM_STATES = new Set(['CLAIMED', 'BUILDING', 'PAUSED', 'BLOCKED', 'CHANGES_REQUESTED', ...PR_STATES]);
 
 function isPeaIssue(issue) {
   return Number.isSafeInteger(issue?.number) && issue.number > LAST_LEGACY_ISSUE && !issue.pull_request;
@@ -30,7 +30,8 @@ export function changedPaths(files) {
       ? [file.previous_filename, file.filename]
       : [file?.filename];
     for (const path of names) {
-      if (typeof path !== 'string' || !path || path.startsWith('/')) {
+      if (typeof path !== 'string' || /[\x00-\x1f\x7f\\]/.test(path) ||
+          path.split('/').some(part => !part || part === '.' || part === '..')) {
         throw new Error('Invalid GitHub changed-file metadata.');
       }
       paths.add(path);
@@ -118,13 +119,35 @@ export function validatePolicy({ number, head, headRepo, base, body = '', files 
 }
 
 export function assertEventRevision(eventPull, current) {
-  if (current.state !== 'open' ||
+  if (current.state !== 'open' || current.number !== eventPull.number ||
       current.head?.sha !== eventPull.head?.sha ||
       current.base?.sha !== eventPull.base?.sha ||
       current.base?.ref !== eventPull.base?.ref ||
       current.head?.ref !== eventPull.head?.ref ||
       current.head?.repo?.full_name !== eventPull.head?.repo?.full_name) {
     throw new Error('PR revision changed. Run Development CI for the current revision.');
+  }
+}
+
+export async function readPullFiles(pr, collect) {
+  const files = await collect('/pulls/' + pr.number + '/files');
+  if (!Number.isSafeInteger(pr.changed_files) || !Array.isArray(files) ||
+      files.length !== pr.changed_files || new Set(files.map(file => file?.filename)).size !== files.length) {
+    throw new Error('Incomplete GitHub changed-file evidence for PR #' + pr.number + '.');
+  }
+  return changedPaths(files);
+}
+
+function targetPulls(pulls, currentNumber) {
+  return pulls.filter(pr => pr.number !== currentNumber && pr.base?.ref === DEV_BRANCH)
+    .sort((a, b) => a.number - b.number);
+}
+
+export function assertOpenPullSnapshot(before, after, currentNumber) {
+  const snapshot = pulls => targetPulls(pulls, currentNumber).map(pr => [pr.number, pr.state,
+    pr.head?.sha, pr.head?.repo?.full_name, pr.base?.sha]);
+  if (JSON.stringify(snapshot(before)) !== JSON.stringify(snapshot(after))) {
+    throw new Error('Competing development PRs changed during validation. Re-run Development CI.');
   }
 }
 
@@ -246,7 +269,7 @@ async function enforceFromEvent() {
   const eventPath = process.env.GITHUB_EVENT_PATH;
   const token = process.env.GITHUB_TOKEN;
   const repository = process.env.GITHUB_REPOSITORY;
-  if (!eventPath || !token || !/^[-\w.]+\/[-\w.]+$/.test(repository || '')) {
+  if (!eventPath || !token || repository !== REPOSITORY) {
     throw new Error('GITHUB_EVENT_PATH, GITHUB_TOKEN and valid GITHUB_REPOSITORY required.');
   }
   const event = JSON.parse(await readFile(eventPath, 'utf8'));
@@ -272,16 +295,18 @@ async function enforceFromEvent() {
     throw new Error('GitHub API list pagination limit exceeded.');
   };
   const pullPath = '/pulls/' + eventPull.number;
-  const files = changedPaths(await collect(pullPath + '/files'));
-  const others = await collect('/pulls?state=open');
-  const openPulls = [];
-  for (const other of others) {
-    if (other.number === eventPull.number || other.base?.ref !== DEV_BRANCH) continue;
-    openPulls.push({ number: other.number, base: other.base.ref,
-      files: changedPaths(await collect('/pulls/' + other.number + '/files')) });
-  }
-  const pr = await api(pullPath);
+  const [pr, others] = await Promise.all([api(pullPath), collect('/pulls?state=open')]);
   assertEventRevision(eventPull, pr);
+  const files = await readPullFiles(pr, collect);
+  const openPulls = [];
+  for (const other of targetPulls(others, pr.number)) {
+    const current = await api('/pulls/' + other.number);
+    if (current.number !== other.number || current.state !== 'open' || current.base?.ref !== DEV_BRANCH ||
+        current.head?.sha !== other.head?.sha || current.head?.repo?.full_name !== other.head?.repo?.full_name) {
+      throw new Error('Competing development PR #' + other.number + ' changed during validation. Re-run Development CI.');
+    }
+    openPulls.push({ number: other.number, base: other.base.ref, files: await readPullFiles(current, collect) });
+  }
   const task = taskIssueNumber(pr.body || '');
   const issue = task ? await api('/issues/' + task) : null;
   const errors = validatePolicy({
@@ -291,11 +316,17 @@ async function enforceFromEvent() {
   });
   if (!errors.length && isPeaIssue(issue)) {
     errors.push(...await validatePeaPull({ issue, pr, files, openPulls, api, collect }));
-    const [latestPr, latestIssue] = await Promise.all([api(pullPath), api('/issues/' + task)]);
+  }
+  if (!errors.length) {
+    const [latestPr, latestIssue, latestOthers] = await Promise.all([
+      api(pullPath), api('/issues/' + task), collect('/pulls?state=open'),
+    ]);
     assertEventRevision(eventPull, latestPr);
-    if (latestPr.body !== pr.body || latestPr.draft !== pr.draft || latestIssue.state !== issue.state ||
-        latestIssue.body !== issue.body || latestIssue.updated_at !== issue.updated_at) {
-      errors.push('PR or PEA-2 task metadata changed during validation. Re-run Development CI.');
+    assertOpenPullSnapshot(others, latestOthers, pr.number);
+    if (latestPr.body !== pr.body || latestPr.draft !== pr.draft || latestPr.changed_files !== pr.changed_files ||
+        latestIssue.number !== issue.number || latestIssue.state !== issue.state || latestIssue.body !== issue.body ||
+        latestIssue.updated_at !== issue.updated_at) {
+      errors.push('PR or task metadata changed during validation. Re-run Development CI.');
     }
   }
   for (const error of errors) console.error('::error::' + error.replace(/\r?\n/g, ' '));
