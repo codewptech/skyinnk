@@ -57,8 +57,8 @@ Every **new PEA-2** task must contain these typed, unambiguous fields (historica
 - `Integration dependencies:` #PR/issue IDs or `none`; may allow isolated contract-based development but block merging until verified.
 - `Soft dependencies:` #IDs or `none`, with downstream compatibility checks.
 - `External approvals:` named owner-controlled condition(s), with exact blockable scope.
-- `Owned / affected paths:` explicit paths and planned changed files. No wildcard used to evade claims.
-- `Reserved shared paths:` exact paths required by existing governance, or `none`.
+- `Owned / affected paths:` one exact backtick-quoted path per dash bullet. Include planned changes and both paths of a rename.
+- `Reserved shared paths:` use the same exact bullet format for shared paths, or a single `None.` line. Both path sections reject prose, annotations, and malformed entries.
 - `Outcome:` one observable deliverable, acceptance checks and downstream interface implications.
 - `Next eligible task:` optional candidate; cannot override readiness validation.
 - `Blocking decision:` only if state is BLOCKED; identify blocker issue/actor, reason and unblock criterion.

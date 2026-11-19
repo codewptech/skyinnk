@@ -88,26 +88,29 @@ return hit?.[1]?.trim()??"";
 
 export function field(body,name){return body.match(new RegExp("^"+name.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+":\\s*(.*)$","im"))?.[1]?.trim()??""}
 
-export function paths(raw){return [...raw.matchAll(/^\s*-\s*`([^`]+)`(?:\s*.*)?$/gm)].map(m=>m[1]);}
-
 export function refs(raw){if(/^\s*(none|none for implementation)\s*$/i.test(raw.trim()))return [];return [...raw.matchAll(/#(\d+)/g)].map(m=>Number(m[1]));}
 
 const PACKET_FIELDS = 'Workstream|Branch|Target|Delivery lane|Priority|Risk';
 const PACKET_SECTIONS = [
-  'Outcome', 'Execution state', 'Executor', 'Claim lease', 'Dependencies', 'Acceptance',
+  'Outcome', 'Execution state', 'Executor', 'Claim lease', 'Dependencies', 'Acceptance', 'Blocking decision',
   'Owned / affected paths', 'Reserved shared paths', 'Contract / integration',
   'Reviewer / integration handoff', 'Risks and escalation', 'Next eligible task',
   'Claim and operation notes',
 ];
 
-function duplicateDeclarations(body) {
+const PACKET_SECTION_NAMES = new Set(PACKET_SECTIONS.map(name => name.toLowerCase()));
+
+function packetHeadings(body) {
+  return [...body.matchAll(/^###[ \t]+([^\n]+)$/gm)]
+    .map(match => ({ name: match[1].trim().toLowerCase(), start: match.index, end: match.index + match[0].length }))
+    .filter(heading => PACKET_SECTION_NAMES.has(heading.name));
+}
+
+function duplicateDeclarations(body, headings) {
   const fields = new RegExp('^(' + PACKET_FIELDS + '):', 'gmi');
-  const headings = /^###[ \t]+([^\n]+)$/gm;
-  const knownSections = new Set(PACKET_SECTIONS.map(name => name.toLowerCase()));
   const declarations = [
     ...[...body.matchAll(fields)].map(match => match[1].toLowerCase()),
-    ...[...body.matchAll(headings)].map(match => match[1].trim().toLowerCase())
-      .filter(name => knownSections.has(name)),
+    ...headings.map(heading => heading.name),
   ];
   const seen = new Set();
   const duplicate = new Set();
@@ -118,6 +121,22 @@ function duplicateDeclarations(body) {
   return [...duplicate];
 }
 
+function parsePathSection(body, headings, title, { allowNone = false } = {}) {
+  const index = headings.findIndex(heading => heading.name === title);
+  const raw = index < 0 ? '' : body.slice(headings[index].end + 1, headings[index + 1]?.start);
+  const lines = raw.split('\n').filter(line => !/^[ \t]*$/.test(line));
+  if (allowNone && lines.length === 1 && /^None\.?[ \t]*$/i.test(lines[0])) {
+    return { entries: [], valid: true };
+  }
+  const entries = [];
+  for (const line of lines) {
+    const entry = /^- `([^`\r]+)`[ \t]*$/.exec(line);
+    if (!entry) return { entries: [], valid: false };
+    entries.push(entry[1]);
+  }
+  return { entries, valid: !allowNone || entries.length > 0 };
+}
+
 function safePath(path) {
   return typeof path === 'string' && path.length > 0 && path === path.trim() &&
     !/[\x00-\x1f\x7f\\]/.test(path) &&
@@ -126,6 +145,12 @@ function safePath(path) {
 
 export function parsePacket(body){
 body = (typeof body === 'string' ? body : '').replace(/\r\n/g, '\n');
+const headings=packetHeadings(body);
+const owned=parsePathSection(body,headings,'owned / affected paths');
+const shared=parsePathSection(body,headings,'reserved shared paths',{allowNone:true});
+const pathErrors=[];
+if(!owned.valid)pathErrors.push('Malformed affected path declaration. Use one exact backtick bullet per path.');
+if(!shared.valid)pathErrors.push('Malformed shared path declaration. Use exact backtick bullets or None.');
 const dep=section(body,"Dependencies");
 const depValue=(key)=>dep.match(new RegExp("^\\s*-\\s*"+key+":\\s*(.*)$","im"))?.[1]??"";
 return {
@@ -133,14 +158,14 @@ workstream:field(body,"Workstream"),branch:field(body,"Branch").replace(/^`|`$/g
 lane:field(body,"Delivery lane"),priority:field(body,"Priority"),risk:field(body,"Risk"),
 state:section(body,"Execution state").split("\n")[0]?.trim()??"",executor:section(body,"Executor").split("\n")[0]?.trim()??"",
 outcome:section(body,"Outcome"),acceptance:section(body,"Acceptance"),
-owned:paths(section(body,"Owned / affected paths")),shared:paths(section(body,"Reserved shared paths")),
+owned:owned.entries,shared:shared.entries,pathErrors,
 start:refs(depValue("START")),integration:refs(depValue("INTEGRATION")),soft:refs(depValue("SOFT")),
-external:depValue("External approval"),depRaw:dep,duplicates:duplicateDeclarations(body),
+external:depValue("External approval"),depRaw:dep,duplicates:duplicateDeclarations(body,headings),
 };
 }
 
 export function validatePacket(p,{number=null}={}){
-const errors=(p.duplicates??[]).map(name=>"Duplicate packet declaration: "+name);
+const errors=[...(p.pathErrors??[]),...(p.duplicates??[]).map(name=>"Duplicate packet declaration: "+name)];
 if(!Object.hasOwn(ROLES,p.workstream))errors.push("Invalid Workstream");
 if(!Object.hasOwn(ROLES,p.workstream)||!p.branch||!new RegExp("^"+ROLES[p.workstream]+"/task-[a-z0-9]+(?:-[a-z0-9]+)*$").test(p.branch))errors.push("Branch does not match Workstream");
 if(p.target!=="development/v1-public-launch")errors.push("Invalid target branch");
@@ -191,7 +216,14 @@ const reasons=validatePacket(p,{number:taskNumber});
 if(p.state!=="READY")reasons.push("Not READY");
 for(const n of p.start)if(issueStates[n]!=="DONE")reasons.push("START dependency #"+n+" not DONE");
 const owned=new Set([...p.owned,...p.shared]);
-for(const c of claims)if(c.id!==taskNumber&&changePaths(c.paths).some(x=>owned.has(x)))reasons.push("Active task claim conflict: "+c.id);
+for (const claim of claims) {
+  if (Number.isSafeInteger(taskNumber) && taskNumber > 0 && claim.id === taskNumber) continue;
+  if (claim.branch === p.branch) {
+    reasons.push('Active task claim conflict: ' + claim.id + ' uses the same branch');
+  } else if (changePaths(claim.paths).some(path => owned.has(path))) {
+    reasons.push('Active task claim conflict: ' + claim.id);
+  }
+}
 for(const pr of openPRs)if(changePaths(pr.files).some(x=>owned.has(x)))reasons.push("Open PR conflict: #"+pr.number);
 return {eligible:reasons.length===0,reasons};
 }
@@ -202,7 +234,7 @@ return {eligible:reasons.length===0,reasons};
 export function integrationEligible(p,{
   issueStates={},pr=null,checks=[],reviews=[],currentBaseSha="",collisions=[]
 }={}){
-  const reasons=[];
+  const reasons=validatePacket(p);
   if(p.state!=="READY_TO_INTEGRATE")reasons.push("Not ready-to-integrate");
   for(const n of p.integration)if(issueStates[n]!=="DONE")reasons.push("INTEGRATION dependency #"+n+" not DONE");
   const sha=/^[a-f0-9]{40}$/i;

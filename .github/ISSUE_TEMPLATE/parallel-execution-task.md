@@ -7,6 +7,7 @@ assignees: []
 ---
 
 <!-- Replace ALL PLACEHOLDERS. The existing governance checker requires the exact Workstream, Branch and Reserved shared paths headings. Leave a new task BACKLOG until a coordinator verifies real dependencies, file claims and executor availability. -->
+<!-- In the two path sections, put one exact backtick-quoted file path per dash bullet. Include both old and new rename paths. If there are no shared paths, keep the shared heading and write only 'None.'. -->
 
 Workstream: REPLACE_WITH_Work_OR_Chat_03_OR_Chat_01
 Branch: `REPLACE_WITH_role/task-short-name`
@@ -47,8 +48,6 @@ none / advisory — NEVER claim an atomic lock unless a working claim broker act
 
 ### Reserved shared paths
 - `REPLACE_WITH_exact-shared-path-or-remove-this-bullet`
-
-<!-- If no shared paths, retain this heading and write 'None.' The new task checker must reject placeholders. Existing checker expects exact bullet paths only when a shared file is changed. Both old/new paths of renames are affected. -->
 
 ### Contract / integration
 API, schema, fixture or UX interface consumed by other lanes; named downstream consumers; compatibility test.

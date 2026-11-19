@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   parsePacket, validatePacket, changePaths, eligibleTask, integrationEligible,
   detectCycles, validateGraph, nextStateLegal, rankReady,
@@ -10,7 +11,8 @@ function taskBody(extra = {}) {
     workstream: 'Work', branch: 'work/task-discovery-check',
     lane: 'Learning Experience', priority: 'P1', risk: 'ordinary',
     state: 'READY', executor: 'unclaimed', start: 'none',
-    integration: '#24', soft: '#14', external: 'none for implementation', ...extra,
+    integration: '#24', soft: '#14', external: 'none for implementation',
+    owned: '- `app/pages/courses/index.vue`', shared: 'None.', ...extra,
   };
   return [
     'Workstream: ' + lines.workstream,
@@ -31,9 +33,9 @@ function taskBody(extra = {}) {
     '- [ ] Guest route and negative path observed.',
     '- [ ] Current exact-head CI passes.',
     '### Owned / affected paths',
-    '- `app/pages/courses/index.vue`',
+    lines.owned,
     '### Reserved shared paths',
-    'None.',
+    lines.shared,
   ].join('\n');
 }
 test('valid task packet is parsed and validated', () => {
@@ -130,11 +132,28 @@ test('ranking deterministically orders priority and age', () => {
   assert.ok(rankReady({priority:'P1',unlocks:0,created:1},{priority:'P1',unlocks:0,created:2})<0);
 });
 
-test('two tasks using same branch still collide unless same task claim', () => {
-  const packet=parsePacket(taskBody());
-  const claim={id:88,branch:packet.branch,paths:['app/pages/courses/index.vue']};
-  assert.match(eligibleTask(packet,{taskNumber:89,claims:[claim]}).reasons.join('|'),/Active task claim conflict/);
-  assert.equal(eligibleTask(packet,{taskNumber:88,claims:[claim]}).eligible,true);
+test('different tasks cannot claim the same branch even with disjoint paths', () => {
+  const packet = parsePacket(taskBody());
+  for (const paths of [['app/pages/elsewhere.vue'], ['app/pages/courses/index.vue'], []]) {
+    const claim = { id: 88, branch: packet.branch, paths };
+    const result = eligibleTask(packet, { taskNumber: 89, claims: [claim] });
+    assert.equal(result.eligible, false);
+    assert.match(result.reasons.join('|'), /Active task claim conflict: 88.*same branch/);
+    assert.equal(eligibleTask(packet, { taskNumber: 88, claims: [claim] }).eligible, true);
+  }
+});
+
+test('different branches with disjoint claims can start, including similarly named branches', () => {
+  const packet = parsePacket(taskBody());
+  const claim = { id: 88, branch: packet.branch + '-other', paths: ['app/pages/elsewhere.vue'] };
+  assert.equal(eligibleTask(packet, { taskNumber: 89, claims: [claim] }).eligible, true);
+});
+
+test('an unidentified contender does not match the current task identity', () => {
+  const packet = parsePacket(taskBody());
+  const result = eligibleTask(packet, { claims: [{ id: null, branch: packet.branch, paths: [] }] });
+  assert.equal(result.eligible, false);
+  assert.match(result.reasons.join('|'), /same branch/);
 });
 test('malformed paths, traversal and partial rename metadata fail closed', () => {
   assert.throws(()=>changePaths(['../private.env']),/Incomplete changed path/);
@@ -183,4 +202,86 @@ test('normal CRLF works and unsafe path segments fail at declaration and observa
     assert.throws(() => changePaths([path]), /Incomplete changed path/);
   }
   assert.equal(nextStateLegal('constructor','READY'),false);
+});
+
+test('exact path bullets preserve repository filenames and optional blank lines', () => {
+  const owned = ['app/pages/courses/[courseSlug].vue', 'docs/path with spaces.md'];
+  const shared = ['docs/one.md', 'docs/two.md'];
+  const bullets = entries => entries.map(path => '- `' + path + '`').join('\n\n');
+  const body = taskBody({ owned: bullets(owned), shared: bullets(shared) });
+  for (const newline of ['\n', '\r\n']) {
+    const packet = parsePacket(body.replaceAll('\n', newline));
+    assert.deepEqual(packet.owned, owned);
+    assert.deepEqual(packet.shared, shared);
+    assert.deepEqual(validatePacket(packet), []);
+    assert.equal(eligibleTask(packet).eligible, true);
+  }
+});
+
+test('malformed lines cannot disappear from either path section', () => {
+  const valid = '- `app/a.vue`';
+  for (const invalid of [
+    '- app/b.vue', '- ``', '- `app/b.vue', 'app/b.vue', '* `app/b.vue`',
+    '    - `app/b.vue`', '- `app/b.vue` (planned)', '- `app/b.vue` `app/c.vue`',
+    '<!-- more paths -->', '### Other paths\n- `app/b.vue`', '- `app/\nb.vue`',
+  ]) {
+    for (const [key, expected] of [
+      ['owned', /Malformed affected path declaration/], ['shared', /Malformed shared path declaration/],
+    ]) {
+      for (const declaration of [valid + '\n' + invalid, invalid + '\n' + valid]) {
+        const packet = parsePacket(taskBody({ [key]: declaration }));
+        assert.match(validatePacket(packet).join('|'), expected, declaration);
+        assert.equal(eligibleTask(packet).eligible, false, declaration);
+      }
+    }
+  }
+});
+
+test('only the entire shared path section can explicitly declare none', () => {
+  for (const shared of ['None', 'None.', '\nnone\n']) {
+    const packet = parsePacket(taskBody({ shared }));
+    assert.deepEqual(packet.shared, []);
+    assert.deepEqual(validatePacket(packet), []);
+  }
+  for (const shared of ['', 'None required.', 'None.\n- `app/a.vue`', '- `app/a.vue`\nNone', 'None\nNone.']) {
+    assert.match(validatePacket(parsePacket(taskBody({ shared }))).join('|'), /shared path declaration/);
+  }
+  assert.match(validatePacket(parsePacket(taskBody({ owned: 'None.' }))).join('|'), /affected path declaration/);
+  assert.match(validatePacket(parsePacket(taskBody({ owned: '' }))).join('|'), /Missing exact affected path/);
+});
+
+test('path validation continues to reject unsafe or duplicate entries', () => {
+  for (const declaration of ['- `../app/a.vue`', '- `app/*.vue`', '- `app/a.vue`\n- `app/a.vue`']) {
+    for (const key of ['owned', 'shared']) {
+      assert.equal(eligibleTask(parsePacket(taskBody({ [key]: declaration }))).eligible, false);
+    }
+  }
+});
+
+test('filled GitHub issue template accepts exact paths and a subsequent standard heading', () => {
+  const template = readFileSync(new URL('../../.github/ISSUE_TEMPLATE/parallel-execution-task.md', import.meta.url), 'utf8');
+  const body = template
+    .replace('REPLACE_WITH_Work_OR_Chat_03_OR_Chat_01', 'Work')
+    .replace('REPLACE_WITH_role/task-short-name', 'work/task-discovery-check')
+    .replace('REPLACE_WITH_Learning_Experience_OR_Technical_Foundation_OR_Quality_Remediation_OR_Governance', 'Learning Experience')
+    .replace('REPLACE_WITH_P0_P1_P2_P3', 'P1')
+    .replace('REPLACE_WITH_ordinary_OR_shared-interface_OR_sensitive-governance_OR_release-gated', 'ordinary')
+    .replace('One objectively verifiable outcome, with no unrelated feature expansion.', 'Verify public course discovery using reviewed fixtures.')
+    .replace('REPLACE_WITH_actual-file-path', 'app/pages/courses/index.vue')
+    .replace('- `REPLACE_WITH_exact-shared-path-or-remove-this-bullet`', 'None.');
+  assert.deepEqual(validatePacket(parsePacket(body)), []);
+});
+
+test('malformed path metadata also blocks integration readiness despite passing CI and review', () => {
+  const packet = parsePacket(taskBody({ state: 'READY_TO_INTEGRATE', owned: '- `app/a.vue`\n- app/b.vue' }));
+  const head = 'a'.repeat(40);
+  const base = 'b'.repeat(40);
+  const result = integrationEligible(packet, {
+    issueStates: { 24: 'DONE' }, currentBaseSha: base,
+    pr: { state: 'open', headSha: head, baseSha: base, executor: 'agent-A' },
+    checks: [{ headSha: head, name: 'Development CI', conclusion: 'success' }],
+    reviews: [{ headSha: head, kind: 'technical', verdict: 'accepted', reviewer: 'agent-B' }],
+  });
+  assert.equal(result.eligible, false);
+  assert.match(result.reasons.join('|'), /Malformed affected path declaration/);
 });
