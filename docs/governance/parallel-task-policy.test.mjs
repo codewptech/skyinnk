@@ -129,3 +129,24 @@ test('ranking deterministically orders priority and age', () => {
   assert.ok(rankReady({priority:'P1',unlocks:3},{priority:'P1',unlocks:1})<0);
   assert.ok(rankReady({priority:'P1',unlocks:0,created:1},{priority:'P1',unlocks:0,created:2})<0);
 });
+
+test('two tasks using same branch still collide unless same task claim', () => {
+  const packet=parsePacket(taskBody());
+  const claim={id:88,branch:packet.branch,paths:['app/pages/courses/index.vue']};
+  assert.match(eligibleTask(packet,{taskNumber:89,claims:[claim]}).reasons.join('|'),/Active task claim conflict/);
+  assert.equal(eligibleTask(packet,{taskNumber:88,claims:[claim]}).eligible,true);
+});
+test('malformed paths, traversal and partial rename metadata fail closed', () => {
+  assert.throws(()=>changePaths(['../private.env']),/Incomplete changed path/);
+  assert.throws(()=>changePaths(['app\\private.env']),/Incomplete changed path/);
+  assert.throws(()=>changePaths([{status:'renamed',filename:'new.vue'}]),/Incomplete changed path/);
+});
+test('PAUSED tasks are not falsely READY, but can resume through a claim', () => {
+  assert.equal(nextStateLegal('BUILDING','PAUSED'),true);
+  assert.equal(nextStateLegal('PAUSED','CLAIMED'),true);
+  assert.equal(eligibleTask({...parsePacket(taskBody()),state:'PAUSED'}).eligible,false);
+});
+test('ISO timestamp ordering remains stable', () => {
+  assert.ok(rankReady({priority:'P1',unlocks:0,created:'2026-11-19T04:00:00Z'},
+                      {priority:'P1',unlocks:0,created:'2026-11-19T05:00:00Z'})<0);
+});
