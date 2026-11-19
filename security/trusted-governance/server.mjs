@@ -98,10 +98,11 @@ export function runFromEnvironment(env = process.env) {
   });
   const port = Number(env.PORT || 8080);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT');
+  const lastKnownHeads = new Set();
   const { server, enqueue } = webhookServer({
     secret: env.GITHUB_WEBHOOK_SECRET,
     repository, installationId: env.GITHUB_APP_INSTALLATION_ID,
-    evaluate: () => evaluateOpenPulls(client),
+    evaluate: () => evaluateOpenPulls(client, lastKnownHeads),
   });
   server.listen(port, env.LISTEN_HOST || '0.0.0.0', () => {
     console.info('trusted governance webhook listening', port);

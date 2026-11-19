@@ -136,10 +136,10 @@ test('GitHub App requests narrow installation rights and publishes check on exac
   assert.equal(JSON.parse(calls[2].opts.body).conclusion, 'success');
   assert.equal(calls.every(x => !x.url.includes('/contents/') && !x.url.includes('/git/blobs/')), true);
 });
-function evaluateFixture(client) {
+function evaluateFixture(client, lastKnownHeads) {
   return evaluateOpenPulls({
     ...client, startCheck: client.startCheck ?? (async sha => sha), finishCheck: client.check,
-  });
+  }, lastKnownHeads);
 }
 test('full evaluation fetches GitHub metadata only and fails invalid task claim', async () => {
   const branch = 'work/task-catalogue';
@@ -220,7 +220,8 @@ test('shared SHA receives one decision and any failed PR prevents success', asyn
     startCheck: async sha => { opened.push(sha); return 7; },
     check: async (id, errors) => finished.push({ id, errors }),
   };
-  assert.deepEqual((await evaluateFixture(client)).map(decision => decision.ok), [true, false]);
+  const heads = new Set();
+  assert.deepEqual((await evaluateFixture(client, heads)).map(decision => decision.ok), [true, false]);
   assert.deepEqual(opened, [HEAD]);
   assert.equal(finished.length, 1);
   assert.equal(finished[0].id, 7);
@@ -228,6 +229,9 @@ test('shared SHA receives one decision and any failed PR prevents success', asyn
   client.files = async () => { throw new Error('metadata unavailable'); };
   await assert.rejects(evaluateFixture(client), /metadata unavailable/);
   assert.match(finished[1].errors.join(' '), /could not verify/);
+  client.openPulls = async () => { throw new Error('PR listing unavailable'); };
+  await assert.rejects(evaluateFixture(client, heads), /PR listing unavailable/);
+  assert.match(finished[2].errors.join(' '), /could not verify/);
 });
 test('trusted scans coalesce bursts into one pending scan and recover after failure', async () => {
   const started = Promise.withResolvers();

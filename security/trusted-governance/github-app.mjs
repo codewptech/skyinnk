@@ -3,6 +3,7 @@ import { CHECK_NAME, DEVELOPMENT, REPOSITORY, taskIssueNumber, validatePolicy } 
 
 const API = 'https://api.github.com';
 const MAX_PAGES = 20;
+const unavailable = ['Governance could not verify current metadata. Await a fresh scan.'];
 export function verifySignature(secret, payload, header) {
   if (typeof secret !== 'string' || secret.length < 20 ||
       typeof header !== 'string' || !/^sha256=[a-f0-9]{64}$/.test(header)) return false;
@@ -167,10 +168,24 @@ async function collectDecisions(client, pulls) {
   return outcomes;
 }
 
-export async function evaluateOpenPulls(client) {
-  const pulls = (await client.openPulls()).filter(p => p.base?.ref === DEVELOPMENT);
+export async function evaluateOpenPulls(client, lastKnownHeads = new Set()) {
+  let pulls;
+  try {
+    pulls = (await client.openPulls()).filter(p => p.base?.ref === DEVELOPMENT);
+  } catch (error) {
+    // Reading PRs and writing checks can fail independently. Do not keep known
+    // approvals current when only the metadata endpoint is unavailable.
+    for (const sha of lastKnownHeads) {
+      try {
+        await client.finishCheck(await client.startCheck(sha), unavailable);
+      } catch { /* /readyz will report the scan failure. */ }
+    }
+    throw error;
+  }
   const heads = new Set(pulls.filter(pr => pr.head?.repo?.full_name === REPOSITORY)
     .map(pr => pr.head.sha));
+  lastKnownHeads.clear();
+  for (const sha of heads) lastKnownHeads.add(sha);
   const pending = new Map();
   try {
     // The check is commit-scoped. Every PR sharing the SHA contributes to its decision.
@@ -191,7 +206,7 @@ export async function evaluateOpenPulls(client) {
     return decisions;
   } catch (error) {
     await Promise.allSettled([...pending.values()].map(async id => {
-      await client.finishCheck(id, ['Governance could not verify current metadata. Await a fresh scan.']);
+      await client.finishCheck(id, unavailable);
     }));
     throw error;
   }
