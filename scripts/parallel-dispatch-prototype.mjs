@@ -100,6 +100,14 @@ export function createClaimBroker({store,clock=()=>Date.now(),maxRetries=8}) {
       }
       return {ok:false,reason:'CAS_CONTENTION_RETRY'};
     },
+    async verifyLease({id,executorId,generation}) {
+      const s=await store.read();
+      const lease=s.state.claims.find(c=>c.id===id);
+      if(!lease || lease.executorId!==executorId || lease.generation!==generation ||
+         lease.state!=='ACTIVE')return {ok:false,reason:'STALE_OR_UNAUTHORIZED'};
+      if(lease.expiresAt<=clock())return {ok:false,reason:'EXPIRED_REQUIRES_RECONCILIATION'};
+      return {ok:true,lease:structuredClone(lease)};
+    },
     async inspect(){
       const s=await store.read();
       return s.state.claims.map(c=>({...c,
@@ -109,12 +117,23 @@ export function createClaimBroker({store,clock=()=>Date.now(),maxRetries=8}) {
 }
 
 /** Does not wake chat sessions. Only accepts a genuine, injected execution runtime. */
-export async function dispatchWithAdapter({adapter,issue,lease}){
+export async function dispatchWithAdapter({adapter,issue,lease,broker}){
   if(!adapter||typeof adapter.start!=='function')return {ok:false,reason:'EXECUTOR_UNAVAILABLE'};
   if(!lease||lease.state!=='ACTIVE')return {ok:false,reason:'VALID_LEASE_REQUIRED'};
-  const result=await adapter.start({issue,lease});
-  if(!result||typeof result.runId!=='string'||!result.runId.trim()){
-    return {ok:false,reason:'START_NOT_CONFIRMED'};
+  if(!broker||typeof broker.verifyLease!=='function'){
+    return {ok:false,reason:'CLAIM_VERIFICATION_REQUIRED'};
   }
-  return {ok:true,runId:result.runId};
+  const current=await broker.verifyLease({
+    id:lease.id,executorId:lease.executorId,generation:lease.generation
+  });
+  if(!current.ok)return current;
+  try {
+    const result=await adapter.start({issue,lease:current.lease});
+    if(!result||typeof result.runId!=='string'||!result.runId.trim()){
+      return {ok:false,reason:'START_NOT_CONFIRMED'};
+    }
+    return {ok:true,runId:result.runId};
+  }catch(error){
+    return {ok:false,reason:'START_FAILED',detail:error?.message||String(error)};
+  }
 }
