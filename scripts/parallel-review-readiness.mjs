@@ -51,7 +51,13 @@ export function assessPullRequests({ pullRequests, developmentSha, requiredCheck
       c.name === requiredCheck && c.head_sha === pr.head.sha &&
       c.status === 'completed' && c.conclusion === 'success');
     // Approval metadata is useful evidence, but shared credentials are not independent human identity.
-    const submitted = pr.reviews.filter(r =>
+    // Only the latest decision by a reviewer is relevant; later requests for
+    // changes invalidate an earlier approval at the same PR head.
+    const latestByReviewer = new Map();
+    for(const review of pr.reviews.filter(r => ['APPROVED','CHANGES_REQUESTED','DISMISSED'].includes(r.state))){
+      if(review.user?.login)latestByReviewer.set(review.user.login,review);
+    }
+    const submitted = [...latestByReviewer.values()].filter(r =>
       r.state === 'APPROVED' && r.commit_id === pr.head.sha &&
       r.user?.login && r.user.login !== pr.user?.login);
     const task = taskNumber(pr.body || '');
@@ -61,6 +67,7 @@ export function assessPullRequests({ pullRequests, developmentSha, requiredCheck
     if (!submitted.length) reasons.push('REVIEW_MISSING');
     if (!task) reasons.push('TASK_ISSUE_MISSING');
     if (pr.draft) reasons.push('DRAFT');
+    if (pr.mergeable !== true) reasons.push('MERGEABILITY_UNVERIFIED');
     return {number: pr.number, title: pr.title, head: pr.head.sha,
       base: pr.base.sha, task, paths, ci: !!check,
       submittedApprovals: submitted.length, reasons};
