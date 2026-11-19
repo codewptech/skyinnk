@@ -79,6 +79,14 @@ test("resource publication enforces local safe paths, review, type and truthful 
     assert.throws(() => checkPublicContent(root), /Missing or unsafe/);
     writeFileSync(join(root, "public/resources/public/fixture.txt"), "test");
     assert.doesNotThrow(() => checkPublicContent(root));
+    const originalNotes = lesson.notesMarkdown;
+    lesson.notesMarkdown = "[Read](/resources/public/%66ixture.txt#section)";
+    writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
+    assert.doesNotThrow(() => checkPublicContent(root));
+    lesson.notesMarkdown = "[Read](/resources/public/%6dissing.txt#section)";
+    writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
+    assert.throws(() => checkPublicContent(root), /unreviewed resource: .*missing\.txt/);
+    lesson.notesMarkdown = originalNotes;
     delete resource.sha256;
     writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
     assert.throws(() => checkPublicContent(root), /Missing approved resource SHA-256/);
