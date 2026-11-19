@@ -68,15 +68,24 @@ try {
   await dialog.waitFor({ state: "hidden", timeout: 3000 });
   await page.waitForFunction(() => document.activeElement?.classList.contains("desktop-toggle"));
 
-  await page.getByRole("link", { name: /next lesson/i }).click();
+  const nextLesson = page.getByRole("link", { name: /next lesson/i });
+  await nextLesson.focus();
+  await page.keyboard.press("Enter");
   await page.waitForURL(new URL(next, base).href);
   await page.getByRole("heading", { name: "Fixture text lesson", level: 1 }).waitFor();
+  await page.waitForFunction(() => document.activeElement?.id === "lesson-title");
   assert.equal(await resources.count(), 0);
   assert.equal(await overview.getAttribute("aria-selected"), "true");
   await page.goBack();
   await page.waitForURL(new URL(lesson, base).href);
   await resources.waitFor();
   assert.equal(await overview.getAttribute("aria-selected"), "true");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await mobile.click();
+  await dialog.getByRole("link", { name: "Fixture text lesson" }).click();
+  await page.waitForURL(new URL(next, base).href);
+  await dialog.waitFor({ state: "hidden" });
+  await page.waitForFunction(() => document.activeElement?.id === "lesson-title");
   console.log("PASS classroom tab relationships, keyboard focus, mobile Escape, resize, and lesson history");
 } finally {
   await browser.close();

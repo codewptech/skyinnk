@@ -37,6 +37,7 @@ const videoLoaded = ref(false);
 const drawer = ref<HTMLDialogElement>();
 const drawerToggle = ref<HTMLButtonElement>();
 const desktopToggle = ref<HTMLButtonElement>();
+const lessonHeading = ref<HTMLHeadingElement>();
 const drawerOpen = ref(false);
 let mobileLayout: MediaQueryList | undefined;
 
@@ -51,6 +52,7 @@ function closeDrawer() {
 }
 function drawerClosed() {
   drawerOpen.value = false;
+  if (document.activeElement === lessonHeading.value) return;
   const toggle = mobileLayout?.matches ? drawerToggle.value : desktopToggle.value;
   toggle?.focus();
 }
@@ -100,10 +102,12 @@ onBeforeRouteUpdate((to) => {
 });
 watch(
   () => lesson.value.key,
-  () => {
+  async () => {
     activeTab.value = "overview";
     videoLoaded.value = false;
     closeDrawer();
+    await nextTick();
+    lessonHeading.value?.focus();
   },
 );
 onMounted(() => {
@@ -227,7 +231,7 @@ useHead(() => ({
         </div>
         <div class="lesson-heading">
           <span class="eyebrow">{{ course.subject }} · PUBLIC LESSON</span>
-          <h1 id="lesson-title">{{ lesson.title }}</h1>
+          <h1 id="lesson-title" ref="lessonHeading" tabindex="-1">{{ lesson.title }}</h1>
           <p>Free to learn. No account required.</p>
         </div>
         <div class="lesson-tabs" role="tablist" aria-label="Lesson content">
