@@ -69,42 +69,51 @@ test("synchronization writes only normalized session claims and returns only the
     id: "forged",
   });
   assert.deepEqual(result, { id: "stored-user" });
-  assert.deepEqual(database.user.upsert.mock.calls[0].arguments, [
+  assert.deepEqual(database.user.createManyAndReturn.mock.calls[0].arguments, [
     {
-      where: { auth0Id: "session|owner" },
-      create: { auth0Id: "session|owner", name: "Owner" },
-      update: { auth0Id: "session|owner", name: "Owner" },
+      data: { auth0Id: "session|owner", name: "Owner" },
+      skipDuplicates: true,
       select: { id: true },
     },
   ]);
+  assert.equal(database.user.updateManyAndReturn.mock.callCount(), 0);
 });
 
-test("synchronization retries an identity uniqueness conflict once and propagates other failures", async () => {
-  const conflict = new RequestError("P2002", { target: ["auth0Id"] });
-  database.user.upsert.mock.mockImplementationOnce(async () => {
-    throw conflict;
-  });
-  assert.deepEqual(await syncAuth0User({ sub: "owner" }), {
-    id: "stored-user",
-  });
-  assert.equal(database.user.upsert.mock.callCount(), 2);
-  database.user.upsert.mock.mockImplementation(async () => {
-    throw conflict;
-  });
-  await assert.rejects(
-    syncAuth0User({ sub: "owner" }),
-    (error) => error === conflict,
+test("an existing subject updates only when the stored profile is no newer", async () => {
+  database.user.createManyAndReturn.mock.mockImplementation(async () => []);
+  const timestamp = "2026-11-12T00:00:00Z";
+  assert.deepEqual(
+    await syncAuth0User({ sub: "owner", name: "Current", updated_at: timestamp }),
+    { id: "stored-user" },
   );
-  assert.equal(database.user.upsert.mock.callCount(), 4);
-  const unrelated = new RequestError("P2002", { target: ["email"] });
-  database.user.upsert.mock.mockImplementation(async () => {
-    throw unrelated;
+  const [update] = database.user.updateManyAndReturn.mock.calls[0].arguments;
+  assert.deepEqual(update.where, {
+    auth0Id: "owner",
+    OR: [
+      { auth0UpdatedAt: null },
+      { auth0UpdatedAt: { lte: new Date(timestamp) } },
+    ],
   });
-  await assert.rejects(
-    syncAuth0User({ sub: "owner" }),
-    (error) => error === unrelated,
-  );
-  assert.equal(database.user.upsert.mock.callCount(), 5);
+  assert.equal(database.$transaction.mock.calls[0].arguments[1].isolationLevel, "ReadCommitted");
+  assert.equal(database.user.findUniqueOrThrow.mock.callCount(), 0);
+});
+
+test("undated claims cannot clear a watermark and a skipped write still returns the subject ID", async () => {
+  database.user.createManyAndReturn.mock.mockImplementation(async () => []);
+  database.user.updateManyAndReturn.mock.mockImplementation(async () => []);
+  for (const updated_at of [undefined, null, "", "invalid"]) {
+    assert.deepEqual(await syncAuth0User({ sub: "owner", updated_at }), {
+      id: "stored-user",
+    });
+  }
+  for (const { arguments: [update] } of database.user.updateManyAndReturn.mock.calls) {
+    assert.deepEqual(update.where, { auth0Id: "owner", OR: [{ auth0UpdatedAt: null }] });
+    assert.equal("auth0UpdatedAt" in update.data, false);
+  }
+  assert.equal(database.user.findUniqueOrThrow.mock.callCount(), 4);
+  const failure = new RequestError("P1001");
+  database.user.updateManyAndReturn.mock.mockImplementation(async () => { throw failure; });
+  await assert.rejects(syncAuth0User({ sub: "owner" }), (error) => error === failure);
 });
 
 test("client synchronization follows eligible visits, late profiles, identity changes and freshness", async (t) => {

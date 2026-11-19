@@ -25,7 +25,7 @@ UI intact. `app.vue` now hosts `NuxtPage` and `NuxtRouteAnnouncer`.
 | `prisma/migrations/20261104000000_create_auth0_user/migration.sql` | Transactional PostgreSQL 18 table, indexes, version guard and timestamp trigger.               |
 | `prisma/migrations/migration_lock.toml`                            | PostgreSQL migration provider lock.                                                            |
 | `server/utils/prisma.ts`                                           | Preserve singleton; rename its development cache to resolve the existing type collision.       |
-| `server/utils/auth0-user.ts`                                       | Validated profile mapping and identity-keyed native upsert with bounded conflict fallback.     |
+| `server/utils/auth0-user.ts`                                       | Validated profile mapping and identity-keyed, freshness-aware synchronization.                 |
 | `server/api/v1/auth/sync.post.ts`                                  | Session-only empty-body API, origin/CSRF checks and sanitized errors.                          |
 | `app/app.vue`                                                      | Root page outlet and route announcer.                                                          |
 | `app/pages/index.vue`                                              | Existing Home Page UI, opted into the named middleware.                                        |
@@ -58,14 +58,13 @@ before DDL. `set_user_updated_at()` sets `NEW."updatedAt" = clock_timestamp()`
 before every UPDATE, including direct SQL. `createdAt` and initial `updatedAt`
 use database defaults. Prisma's `@updatedAt` is deliberately absent.
 
-`syncAuth0User()` accepts the SDK's `UserClaims` from a verified server session.
-It uses `prisma.user.upsert()` with `where.auth0Id = session.user.sub`, identical
-create identity, no nested writes, and a minimal `id` selection. The update always
-includes the same `auth0Id`, so even subject-only/unchanged claims cause a real
-UPDATE and fire the timestamp trigger. It never supplies primary keys or database
-timestamps. This satisfies Prisma v6's native PostgreSQL upsert criteria; a
-single bounded retry handles an `auth0Id` P2002 conflict if Prisma falls back to
-its own upsert implementation.
+`syncAuth0User()` accepts `UserClaims` from a verified SDK server session.
+It attempts an insert keyed by the exact subject with PostgreSQL conflict
+handling. For an existing subject, a conditional update checks the stored
+provider timestamp in the same statement as the write. PostgreSQL Read
+Committed rechecks that condition after concurrent writes. The transaction
+returns the same user ID even when it skips an older update. Only an accepted
+update fires the database timestamp trigger.
 
 ### Claim mapping and clearing policy
 
@@ -76,7 +75,7 @@ types explicitly declare common claims and permit other ordinary claims through
 an unknown-valued index signature; every persisted claim is validated at runtime.
 
 - Absent/undefined or invalid values preserve existing columns; new rows keep nulls.
-- Explicit `null` clears a nullable column. An empty string clears a text/timestamp
+- Explicit `null` clears a nullable profile column. An empty string clears a text
   column. Whitespace within otherwise supplied text is preserved.
 - Booleans accept only booleans or explicit null; missing values do not become false.
 - Text must be a string without PostgreSQL-invalid NUL characters.
@@ -85,7 +84,10 @@ an unknown-valued index signature; every persisted claim is validated at runtime
 - `birthdate` remains a string, including partially specified dates.
 - `updated_at` accepts finite nonnegative OIDC NumericDate seconds (including zero)
   or validated ISO/RFC3339 timestamps with timezone. Impossible dates, unbounded
-  values, numeric strings, and unsupported types are ignored.
+  values, numeric strings, and unsupported types are ignored. An undated claim
+  set can update an undated row. Once a row has a provider timestamp, incoming
+  claims must carry an equal or newer timestamp to update it. Null or blank
+  timestamps cannot clear the stored watermark.
 - `sub` must be a nonempty, non-whitespace, NUL-free string of at most 255 characters.
   Its exact case/value is preserved.
 
@@ -150,7 +152,7 @@ The endpoint's execution order is:
 1. Existing origin, CSRF/custom-header, fetch-site and empty-body checks (403).
 2. Existing SDK server-session retrieval and subject validation (401).
 3. Consume quota for the verified `session.user.sub`, synchronously before Prisma.
-4. If admitted, run the existing profile mapper/upsert and return its existing result.
+4. If admitted, apply the profile mapper and conditional write, then return the sync acknowledgement.
 5. If exhausted, throw the existing-style structured 429 error without calling
    synchronization or Prisma. Set `Retry-After` to the number of seconds until the
    oldest counted admission expires, rounded up to the next integer (at least one).
@@ -352,7 +354,7 @@ logout and final CDN behavior still require an environment smoke test after
 Dashboard setup and deployment approval.
 
 References: [Auth0 Nuxt SDK](https://github.com/auth0/auth0-nuxt/blob/main/packages/auth0-nuxt/README.md),
-[Prisma v6 upserts](https://www.prisma.io/docs/orm/v6/reference/prisma-client-reference#upsert),
+[Prisma bulk updates](https://www.prisma.io/docs/orm/v6/reference/prisma-client-reference#updatemanyandreturn),
 [PostgreSQL 18 UUIDs](https://www.postgresql.org/docs/18/functions-uuid.html),
 [OIDC standard claims](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims),
 [HTTP Retry-After](https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after).

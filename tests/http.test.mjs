@@ -118,7 +118,7 @@ test("owned API routes are versioned and legacy URLs are unavailable", async () 
       `Legacy endpoint ${path} must not exist`,
     );
   }
-  assert.equal(database.user.upsert.mock.callCount(), 0);
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 0);
 });
 
 test("HTTP rejects invalid origins, missing CSRF, cross-site requests and framed bodies before writes", async () => {
@@ -137,9 +137,9 @@ test("HTTP rejects invalid origins, missing CSRF, cross-site requests and framed
     assert.equal(response.status, 403);
     assert.equal((await response.json()).statusCode, 403);
   }
-  assert.equal(database.user.upsert.mock.callCount(), 0);
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 0);
   assert.equal((await request(undefined, { method: "GET" })).status, 404);
-  assert.equal(database.user.upsert.mock.callCount(), 0);
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 0);
 });
 
 test("HTTP rejects absent or unusable verified identities and never writes", async () => {
@@ -152,7 +152,7 @@ test("HTTP rejects absent or unusable verified identities and never writes", asy
       "Authentication required",
     );
   }
-  assert.equal(database.user.upsert.mock.callCount(), 0);
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 0);
 });
 
 test("HTTP accepts verified-session claims, ignores query identity and returns minimal success JSON", async () => {
@@ -164,8 +164,8 @@ test("HTTP accepts verified-session claims, ignores query identity and returns m
   );
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { synced: true });
-  const [write] = database.user.upsert.mock.calls[0].arguments;
-  assert.deepEqual(write.create, { auth0Id: "session|actual", name: "Actual" });
+  const [write] = database.user.createManyAndReturn.mock.calls[0].arguments;
+  assert.deepEqual(write.data, { auth0Id: "session|actual", name: "Actual" });
 });
 
 test("HTTP rate limits verified identities before persistence and returns Retry-After", async () => {
@@ -178,7 +178,7 @@ test("HTTP rate limits verified identities before persistence and returns Retry-
   assert.equal(denied.length, 5);
   for (const response of denied)
     assert.ok(Number(response.headers.get("retry-after")) >= 1);
-  assert.equal(database.user.upsert.mock.callCount(), 2);
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 2);
   assert.equal(
     (await request(undefined, {}, { sub: "another|identity" })).status,
     200,
@@ -192,7 +192,7 @@ test("HTTP persistence failures return sanitized 503 or 500 without leaking priv
     [new RequestError("P1001"), 503],
     [new Error("private-query-marker"), 500],
   ]) {
-    database.user.upsert.mock.mockImplementation(async () => {
+    database.user.createManyAndReturn.mock.mockImplementation(async () => {
       throw error;
     });
     const response = await request(
