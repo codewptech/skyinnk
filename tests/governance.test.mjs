@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, LEGACY_PR1_FILES, validatePolicy } from '../scripts/verify-pr-governance.mjs';
+import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, changedPaths, validatePolicy } from '../scripts/verify-pr-governance.mjs';
 
 const tick = String.fromCharCode(96);
 const issue = (role, branch, paths = []) => ({
@@ -56,43 +56,41 @@ test('overlapping open PR file changes rejected', () => {
   const errors=validatePolicy(base({openPulls:[{number:1,base:'development/v1-public-launch',files:['AGENTS.md']}]}));
   assert.match(errors.join(' '),/overlap with open PR #1/);
 });
-test('legacy PR #1 exempt only for its exact number and branch', () => {
-  assert.deepEqual(validatePolicy(base({number:1,head:'work/v1-public-learning-integration',
-    body:'',issue:null,files:['package.json']})),[]);
-  assert.ok(validatePolicy(base({number:2,head:'work/v1-public-learning-integration',
-    body:'',issue:null})).length);
+test('merged PR #1 has no legacy exception in active CI', () => {
+  const errors = validatePolicy(base({
+    number: 1, head: 'work/v1-public-learning-integration',
+    body: '', issue: null, files: ['package.json'],
+  }));
+  assert.match(errors.join(' '), /Feature branch must/);
+  assert.match(errors.join(' '), /Task issue/);
 });
 
-test('legacy PR #1 continues to pass unchanged reviewed paths without new task metadata', () => {
+test('renamed paths retain old ownership, exact reservations and open-PR overlap', () => {
+  const head = 'work/task-lesson';
+  const source = 'security/trusted-governance/policy.mjs';
+  const files = changedPaths([{
+    status: 'renamed', previous_filename: source, filename: 'app/relocated.mjs',
+  }, { status: 'modified', filename: 'app/relocated.mjs' }]);
+  assert.deepEqual(files, [source, 'app/relocated.mjs']);
+  const overlapping = changedPaths([{
+    status: 'renamed', previous_filename: source, filename: 'security/other.mjs',
+  }]);
   const errors = validatePolicy(base({
-    number: 1, head: 'work/v1-public-learning-integration',
-    body: '', issue: null, files: [...LEGACY_PR1_FILES],
+    head, files, issue: issue('Work', head),
+    openPulls: [{ number: 9, base: 'development/v1-public-launch', files: overlapping }],
   }));
-  assert.deepEqual(errors, []);
-});
-test('legacy PR #1 still rejects overlapping open PR files', () => {
-  const errors = validatePolicy(base({
-    number: 1, head: 'work/v1-public-learning-integration',
-    body: '', issue: null, files: [...LEGACY_PR1_FILES],
-    openPulls: [{ number: 9, base: 'development/v1-public-launch', files: ['package.json'] }],
-  }));
+  assert.match(errors.join(' '), /Work may not change/);
   assert.match(errors.join(' '), /overlap with open PR #9/);
+  const shared = changedPaths([{
+    status: 'renamed', previous_filename: 'README.md', filename: 'docs/readme.md',
+  }]);
+  assert.match(validatePolicy(base({ head, files: shared, issue: issue('Work', head) })).join(' '),
+    /Shared file README.md must be reserved/);
 });
-test('legacy PR #1 rejects new backend paths and unreviewed extra filenames', () => {
-  const errors = validatePolicy(base({
-    number: 1, head: 'work/v1-public-learning-integration',
-    body: '', issue: null,
-    files: ['server/api/v1/new-private-endpoint.get.ts'],
-  }));
-  assert.match(errors.join(' '), /unreviewed new file/);
-  assert.match(errors.join(' '), /Work may not/);
-});
-test('legacy PR #1 must still target development integration', () => {
-  const errors = validatePolicy(base({
-    number: 1, head: 'work/v1-public-learning-integration',
-    base: 'main', body: '', issue: null, files: ['package.json'],
-  }));
-  assert.match(errors.join(' '), /Base branch must be development/);
+
+test('missing old path metadata rejects a rename', () => {
+  assert.throws(() => changedPaths([{ status: 'renamed', filename: 'app/lesson.vue' }]),
+    /Invalid GitHub changed-file metadata/);
 });
 test('governance files are protected against Work even when reserved', () => {
   const head = 'work/task-catalogue';
