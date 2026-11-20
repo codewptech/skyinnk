@@ -76,7 +76,7 @@ export function queueDecision({ issues, prs, filesByPr, role }) {
   const all = every.filter(x => x.issue.state === 'open');
   const current = all.filter(x => x.packet.workstream === expectedRole && RUNNING.has(x.packet.state));
   if (current.length) return { kind: 'busy', reasons: current.map(x => 'Current claim #' + x.issue.number + ': ' + x.packet.state) };
-  const claims = all.filter(x => ACTIVE.has(x.packet.state)).map(x => ({ id: x.issue.number, branch: x.packet.branch, paths: x.paths }));
+  const claims = all.filter(x => ACTIVE.has(x.packet.state) && (x.packet.state !== 'BLOCKED' || x.packet.executor !== 'unclaimed')).map(x => ({ id: x.issue.number, branch: x.packet.branch, paths: x.paths }));
   const issueStates = Object.fromEntries(every.map(x => [x.issue.number, x.issue.state === 'closed' && x.packet.state === 'DONE' ? 'DONE' : x.packet.state]));
   const openPRs = prs.map(pr => ({ number: pr.number, files: filesByPr[pr.number] || [] }));
   // Missing PR file lists must never be assumed empty.
@@ -116,7 +116,7 @@ export function promptForTask(task, devSha) {
     task.packet.acceptance,
     'Implement the smallest safe change; update tests within claimed paths only.',
     'DO NOT run git push, gh, create PR, modify credentials, merge, or touch production.',
-    'DO NOT read or change paths outside the exact PEA-2 claim. Never bypass tests.',
+    'You may READ other source files for context. DO NOT MODIFY paths outside the exact PEA-2 claim. Never bypass tests.',
     'Leave changed files uncommitted for the controller to verify and commit.'
   ].join('\n\n');
 }
