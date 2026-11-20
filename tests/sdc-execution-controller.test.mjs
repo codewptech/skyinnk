@@ -99,6 +99,13 @@ test('refuses conflicting unpublished claimed paths', () => {
   assert.equal(result.kind,'idle');
   assert.match(result.blocked[0].reasons.join(' '), /Active task claim conflict/);
 });
+test('explicitly unclaimed BLOCKED issue does not hold an active file lease', () => {
+  const blocked=makeIssue(70,{role:'Work',state:'BLOCKED',path:'scripts/sdc-test-61.mjs'});
+  blocked.body=blocked.body.replace('### Executor\nreal-executor-123','### Executor\nunclaimed');
+  const result=queueDecision(snap([blocked,makeIssue(61)]));
+  assert.equal(result.kind,'ready');
+  assert.equal(result.task.issue.number,61);
+});
 test('refuses gated tasks even if declared READY', () => {
   const result=queueDecision(snap([makeIssue(61,{external:'owner approval required for deployment'})]));
   assert.equal(result.kind,'idle');
