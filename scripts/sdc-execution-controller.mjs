@@ -34,6 +34,10 @@ export function parseArgs(argv) {
   if (!Number.isInteger(opts.maxTasks) || opts.maxTasks < 1 || opts.maxTasks > 20) throw Error('Invalid max task count');
   return opts;
 }
+export function globalMilestoneId(body) {
+  const match = /(?:^|\n)Global V1 milestone: #([1-9]\d*)\s*(?:\n|$)/i.exec(body || '');
+  return match ? Number(match[1]) : null;
+}
 export function issuePacket(issue) {
   const packet = parsePacket(issue.body || '');
   return { issue, packet, paths: [...packet.owned, ...packet.shared] };
@@ -86,6 +90,9 @@ export function queueDecision({ issues, prs, filesByPr, role }) {
     if (task.packet.workstream !== expectedRole || task.packet.state !== 'READY') continue;
     const reasons = eligibleTask(task.packet, { taskNumber: task.issue.number, issueStates, claims, openPRs }).reasons;
     if (task.packet.executor !== 'unclaimed') reasons.push('Ready task has an existing executor');
+    const milestoneId=globalMilestoneId(task.issue.body);
+    const milestone=issues.find(x=>x.number===milestoneId && x.state==='open' && /^\[SDC\] Global V1\b/.test(x.title||''));
+    if (!milestone) reasons.push('Missing canonical active global V1 milestone reference');
     if (/approval required|requires owner|owner approval required/i.test(task.packet.external)) reasons.push('Owner approval gate');
     if (task.packet.risk === 'release-gated' || task.packet.risk === 'sensitive-governance') reasons.push('Protected work requires manual authorization');
     if (task.packet.workstream === 'Chat 01') reasons.push('Governance not eligible for unattended execution');
