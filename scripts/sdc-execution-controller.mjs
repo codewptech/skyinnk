@@ -140,9 +140,21 @@ export async function command(file, args, { cwd, timeout=120000, env=process.env
 async function codexRun(prompt,cwd,timeoutMs=45*60*1000) {
   await new Promise((resolvePromise,reject) => {
     const child=spawn('codex',['exec','--full-auto','--sandbox','workspace-write','-'],{cwd,env:cleanEnv(),stdio:['pipe','inherit','inherit']});
-    const timeout=setTimeout(()=>{child.kill('SIGTERM');reject(Error('Codex execution timed out'))},timeoutMs);
-    child.on('error',e=>{clearTimeout(timeout);reject(e)});
-    child.on('close',(code)=>{clearTimeout(timeout);code===0?resolvePromise():reject(Error('Codex exit '+code))});
+    let timedOut=false,termTimer=null;
+    const timeout=setTimeout(()=>{
+      timedOut=true;
+      child.kill('SIGTERM');
+      termTimer=setTimeout(()=>child.kill('SIGKILL'),15000);
+    },timeoutMs);
+    const clear=()=>{
+      clearTimeout(timeout);
+      if(termTimer)clearTimeout(termTimer);
+    };
+    child.on('error',e=>{clear();reject(e)});
+    child.on('close',code=>{
+      clear();
+      timedOut?reject(Error('Codex execution timed out')):code===0?resolvePromise():reject(Error('Codex exit '+code));
+    });
     child.stdin.on('error',()=>{}); child.stdin.end(prompt);
   });
 }
