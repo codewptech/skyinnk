@@ -59,7 +59,7 @@ There is no atomic cross-host issue claim. The local lock serializes only proces
 
 Existing PRs marked CHANGES_REQUESTED remain with their original executor; the controller currently selects new READY tasks only. Review corrections can be queued as separate correctly owned READY tasks with a line reading SDC Queue: Reviewer correction. Never interfere with an active current owner.
 
-The controller currently caps GitHub listing at 100 items and fails closed if pagination would be incomplete. Adapt this only with reviewed pagination tests.
+The controller pages GitHub issue, pull-request, and changed-file listings up to 10 pages of 100 items each and fails closed if that safety limit is exhausted. Extend only with reviewed pagination tests.
 
 ## What is NOT yet complete
 
