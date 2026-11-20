@@ -184,17 +184,20 @@ async function patchIssue(task,body) {
   } finally {await rm(dir,{recursive:true,force:true})}
   task.issue.body=body;
 }
-async function executeTask(task,devSha,repoRoot) {
+async function executeTask(task,devSha,repoRoot,role) {
   const runId='local-'+hostname()+'-'+process.pid+'-'+Date.now();
   const executor='SDC local Codex worker '+runId;
   const workdir=await mkdtemp(join(tmpdir(),'skyinnk-sdc-worktree-'));
-  let attached=false, finished=false;
+  let attached=false, finished=false, claimed=false;
   try {
-    const latest=await ghJson('repos/'+OWNER_REPO+'/git/ref/heads/'+DEV);
-    if (latest.object.sha!==devSha) throw Error('Development SHA changed before task start');
+    const refreshed=await githubSnapshot();
+    if (refreshed.developmentSha!==devSha) throw Error('Development SHA changed before task start');
+    const rechecked=queueDecision({...refreshed,role});
+    if(rechecked.kind!=='ready'||rechecked.task.issue.number!==task.issue.number)throw Error('Task no longer first eligible after live claim/PR recheck');
     const existing=await command('git',['branch','--list',task.packet.branch],{cwd:repoRoot});
     if(existing.stdout)throw Error('Task branch already exists; refuse to overwrite');
     await patchIssue(task,updatePacketBody(task.issue.body,'CLAIMED',executor));
+    claimed=true;
     await command('git',['fetch','origin',DEV],{cwd:repoRoot,timeout:180000});
     const rev=await command('git',['rev-parse','FETCH_HEAD'],{cwd:repoRoot});
     if(rev.stdout!==devSha)throw Error('Development changed during fetch; task left CLAIMED for human reconciliation');
@@ -242,7 +245,7 @@ async function executeTask(task,devSha,repoRoot) {
     finished=true;
     return {issue:task.issue.number,pr:created.stdout,runId};
   } catch(err) {
-    try {await patchIssue(task,updatePacketBody(task.issue.body,'BLOCKED',executor));}catch{}
+    if(claimed)try {await patchIssue(task,updatePacketBody(task.issue.body,'BLOCKED',executor));}catch{}
     throw err;
   } finally {
     if (attached && finished) await command('git',['worktree','remove','--force',workdir],{cwd:repoRoot}).catch(()=>{});
@@ -268,7 +271,7 @@ async function main() {
       console.log(JSON.stringify({at:new Date().toISOString(),role:args.role,kind:decision.kind,issue:decision.task?.issue.number||null,queued:decision.queued||[],reasons:decision.reasons||[],blocked:decision.blocked||[]}));
       if(decision.kind==='ready') {
         if(args.dryRun)break;
-        const result=await executeTask(decision.task,snapshot.developmentSha,root);
+        const result=await executeTask(decision.task,snapshot.developmentSha,root,args.role);
         console.log(JSON.stringify({result}));
         count++;
         if(args.mode==='once'||count>=args.maxTasks)break;
