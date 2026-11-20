@@ -250,10 +250,10 @@ async function main() {
         const result=await executeTask(decision.task,snapshot.developmentSha,root);
         console.log(JSON.stringify({result}));
         count++;
-        if(count>=args.maxTasks)break;
+        if(args.mode==='once'||count>=args.maxTasks)break;
       } else if(args.mode==='once'||args.dryRun)break;
       else await new Promise(r=>setTimeout(r,args.pollMs));
-    } while(args.mode==='loop'||count<args.maxTasks);
+    } while(args.mode==='loop');
   } finally {await rm(lock,{recursive:true,force:true})}
 }
 const invoked=process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url);
