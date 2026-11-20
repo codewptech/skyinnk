@@ -39,10 +39,11 @@ The --max-tasks limit intentionally bounds a run. An owner-configured local proc
 2. Verify real PEA-2 issue metadata, permitted exact paths, START dependencies and absence of conflicting claims/open PRs.
 3. Finish the current active task first; for READY queue selection, mandatory Reviewer corrections have priority over new global V1 milestone assignments.
 4. Recheck development revision and issue body before claiming. Record the actual local process ID as executor; claims are advisory, not distributed atomic locks.
-5. Create a new task branch/worktree from the current development SHA. Install dependencies only there. Invoke the authenticated Codex CLI using a workspace-write sandbox and narrow task prompt.
-6. Check every changed path against exact claimed filenames, including both sides of renames. Run npm run test:all and npm run check:all.
-7. Commit and push only the task feature branch and create a PR targeting development/v1-public-launch. Hosted Development CI and independent SDC 03 review are required before integration.
-8. Immediately return to the queue while the local process remains running. Idle polling is a recovery mechanism, not a development clock.
+5. Require each dispatchable task to contain the exact line Global V1 milestone: #58 (or the actual current canonical milestone issue number), and verify that the referenced open GitHub issue is a global V1 milestone. This prevents arbitrary unrelated PEA-2 work from being selected.
+6. Create a new task branch/worktree from the current development SHA. Install dependencies only there. Invoke the authenticated Codex CLI using a workspace-write sandbox and narrow task prompt.
+7. Check every changed path against exact claimed filenames, including both sides of renames. Run npm run test:all and npm run check:all.
+8. Commit and push only the task feature branch and create a PR targeting development/v1-public-launch. Hosted Development CI and independent SDC 03 review are required before integration.
+9. Immediately return to the queue while the local process remains running. Idle polling is a recovery mechanism, not a development clock.
 
 ## Review and integration handoff
 
@@ -57,7 +58,7 @@ The worker removes GH_TOKEN, GITHUB_TOKEN, OPENAI_API_KEY and other key environm
 
 There is no atomic cross-host issue claim. The local lock serializes only processes on the same machine. Do not run copies on multiple computers. Missing PR lists, ambiguous claims, unknown issue packets, stale bases, safety gates and failed tests must block processing, never be silently bypassed.
 
-Existing PRs marked CHANGES_REQUESTED remain with their original executor; the controller currently selects new READY tasks only. Review corrections can be queued as separate correctly owned READY tasks with a line reading SDC Queue: Reviewer correction. Never interfere with an active current owner.
+Existing PRs marked CHANGES_REQUESTED remain with their original executor; the controller currently selects new READY tasks only. Tasks lacking a live canonical Global V1 milestone issue reference are intentionally ineligible. Review corrections can be queued as separate correctly owned READY tasks with a line reading SDC Queue: Reviewer correction. Never interfere with an active current owner.
 
 The controller pages GitHub issue, pull-request, and changed-file listings up to 10 pages of 100 items each and fails closed if that safety limit is exhausted. Extend only with reviewed pagination tests.
 
