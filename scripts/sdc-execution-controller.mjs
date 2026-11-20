@@ -72,11 +72,12 @@ export function checkChangedPaths(paths, owned) {
 export function queueDecision({ issues, prs, filesByPr, role }) {
   const expectedRole = allowedRoles.get(role);
   if (!expectedRole) throw Error('Invalid workstream');
-  const all = issues.filter(x => x.state === 'open' && !x.pull_request).map(issuePacket);
+  const every = issues.filter(x => !x.pull_request).map(issuePacket);
+  const all = every.filter(x => x.issue.state === 'open');
   const current = all.filter(x => x.packet.workstream === expectedRole && RUNNING.has(x.packet.state));
   if (current.length) return { kind: 'busy', reasons: current.map(x => 'Current claim #' + x.issue.number + ': ' + x.packet.state) };
   const claims = all.filter(x => ACTIVE.has(x.packet.state)).map(x => ({ id: x.issue.number, branch: x.packet.branch, paths: x.paths }));
-  const issueStates = Object.fromEntries(all.map(x => [x.issue.number, x.issue.state === 'closed' ? 'DONE' : x.packet.state]));
+  const issueStates = Object.fromEntries(every.map(x => [x.issue.number, x.issue.state === 'closed' && x.packet.state === 'DONE' ? 'DONE' : x.packet.state]));
   const openPRs = prs.map(pr => ({ number: pr.number, files: filesByPr[pr.number] || [] }));
   // Missing PR file lists must never be assumed empty.
   if (prs.some(p => !Object.hasOwn(filesByPr,p.number))) return {kind:'blocked',reasons:['Incomplete open PR file inventory']};
@@ -125,9 +126,9 @@ function cleanEnv() {
   env.GIT_TERMINAL_PROMPT = '0';
   return env;
 }
-export async function command(file, args, { cwd, timeout=120000, env=process.env } = {}) {
+export async function command(file, args, { cwd, timeout=120000, env=process.env, raw=false } = {}) {
   const { stdout, stderr } = await execFileAsync(file,args,{cwd,env,timeout,maxBuffer:4*1024*1024});
-  return {stdout:stdout.trim(),stderr:stderr.trim()};
+  return {stdout:raw?stdout:stdout.trim(),stderr:stderr.trim()};
 }
 async function codexRun(prompt,cwd,timeoutMs=45*60*1000) {
   await new Promise((resolvePromise,reject) => {
@@ -144,7 +145,7 @@ async function ghJson(route, opts=[]) {
 }
 export async function githubSnapshot() {
   const [issues,prs,ref]=await Promise.all([
-    ghJson('repos/'+OWNER_REPO+'/issues?state=open&per_page=100'),
+    ghJson('repos/'+OWNER_REPO+'/issues?state=all&per_page=100'),
     ghJson('repos/'+OWNER_REPO+'/pulls?state=open&per_page=100'),
     ghJson('repos/'+OWNER_REPO+'/git/ref/heads/'+DEV)
   ]);
@@ -188,7 +189,7 @@ async function executeTask(task,devSha,repoRoot) {
     // Dependencies may already exist on the caller's machine. Install only inside the isolated worktree.
     await command('npm',['ci','--no-audit','--no-fund'],{cwd:workdir,timeout:600000});
     await codexRun(promptForTask(task,devSha),workdir);
-    const status=await command('git',['status','--porcelain=v1','-z','--untracked-files=all'],{cwd:workdir});
+    const status=await command('git',['status','--porcelain=v1','-z','--untracked-files=all'],{cwd:workdir,raw:true});
     const paths=changedPaths(status.stdout);
     const violations=checkChangedPaths(paths,task.paths);
     if(violations.length)throw Error(violations.join('; '));
