@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  parseArgs, issuePacket, queueDecision, changedPaths, checkChangedPaths,
+  parseArgs, issuePacket, queueDecision, globalMilestoneId, changedPaths, checkChangedPaths,
   updatePacketBody, promptForTask
 } from '../scripts/sdc-execution-controller.mjs';
 
@@ -13,6 +13,7 @@ function makeIssue(number, overrides = {}) {
   const external = overrides.external || 'none for implementation';
   const tick = String.fromCharCode(96);
   const body = [
+    'Global V1 milestone: #58',
     'Workstream: ' + role,
     'Branch: '+tick+branch+tick,
     'Target: '+tick+'development/v1-public-launch'+tick,
@@ -53,7 +54,8 @@ function makeIssue(number, overrides = {}) {
   ].join('\n') + (overrides.correction ? 'SDC Queue: Reviewer correction\n' : '');
   return {number,state:'open',created_at:overrides.date || '2026-11-20T10:00:00Z',body,title:'Task '+number};
 }
-const snap = (issues, filesByPr = {}, prs = []) => ({issues,prs,filesByPr,role:'chat03'});
+const milestone = () => ({number:58,state:'open',title:'[SDC] Global V1 — guest course learning',body:'approved scope'});
+const snap = (issues, filesByPr = {}, prs = []) => ({issues:[milestone(),...issues],prs,filesByPr,role:'chat03'});
 
 test('default mode is bounded, and parser refuses unsafe roles and intervals', () => {
   assert.deepEqual(parseArgs([]), {role:'chat03',mode:'once',dryRun:false,pollMs:15000,maxTasks:5});
@@ -110,6 +112,13 @@ test('refuses gated tasks even if declared READY', () => {
   const result=queueDecision(snap([makeIssue(61,{external:'owner approval required for deployment'})]));
   assert.equal(result.kind,'idle');
   assert.match(result.blocked[0].reasons.join(' '),/Owner approval gate/);
+});
+test('accepts only tasks linked to the one active global V1 milestone record', () => {
+  const task=makeIssue(61);
+  assert.equal(globalMilestoneId(task.body),58);
+  const missing={...task,body:task.body.replace('Global V1 milestone: #58\\n','')};
+  assert.equal(queueDecision(snap([missing])).kind,'idle');
+  assert.equal(queueDecision({...snap([task]),issues:[task]}).kind,'idle');
 });
 test('refuses malformed task packets rather than guessing', () => {
   const issue={...makeIssue(61),body:'Workstream: Chat 03\n### Execution state\nREADY'};
