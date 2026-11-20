@@ -1,6 +1,6 @@
 # SDC V1 — Legacy Conversations & Repository Review Box
 
-**Status:** Safety-first triage inventory as of 2026-11-20. This is not a complete export of the user's ChatGPT conversation sidebar. Repository tooling CANNOT list or delete personal chat threads; names below come from known project context. **ALL 6 SDC roles require NEW chats.** Do not repurpose an old one.
+**Status:** Historical snapshot captured 2026-11-20, followed by the cleanup update below. Always refresh live GitHub before treating old PR states as current. This is not a complete export of the user's ChatGPT conversation sidebar. Repository tooling CANNOT list or delete personal chat threads; names below come from known project context. **ALL 6 SDC roles require NEW chats.** Do not repurpose an old one.
 
 ## Labels and deletion policy
 - **NEW**: create a fresh conversation with respective [bootstrap prompt](CHAT-BOOTSTRAP-PROMPTS.md).
@@ -57,6 +57,16 @@ If two items above turn out to be aliases for the same thread, classify once. If
 | #14 | First publication test | SDC 02/05/06 source and CI compatibility review |
 
 Other open issues remain valid historical tasks. Issue #35 (frontend course discovery) and #36 (public API runtime acceptance) are future work inputs to one **global V1 milestone**, not two separately numbered milestones. Issue #39's concurrency pilot is NOT complete until real simultaneous supported runtimes are evidenced. Issue #7's hosted trusted governance is rejected/optionally historical, not a new operational dependency.
+
+## Cleanup update — 2026-11-20 (GitHub remains canonical)
+
+- Superseded optional experiments: claim-broker PR #41 / Issue #37, read-only review conveyor PR #40 / Issue #38, continuity-doc PR #43 / Issue #42, and old concurrency-pilot Issue #39 were closed **NOT PLANNED**, preserving their source history and branches. They do not create runnable agents or prove end-to-end execution.
+- Rejected hosted GitHub App PR #26 / Issues #25 and #7 remain closed and excluded from the final runtime.
+- Experimental hourly SDC watchdog automation `6b0062473da88191a46d36f7b29d5af1` was **paused**; it was not a coding executor. The verified SDC 03 scheduled Work reviewer is retained as a **fallback** pending a real event-driven execution mechanism.
+- Current canonical whole-V1 milestone is **V1-58** / [Issue #58](https://github.com/codewptech/skyinnk/issues/58); event-to-agent runtime acceptance is [Issue #59](https://github.com/codewptech/skyinnk/issues/59).
+- Keep actual V1/audit source PRs #14/#16/#18/#20/#28/#30/#55/#56/#57 in the review/integration queues until resolved. Do not falsely declare them integrated from CI alone. PR #55 must meet Reviewer-requested allocation/charter correction.
+- **Branch cleanup is separate from PR closure:** closed-unmerged experiment branches and older already-merged branches stay until ancestry, unique commits, dependent issues, active claims and references are verified. No manual or automated deletion by this document.
+- The owner asked for a conditional reminder: `Skyinnk GitHub Cleanup Reminder` (automation `6b00678456b481919b21d12315db1b96`) checks for *verified safe* cleanup candidates; it never deletes or merges.
 
 ## Rules for the Review Director
 - Do not mass-close, delete, rename or merge old issues/PRs while making a clean chat structure.
