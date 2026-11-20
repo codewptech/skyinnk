@@ -51,10 +51,21 @@ Old tickets naming “Chat 03” or “Work” refer to the old **GitHub workstr
 ## 2. One GLOBAL V1 milestone roadmap
 - There are no frontend/backend/chat-specific milestone number series. Each global V1 milestone spans whatever application layers its accepted outcome requires.
 - One milestone ID, outcome, acceptance criteria, dependencies, scope boundary, owner-approved decisions, revision evidence, linked issues/PRs and human comments.
+- **ID allocation is centralized, immutable and collision-free:** SDC 03 searches existing GLOBAL V1 milestone issues first, creates exactly one GitHub issue for a new approved end-to-end V1 outcome only when none exists, then uses its assigned GitHub issue number as the canonical ID `V1-<issue-number>`. For example, existing [global guest-learning issue #58](https://github.com/codewptech/skyinnk/issues/58) is **V1-58**, not a new independent M-series. No other worker mints milestone IDs or creates duplicate global-milestone issues. Until a record exists, contributors use an explicit **candidate reference** such as `candidate:guest-learning; related #35/#36` and ask SDC 03 to resolve it. All roles read #58 (and future canonical global issues) and link their PEA-2 task issues/PRs to the same global ID. If multiple candidate issues exist, Reviewer selects one canonical issue and links duplicates rather than allocating another ID.
 - A milestone can receive work from Chats 02/04/05/06 simultaneously without becoming four separate milestones.
 - Milestone states: `PLANNED`, `BUILDING`, `REVIEWING`, `CORRECTIONS_QUEUED`, `INTEGRATING`, `TECHNICALLY_VERIFIED`, `HUMAN_FEEDBACK_RECEIVED`, `ACCEPTED_BY_OWNER`, `BLOCKED`. Technically verified does NOT assert owner acceptance or deployment.
 - Never invent a milestone ID, claim completion from a PR alone, or move a global milestone backward merely because some later optional polish is queued. Use revision-linked findings or follow-up corrections.
 - At the start of every session read the same milestone registry, live issues/PRs and exact development SHA. Keep all significant changes in GitHub.
+
+## 2A. Final runtime model — event-driven, not hourly/daily as a dependency
+
+The OWNER wants **near-continuous progress while eligible work and real executor capacity exist**, not a once-a-day/hour cycle. The normal driving signal is **task completion, PR creation/updated head, CI completion, Reviewer finding, integration, or a newly eligible global milestone**, which must update the corresponding GitHub queue. An agent with an active supported runtime finishes CURRENT and immediately selects the next eligible item rather than waiting for another scheduled prompt.
+
+**Platform boundary:** a GitHub issue/comment/PR event is an event and queue signal, **not proof it can launch a dormant ChatGPT Work or Codex session**. Actual near-continuous cross-agent handoff needs a verified supported event-to-executor mechanism or separately approved secure runner; schedule-only coverage is an incomplete fallback. Do not manufacture agent identities, spontaneous starts, perpetual run claims, or unapproved GitHub apps, services, hosting, credentials, budget or rule changes.
+
+**Acceptance contract:** [Issue #59](https://github.com/codewptech/skyinnk/issues/59) requires real unattended job evidence and a verified engineer -> reviewed PR -> integration -> next eligible task loop. The verified **SDC 03 daily scheduled review** demonstrates scheduled reviewer capability, not end-to-end continuous automation. A separate experimental hourly watchdog was paused; it was never a coding dispatcher. No reviewer or integrator may claim actual engineering execution without a real run/PR, and protected/production gates remain unchanged.
+
+**Fallback & recovery:** supported scheduled tasks may wake an idle executor or diagnose stalls at coarse intervals; they cannot be treated as the principal throughput clock. If event-triggered execution is unavailable, label the affected role `EXECUTOR_BLOCKED` in Review Box, preserve the queue, and report exactly what owner authorization or supported integration is needed. Don't replace this with additional coordination prompts.
 
 ## 3. Individual chat work queues — non-preemptive
 Each active chat must separately track **CURRENT**, **QUEUED REVIEWER CORRECTIONS**, **QUEUED GLOBAL MILESTONE WORK**, and **BLOCKED/REVIEW BOX**. Every work item identifies milestone, issue, branch/PR, owner, dependencies, exact paths and acceptance.
@@ -76,7 +87,7 @@ Every role independently evaluates readiness and work selection; the Reviewer ro
 - **D — UPDATED MILESTONE RE-AUDIT:** after corrections are integrated, verify original findings, affected regression matrix, new tests and milestone status, then send corrections back if required.
 - **E — COMPREHENSIVE WHOLE-V1 REPOSITORY AUDIT:** broad source, architecture, API, Auth0, Prisma, security, supply chain, tests, UI/a11y, runtime/build, docs and launch risks, at designated major checkpoints, high-risk changes and V1 release readiness. State evidence limits. Not mandatory after every tiny edit.
 
-**Quality loop:** Milestone build -> Mode A/B -> findings -> queue -> engineering corrections -> authorized integration -> Mode D -> more findings as needed. Mode E at checkpoints. Owner's Mode C is **asynchronous and optional**; no mandatory human checkpoint between technical milestones. Unresolved production gates stay owner-controlled.
+**Quality loop:** Milestone implementation -> Mode A/B on current changes -> queued, non-preempting corrections -> engineering -> authorized integration -> Mode D re-audit -> next eligible global milestone. Real runtime events drive transitions when supported; Mode E at major checkpoints. Owner's Mode C is **asynchronous and optional**; no mandatory human checkpoint between technical milestones. Unresolved production gates stay owner-controlled.
 
 Reviewer doesn't write code it later reviews; material UX decisions go to Chat 02, material architecture to Chat 01. Fix, refactor and rewrite should be evidence-based; avoid wholesale speculative rewrite.
 
