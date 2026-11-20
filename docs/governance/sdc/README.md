@@ -11,7 +11,7 @@ Status: **proposed for independent PR review / not yet integrated**. This is a *
 ## First-use order
 1. Do not delete historical conversations. Review Box them; preserve unique decisions and work.
 2. Review/merge this documentation PR through protected development, if acceptable. Until integration, its branch is an auditable proposal.
-3. Create six NEW chats, title each according to its prompt; paste respective standing instructions. If possible connect GitHub in each session.
+3. Create six NEW named role sessions with designated modes: **01 ChatGPT Chat; 02/03 ChatGPT Work; 04/05/06 Codex.** Codex tasks/sessions need not appear as ordinary ChatGPT chats. Paste the corresponding standalone prompt and confirm usable GitHub access. If mode is unavailable, record MODE BLOCKED in Review Box; do not claim that agent is running.
 4. Start the independent Review Director with a read-only current-repo baseline. This must not rewrite or merge existing code.
 5. Populate one **global** V1 milestone queue from approved scope and actual repo state; avoid inventing milestone success.
 6. Launch actual supported engineering sessions. A GitHub issue can queue work, but cannot wake a dormant chat.
