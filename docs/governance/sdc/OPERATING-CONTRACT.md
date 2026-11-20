@@ -19,6 +19,25 @@
 
 No seventh permanent chat. The Reviewer is the normal owner-facing conversation. Chat 01 decides exceptional architectural changes; Chat 02 absorbs UX-architecture work in addition to frontend implementation.
 
+## 1A. Primary execution modes — one Chat, two Work, three Codex
+
+Every SDC role starts as a **new execution conversation/session** using the following primary ChatGPT product mode. Modes are operational recommendations, **not new PEA-2 GitHub identities, blanket permissions or guarantees of continuous background execution**.
+
+| New role | Primary mode | Justification |
+|---|---|---|
+| SDC 01 Architecture Authority | **ChatGPT Chat** (use deeper thinking when needed) | Architectural reasoning, review and bounded decisions, not day-to-day coding |
+| SDC 02 Experience Engineer & Architect | **ChatGPT Work** | Code + visual/browser workflows, whole-V1 frontend and UX validation |
+| SDC 03 Independent Review Director | **ChatGPT Work** | Multi-step repository and milestone audit, GitHub issues/reviews, browser/runtime evidence and feedback coordination; **review only, not self-implemented code** |
+| SDC 04 Systems Engineer | **Codex** | Repository-wide backend/API/Auth0/Prisma engineering and tests |
+| SDC 05 Repair & Refactoring Engineer | **Codex** | Scoped code fixes, regression suites, refactors and defensible rewrites |
+| SDC 06 Integration & Build Engineer | **Codex** | Exact-SHA source integration, CI, build validation and local-run scripts within existing protected merge authorization |
+
+**Start each in the selected product surface**: normal Chat for 01, Work mode for 02/03, Codex tasks/sessions for 04/05/06. A Codex coding session may live in the Codex interface rather than appear as an ordinary ChatGPT conversation; maintain distinct named sessions/task threads, not fake chats. Use the single role's bootstrap prompt in that session.
+
+If the selected mode is unavailable, place that role in **REVIEW BOX — MODE BLOCKED**, preserve its current queue, and select a supported equivalent only after an explicit capability/permission check. Do not report an unlaunched role as active. An agent's ability to launch, resume, edit files, inspect browser UI or merge depends on its actual tools and the owner's standing authorization. No session runs persistently merely because GitHub contains queued tasks.
+
+**Cross-mode handoff** happens only through the one global V1 milestone record and linked GitHub issues, PRs, commits and CI—not private conversation context. Work is not an extra management chat; it is the chosen execution mode for SDC 02 and 03. Codex is not an independent approval source when connected through the same GitHub identity.
+
 ### PEA-2 identity mapping (critical; don't alter policy silently)
 - SDC **01** governance implementation -> existing PEA-2 **`Chat 01`**, `chat01/task-*`.
 - SDC **02** UX/frontend implementation -> existing PEA-2 **`Work`**, `work/task-*`.
