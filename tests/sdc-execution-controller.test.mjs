@@ -116,7 +116,7 @@ test('refuses gated tasks even if declared READY', () => {
 test('accepts only tasks linked to the one active global V1 milestone record', () => {
   const task=makeIssue(61);
   assert.equal(globalMilestoneId(task.body),58);
-  const missing={...task,body:task.body.replace('Global V1 milestone: #58\\n','')};
+  const missing={...task,body:task.body.replace('Global V1 milestone: #58\n','')};
   assert.equal(queueDecision(snap([missing])).kind,'idle');
   assert.equal(queueDecision({...snap([task]),issues:[task]}).kind,'idle');
 });
