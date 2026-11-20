@@ -2,7 +2,7 @@
 // SDC local single-host runner. No automatic merges, production writes or hosted services.
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile, lstat } from 'node:fs/promises';
 import { tmpdir, hostname } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -143,17 +143,25 @@ async function ghJson(route, opts=[]) {
   const {stdout}=await command('gh',['api',route,...opts]);
   return JSON.parse(stdout);
 }
+async function ghArrayPages(route) {
+  const list=[];
+  for(let page=1;page<=10;page++) {
+    const items=await ghJson(route+'&page='+page);
+    if(!Array.isArray(items))throw Error('GitHub expected a JSON array');
+    list.push(...items);
+    if(items.length<100)return list;
+  }
+  throw Error('GitHub pagination limit exceeded; refusing incomplete snapshot');
+}
 export async function githubSnapshot() {
   const [issues,prs,ref]=await Promise.all([
-    ghJson('repos/'+OWNER_REPO+'/issues?state=all&per_page=100'),
-    ghJson('repos/'+OWNER_REPO+'/pulls?state=open&per_page=100'),
+    ghArrayPages('repos/'+OWNER_REPO+'/issues?state=all&per_page=100'),
+    ghArrayPages('repos/'+OWNER_REPO+'/pulls?state=open&per_page=100'),
     ghJson('repos/'+OWNER_REPO+'/git/ref/heads/'+DEV)
   ]);
-  if (issues.length===100 || prs.length===100) throw Error('GitHub pagination cap reached; refusing incomplete snapshot');
-  const filesByPr={};
+    const filesByPr={};
   for (const pr of prs) {
-    const files=await ghJson('repos/'+OWNER_REPO+'/pulls/'+pr.number+'/files?per_page=100');
-    if (files.length===100) throw Error('PR #'+pr.number+' file listing may be incomplete');
+    const files=await ghArrayPages('repos/'+OWNER_REPO+'/pulls/'+pr.number+'/files?per_page=100');
     filesByPr[pr.number]=files.flatMap(f=>f.status==='renamed'?[f.previous_filename,f.filename]:[f.filename]);
   }
   return {issues,prs,filesByPr,developmentSha:ref.object.sha};
@@ -193,6 +201,12 @@ async function executeTask(task,devSha,repoRoot) {
     const paths=changedPaths(status.stdout);
     const violations=checkChangedPaths(paths,task.paths);
     if(violations.length)throw Error(violations.join('; '));
+    for(const name of paths) {
+      try {
+        const stat=await lstat(join(workdir,name));
+        if(stat.isSymbolicLink())throw Error('Symlink changes require manual review: '+name);
+      }catch(e) {if(e.code!=='ENOENT')throw e}
+    }
     await command('npm',['run','test:all'],{cwd:workdir,timeout:600000});
     await command('npm',['run','check:all'],{cwd:workdir,timeout:900000});
     await command('git',['add','--',...paths],{cwd:workdir});
@@ -237,7 +251,7 @@ async function main() {
   const origin=(await command('git',['remote','get-url','origin'],{cwd:root})).stdout;
   if(!/(?:github\.com[:/])codewptech\/skyinnk(?:\.git)?$/.test(origin))throw Error('Unexpected repository origin');
   // Deliberately one local executor across lanes. No stale lock breaking or multi-host CAS claim.
-  const lock=join(tmpdir(),'skyinnk-sdc-single-host-'+createHash('sha256').update(root).digest('hex').slice(0,16));
+  const lock=join(tmpdir(),'skyinnk-sdc-single-host-'+createHash('sha256').update(OWNER_REPO).digest('hex').slice(0,16));
   await mkdir(lock);
   try {
     let count=0;
