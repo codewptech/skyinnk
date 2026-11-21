@@ -1,14 +1,33 @@
 # Skyinnk V1 — Canonical release state
 
-**Last verified:** 12 November 2026 (GitHub repository evidence)  
-**Scope:** ADR-069/070, seven-day-target **public/free-learning V1**, not the full V2 learning-commerce platform  
-**Repository:** `codewptech/skyinnk`  
-**Shared integration branch:** `development/v1-public-launch`  
-**Verified integration HEAD at this review:** `c381cb62a848ff2689aaf0a92df979d840e8af31`  
-**Production `main` HEAD independently observed:** `6bfc342e89a19b76570565854b643387d0139e90`  
+## Current verified integration checkpoint — 21 November 2026
+
+**Nonproduction development commit:** `4f732ef1ddabecefe670d5e30df6714e2a5edd89` (GitHub Development CI [SUCCESS, run 44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096)). **Production `main`:** remains `6bfc342e89a19b76570565854b643387d0139e90`; no V1 deployment authorized or performed.
+
+| Delivered PR | Integrated development SHA | Verified post-merge Development CI |
+| --- | --- | --- |
+| #14 first-publication test | `a90037c5310e617c9e197c15fd37f27da38cf992` | [44896930356](https://github.com/codewptech/skyinnk/actions/runs/44896930356) |
+| #55 six-role SDC governance charter (docs only) | `2011ad51b1eb010e11c6fcee4554c952d01b2fb4` | [44897212626](https://github.com/codewptech/skyinnk/actions/runs/44897212626) |
+| #18 approved resource bytes | `d5ac266787f5d5f1646bce988f1b4fe606bf5378` | [44897365514](https://github.com/codewptech/skyinnk/actions/runs/44897365514) |
+| #20 classroom accessibility | `0ba3f4a381f3cbf64241bbc013cc86b8a6a4ca98` | [44897531287](https://github.com/codewptech/skyinnk/actions/runs/44897531287) |
+| #56 guest course Chromium test runner | `c08e8e65058136b576565eb9f3c25d86e52b3332` | [44897665280](https://github.com/codewptech/skyinnk/actions/runs/44897665280) |
+| #16 Auth0 freshness source and mocked tests | `4f732ef1ddabecefe670d5e30df6714e2a5edd89` | [44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096) |
+
+**Still NOT verified:** The checked-in `content/catalogue.json` has **zero published courses**. Global milestone [#58](https://github.com/codewptech/skyinnk/issues/58) remains OPEN pending full integrated Chromium empty/fictional published catalogue tests; video/notes/history/keyboard, 320px positive/negative overflow; real HTTP bytes and `nosniff`; approved real educational content/media; and actual learner/device review. [Issue #15](https://github.com/codewptech/skyinnk/issues/15) remains OPEN pending real disposable PostgreSQL concurrent Auth0 sync and approved live Auth0 tenant verification. Release [#27](https://github.com/codewptech/skyinnk/issues/27) remains blocked on a real local Docker image/database restore rehearsal and owner decisions; #28 is a draft source proposal. Legal/privacy/consent sign-off, production authorization, Cashfree/V2, and any real database migration remain separate, unperformed gates. Controller #59/#62 is separately deferred at owner request and **not operational**.
+
+Historical records below describe earlier dated snapshots, not the current integrated SHA or current test count. Preserve their original evidence rather than replacing it with today's results.
+
+---
+
+**Last verified:** 19 November 2026 (GitHub and pinned independent audit evidence)\
+**Scope:** ADR-069/070, seven-day-target **public/free-learning V1**, not the full V2 learning-commerce platform\
+**Repository:** `codewptech/skyinnk`\
+**Shared integration branch:** `development/v1-public-launch`\
+**Verified integration HEAD at this review:** `c1250c40b07ef37894a927cb64249892989bbf84`\
+**Production `main` HEAD independently observed:** `6bfc342e89a19b76570565854b643387d0139e90`\
 **Production release/deployment of this V1:** **NOT AUTHORIZED, NOT PERFORMED OR VERIFIED**
 
-> **Status:** V1 public frontend and lesson-content foundation are **merged and CI-verified in non-production development**. This is not a public release: approved educational lessons/resources, real-browser and tenant tests, legal/media sign-offs and release verification are pending. A passing development CI run never authorizes a push to `main`, database migration or production deployment.
+> **Status:** The V1 public frontend, publication foundation and guest read APIs are integrated in development. Production V1 remains blocked on approved educational content, real learner and tenant acceptance, legal/media approval and release safeguards.
 
 ## Verified GitHub integration history
 
@@ -22,6 +41,9 @@
 | Governance controls | PR #6, `8ec0a4d` | `AGENTS.md`, governance policy and ownership/overlap checks; previous 40/40 validation passed |
 | Trusted-check source (NOT activated) | PR #8, `6971696` | Independent GitHub App checker code only; 57/57 tests and post-merge CI passed |
 | **Public frontend / classroom / content contract** | **PR #1, head `7910dcd`, merge `c381cb6`** | **Merged via reviewed PR into development, not production** |
+| Canonical release-state follow-up | PR #10, `fe06774` | Recorded the reviewed frontend merge. |
+| Guest-safe public reading APIs | PR #12, `c1250c4` | Merged versioned public course list, course outline and released lesson APIs. |
+
 
 **Frontend PR #1** carried exactly the previously approved 30 changed paths. Work's final merge head `7910dcd2a96380973ebb69f021b59a5ad1207adf` incorporates all preceding development/governance/security commits via history-preserving merges. Work's earlier validation tree `65b2409...` and subsequent `fd05912...` were superseded by exact final tree `26ccb5f4e73a4c49132950f2c66d7519f0e6501d`.
 
@@ -29,7 +51,14 @@
 
 **Post-merge validation:** <https://github.com/codewptech/skyinnk/actions/runs/43234744439> — exact development HEAD `c381cb6` **SUCCESS**, 67 tests passed / 0 failed, Prisma validation/generation, Nuxt production build and 354-artifact scan. Governance PR-only check correctly skipped on a development push. These are CI verification, not end-to-end browser or production validation.
 
-**Work reports** a locally run isolated production-fixture HTTP smoke suite at the exact final PR source: published course, video/text lesson headings, public resource, sitemap, unpublished/legacy 404 and cache behavior passed. Chat 03 inspected the source and exact GitHub CI logs but did **not independently rerun** Work's fixture HTTP suite or a real browser.
+**Current verified source.** The exact development push at `c1250c4`
+passed Development CI. Its PR-only policy step was skipped as designed.
+The independent audit on that SHA passed 75 Node tests and the production
+build with a 362-artifact secret-marker scan. Chromium passed 15 fictional
+course smoke groups. A local Docker image built with the cloud CA passed
+liveness and readiness with disposable PostgreSQL 18. Real educational
+materials, live tenant flows and production operations remain separate gates.
+[Exact-head GitHub CI](https://github.com/codewptech/skyinnk/actions/runs/43237307644)
 
 ## What is actually implemented in non-production V1
 
@@ -38,11 +67,14 @@
 | `/` | Replaced Coming Soon with responsive guest-facing homepage, honest subject preparation text and optional Auth0 sign-in controls | Nuxt build, lightweight tests and fixture HTTP; real tenant sign-in still pending |
 | `/courses` | Public published-course listing; deliberate empty state while no real courses approved | Build/tests and fixture HTTP |
 | `/courses/[courseSlug]` | Public released course detail, ordered modules and lesson links; unknown/unpublished course => 404 | Fixture HTTP; no real reviewed course yet |
-| `/courses/[courseSlug]/lessons/[lessonSlug]` | Stable route-based classroom for video/text lessons, collapsible desktop syllabus, mobile dialog, Overview/Notes/Resources tabs and next/previous navigation | Source/type/build/fixture tests; real browser history, dialog and video persistence unverified |
+| `/courses/[courseSlug]/lessons/[lessonSlug]` | Stable route-based classroom for video/text lessons, collapsible desktop syllabus, mobile dialog, Overview/Notes/Resources tabs and next/previous navigation | Fictional Chromium history, navigation, dialog and iframe lifecycle exercised. Real learner/device acceptance remains. |
 | `/sitemap.xml` | Canonical homepage/catalogue and only manifest-published course/lesson URLs | Fixture HTTP; no unpublished sitemap URLs |
 | `/api/v1/health` | Existing liveness route | Local automated/HTTP checks; production state not inferred |
-| `/api/v1/ready` | Existing database readiness boundary | Mocked success/failure checks; live Neon untouched |
+| `/api/v1/ready` | Existing database readiness boundary | Mocked cases and actual packaged readiness against disposable PostgreSQL 18 |
 | `/api/v1/auth/sync` | Existing Auth0 POST-only sync/CSRF/rate-limit contract | Unit/HTTP boundary checks; real Auth0 tenant login/logout not yet exercised |
+| `/api/v1/public/courses` | Guest summaries of released courses | Verified empty and populated fictional responses |
+| `/api/v1/public/courses/:courseSlug` | Guest course outline and ordered syllabus | Verified the fictional outline and missing publication boundary |
+| `/api/v1/public/courses/:courseSlug/lessons/:lessonSlug` | Guest content and projected public resource metadata for a released lesson | Verified released fictional lesson and unpublished-route 404 |
 | `/auth/*` | Existing Auth0 SDK-managed routes, **not renamed** | Integration preserved; full real login flow pending |
 
 **Publication-only content model:** `content/catalogue.json` has `{"schemaVersion":1,"courses":[]}`. Thus **zero educator-approved real courses and zero real lessons are currently published**. Do not claim the test fixtures are live lessons or artificially mark a course published. School scope starts with free Class 10 Mathematics and English; Class 11 commerce previews require approved materials. Publication requires stable source migration keys, public/published review metadata, valid ordering and routes. Review must come from an actual educator/content owner, not fabricated metadata.
@@ -54,11 +86,12 @@
 ## Release-critical unfinished work
 
 1. **Real reviewed educational content:** publish approximately 4–6 substantial Class 10 Mathematics/English lessons with educator sign-off, usable Markdown notes, and approved/rights-cleared videos/resources. Ensure accurate publication metadata and a passing build.
-2. **Real-browser / mobile acceptance:** test desktop and mobile classroom dialog/focus, tabs, route changes and history, previous/next behavior, video consent and state, offline/404 behavior and resource previews/downloads. Prior Chromium attempt failed before page load because socket/process-singleton operations were not permitted; **no successful browser run is asserted**.
+2. **Real-browser / mobile acceptance:** test desktop and mobile classroom dialog/focus, tabs, route changes and history, previous/next behavior, video consent and state, offline/404 behavior and resource previews/downloads. Fictional Chromium coverage passed on the audited commit. Verify actual reviewed content and media, real devices and assistive technology.
 3. **Auth0 regression:** real Universal Login/logout/session and authenticated sync behavior on the approved tenant, without requiring login for guest material. No live Neon migration.
 4. **Legal / privacy / security release review:** approve and verify privacy/terms, cookie/analytics consent, public-media rights, external-player behavior, SEO, accessibility and link integrity. Existing legal content is not independently signed off.
 5. **Operational release verification:** reproducible container build, safe environment/configuration, production health/readiness, backups/rollback plan and an explicit owner release decision. These are **future gates**, not authorization for a release now.
-6. **Technical integration/automation:** Work owns V1 UI/content and browser acceptance; Chat 03 owns /api/v1, Auth0, authorization compatibility, CI, source integrity and this canonical release-state record. Any new API contract must be coordinated before consumers depend on it.
+6. **Audit remediation:** Verify the first-publication CI correction, classroom accessibility, public resource integrity, Auth0 claim freshness, dependency triage and governance changes through their independent development PR reviews. The audited baseline still contains the confirmed findings.
+7. **Technical integration/automation:** Work owns V1 UI/content and browser acceptance; Chat 03 owns /api/v1, Auth0, authorization compatibility, CI, source integrity and this canonical release-state record. Any new API contract must be coordinated before consumers depend on it.
 
 ## V1 / V2 boundary — authoritative ADR-069
 
@@ -75,6 +108,6 @@
 
 ## Historic evidence and references
 
-Earlier Work milestones (PR #1): `ff547357` original source delivery, `87e3318` initial reconciliation, `d73acab` governance refresh, `7910dcd` final security baseline refresh. Previous 30/30 and 50/50 tests reflected their then-current sources and are retained as history; **67/67** is the current merged-source test count.
+Earlier Work milestones (PR #1): `ff547357` original source delivery, `87e3318` initial reconciliation, `d73acab` governance refresh, `7910dcd` final security baseline refresh. The 30-, 50- and 67-test results belong to earlier snapshots. The pinned independent audit at `c1250c4` recorded 75 passing tests.
 
 Supporting release notes remain in `docs/releases/V1-REVIEW.md`, `V1-CONTENT-INTAKE.md`, `V1-INTEGRATION-HANDOFF.md` and `V1-TECHNICAL-BACKLOG.md`; some descriptions predate the merge and must not override this verified canonical status. The approved release architecture is `docs/architecture/ARCHITECTURE-DECISIONS.md` (ADL v3.1).
