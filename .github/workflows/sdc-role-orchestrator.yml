@@ -35,7 +35,12 @@ jobs:
       - name: Read-only routing snapshot (NO agent dispatch)
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/sdc-role-orchestrator.mjs --out sdc-routing.json
+        run: |
+          if test -f scripts/sdc-role-orchestrator.mjs; then
+            node scripts/sdc-role-orchestrator.mjs --out sdc-routing.json
+          else
+            printf '%s\n' '{"status":"BLOCKED_CONTROLLER_NOT_INTEGRATED","actualAgentRunsStarted":0}' > sdc-routing.json
+          fi
       - name: Upload routing evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
