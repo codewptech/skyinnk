@@ -36,6 +36,7 @@ jobs:
       - name: Consult npm advisory database (never autofix or mutate lock)
         shell: bash
         run: |
+          set +e
           set -uo pipefail
           npm audit --omit=dev --json > "$RUNNER_TEMP/prod-audit.json"
           prod_status=$?
