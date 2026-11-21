@@ -1,5 +1,11 @@
 # Testing and CI
 
+## Current hosted verification record — 21 November 2026
+
+At nonproduction development `4f732ef1ddabecefe670d5e30df6714e2a5edd89`, [Development CI run 44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096) succeeded with the six new integrated source/governance PRs. Historical Node test counts below belong to their dated commits; do not reuse them as exact current counts. The current CI covers locked dependencies, lightweight Node tests, Prisma generation/types and Nuxt build, **not** a real browser session, actual concurrent PostgreSQL transactions, live Auth0, production content or release deployment. Opt-in Chromium runners now exist in source for course discovery and classroom accessibility, but were not executed in this Chat-only integration pass. Evidence gates remain in [V1 milestone #58](releases/V1-RELEASE-STATE.md).
+
+---
+
 ## Commands
 
 Use the installed dependencies and Node 24.22+ (verified locally on 24.22.1):
@@ -59,30 +65,21 @@ The analytics test uses a minimal DOM double and never downloads GTM.
 
 ## CI and production boundary
 
-The single `ci` job has five steps: checkout, Node setup, `npm ci`, `check:all`,
-then `test:all`. There are no service containers, database URLs, migrations,
-Docker commands, Chrome discovery, browser launches, or extra test jobs in CI
-validation. Existing npm caching is unchanged. There is one dependency install
-and one host production build.
+Development CI runs on pull requests and pushes targeting
+`development/v1-public-launch`. It installs locked dependencies, runs
+`test:all` and runs `check:all`. The task/ownership policy runs on the PR
+path. The separate production workflow validates pull requests and pushes to
+`main`. Its deployment job is gated by a successful `main` push and has its own
+container, migration and health/readiness steps.
 
-The complete existing `deploy` job is preserved byte-for-byte. It remains
-push-only and depends on successful `ci`. Its production Docker builds, exact
-commit safeguard, Prisma migration before startup, health checks and database
-readiness check remain intact. Production Docker is intentionally independent
-of the infrastructure-free validation job.
+## Extended verification
 
-No push, merge, PR creation or deployment is part of this rewrite. The existing
-pull-request event targeting `main` provides validation without the push-only
-deploy job, if an owner later submits the changes for hosted review.
-
-## Intentionally removed assurance
-
-The old tests directory was replaced, including every legacy test and helper.
-There are no retained database, Docker, browser, TLS/OIDC, schema lifecycle,
-cleanup or prerequisite fixtures. No test-only dependency needed removal: the
-existing dependencies remain required by the app or its build/toolchain.
-The redundant test alias and focused browser script were removed; seven scripts
-remain, including the two primary validation commands and normal Nuxt operations.
+The regular suite covers content publication, public API projections, Markdown
+safety and both governance checkers in addition to the tests above. For the
+optional production-like HTTP and Chromium checks, run
+`node scripts/smoke-v1.mjs --isolated-fixture`. Add `--http-only` if the browser
+runtime is unavailable. The fixture contains fictional materials and uses a
+temporary copy. The ordinary CI commands keep the lightweight scope below.
 
 This lightweight suite deliberately does **not** establish:
 
@@ -105,6 +102,15 @@ Owner/environment release checks remain in `analytics-and-legal.md` and
 `auth0-user-sync.md`.
 
 ## Verification record
+
+On the audited integration commit
+`c1250c40b07ef37894a927cb64249892989bbf84`, the independent audit recorded
+75 passing tests, a successful production build with 362 scanned output
+artifacts and 15 passed fixture smoke groups in Chromium. The hosted exact-head
+Development CI also passed.
+[GitHub Development CI](https://github.com/codewptech/skyinnk/actions/runs/43237307644)
+
+### Historical lightweight test rewrite
 
 November 5, 2026, Node 24.22.1, using the existing installed dependencies:
 

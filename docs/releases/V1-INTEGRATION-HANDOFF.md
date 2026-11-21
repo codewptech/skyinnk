@@ -1,5 +1,13 @@
 # V1 direct GitHub development workflow
 
+## Current status (21 November 2026)
+
+This file retains the November 11 **historical pre-merge handoff** for audit purposes. PR #1 was successfully merged in 2026 and is **not an open integration task**. The current nonproduction development SHA is `4f732ef1ddabecefe670d5e30df6714e2a5edd89` after reviewed PRs #14/#55/#18/#20/#56/#16, each with verified post-merge Development CI. See [canonical current release state](V1-RELEASE-STATE.md). Guest browser, real published content, actual tenant/Auth0, release/legal review and production authorization remain incomplete. The older PR #1 draft and earlier branch/SHA references below are preserved solely as historical context.
+
+---
+
+This is the historical pre-merge integration handoff. For verified merged routes, current test evidence and release gates, see the [canonical release state](V1-RELEASE-STATE.md).
+
 Permanent workflow: **GitHub → Codex/Work → tested commits → development branch → controlled release**. Manual ZIP and patch integration is retired as the normal workflow.
 
 Repository: `codewptech/skyinnk`.
