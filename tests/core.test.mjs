@@ -116,6 +116,39 @@ test("undated claims cannot clear a watermark and a skipped write still returns 
   await assert.rejects(syncAuth0User({ sub: "owner" }), (error) => error === failure);
 });
 
+test("two concurrent first-time syncs resolve one permanent subject ID in the mocked conflict path", async () => {
+  let attempts = 0;
+  database.user.createManyAndReturn.mock.mockImplementation(async ({ data }) => {
+    assert.equal(data.auth0Id, "same|verified-subject");
+    return ++attempts === 1 ? [{ id: "stored-user" }] : [];
+  });
+  const [first, second] = await Promise.all([
+    syncAuth0User({ sub: "same|verified-subject", name: "First" }),
+    syncAuth0User({ sub: "same|verified-subject", name: "Second" }),
+  ]);
+  assert.deepEqual(first, { id: "stored-user" });
+  assert.deepEqual(second, { id: "stored-user" });
+  assert.equal(attempts, 2);
+  assert.equal(database.user.updateManyAndReturn.mock.callCount(), 1);
+});
+
+test("older timestamp cannot pass the atomic profile-update predicate", async () => {
+  database.user.createManyAndReturn.mock.mockImplementation(async () => []);
+  database.user.updateManyAndReturn.mock.mockImplementation(async ({ where }) => {
+    assert.equal(where.auth0Id, "stored|subject");
+    assert.equal(where.OR[1].auth0UpdatedAt.lte.toISOString(), "2025-01-01T00:00:00.000Z");
+    // The simulated stored watermark is later; no row may be updated.
+    return [];
+  });
+  const stored = await syncAuth0User({
+    sub: "stored|subject", name: "Stale", updated_at: "2025-01-01T00:00:00Z",
+  });
+  assert.deepEqual(stored, { id: "stored-user" });
+  assert.equal(database.user.findUniqueOrThrow.mock.callCount(), 1);
+});
+
+// These unit controls model conflict responses; only a real disposable
+// PostgreSQL integration test can establish lock/commit behavior under load.
 test("client synchronization follows eligible visits, late profiles, identity changes and freshness", async (t) => {
   const user = ref();
   const router = createRouter({
