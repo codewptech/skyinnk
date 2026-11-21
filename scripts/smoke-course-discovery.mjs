@@ -60,16 +60,50 @@ async function activateLink(page, name, touch) {
   assert.fail(`Link "${name}" was not reachable using Tab`);
 }
 
+async function expectNoHorizontalOverflow(page, label) {
+  // Mobile Chromium may expand innerWidth when a document overflows, so it
+  // cannot serve as the viewport boundary. clientWidth stays at 320px.
+  const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  assert.ok(
+    scrollWidth <= clientWidth,
+    `Horizontal overflow on ${label}: document ${scrollWidth}px > viewport ${clientWidth}px`,
+  );
+}
+
+async function exerciseOverflowControls(page) {
+  // A positive and negative control prove that this very assertion detects
+  // 330px-wide content even when mobile innerWidth expands to 330px.
+  const marker = "skyinnk-overflow-negative-control";
+  await page.evaluate((id) => {
+    const probe = document.createElement("div");
+    probe.id = id;
+    probe.style.cssText =
+      "position:absolute;left:0;top:0;width:320px;height:1px;pointer-events:none";
+    document.body.appendChild(probe);
+  }, marker);
+  try {
+    await expectNoHorizontalOverflow(page, "320px in-viewport control");
+    await page.evaluate(
+      (id) => (document.getElementById(id).style.width = "330px"),
+      marker,
+    );
+    await assert.rejects(
+      () => expectNoHorizontalOverflow(page, "330px oversized negative control"),
+      /Horizontal overflow/,
+    );
+  } finally {
+    await page.evaluate((id) => document.getElementById(id)?.remove(), marker);
+  }
+  await expectNoHorizontalOverflow(page, "after negative-control cleanup");
+}
+
 async function expectPage(page, path, name) {
   await page.waitForURL(new URL(path, base).href);
   await page.getByRole("heading", { level: 1, name, exact: true }).waitFor();
-  assert.equal(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-    true,
-    `Horizontal overflow on ${path} at ${page.viewportSize().width}px`,
-  );
+  await expectNoHorizontalOverflow(page, path);
 }
 
 try {
@@ -88,6 +122,7 @@ try {
       await expectPage(page, "/", "Free lessons for curious school learners.");
       await activateLink(page, "Explore free lessons", mobile);
       await expectPage(page, "/courses", "Explore courses");
+      if (width === 320) await exerciseOverflowControls(page);
 
       const catalogue = page.getByRole("main");
       const empty = catalogue.getByRole("heading", {
