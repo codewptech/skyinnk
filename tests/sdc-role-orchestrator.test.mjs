@@ -30,10 +30,11 @@ test('old review on different head is not sufficient',()=>{
   const x=run({issues:[task(12)],prs:[pr(14,12)],reviewsByPr:{14:[{headSha:'c'.repeat(40),verdict:'ACCEPTED',independent:true}]}});
   assert.equal(x.assignments.find(p=>p.pr===14).kind,'INDEPENDENT_REVIEW');
 });
-test('review correction goes to the existing owner, not standalone repair agent',()=>{
+test('review correction routes to SDC 05 with the existing file owner preserved',()=>{
   const x=run({issues:[task(35,'Work')],prs:[pr(56,35)],reviewsByPr:{56:[{headSha:HEAD,verdict:'CHANGES_REQUESTED',independent:true}]}});
   const a=x.assignments.find(p=>p.pr===56);
-  assert.equal(a.role,'SDC 02');
+  assert.equal(a.role,'SDC 05');
+  assert.equal(a.sourceOwner,'SDC 02');
   assert.equal(a.kind,'REVIEW_CORRECTION');
   assert.equal(a.priority,0);
 });
@@ -69,4 +70,13 @@ test('identical signal snapshots preserve idempotency keys',()=>{
 });
 test('rejects invalid development SHA',()=>{
   assert.throws(()=>plan({developmentSha:'unknown'}),/Verified development SHA/);
+});
+
+test('development push signals SDC 03 milestone re-audit without pretending it ran',()=>{
+  const x=run({event:{kind:'push'}});
+  const audit=x.assignments.find(p=>p.kind==='MILESTONE_REAUDIT');
+  assert.equal(audit.role,'SDC 03');
+  assert.equal(audit.head,SHA);
+  assert.equal(audit.dispatchStatus,'BLOCKED_NO_VERIFIED_CHAT_TRIGGER');
+  assert.equal(x.summary.actualAgentRunsStarted,0);
 });
