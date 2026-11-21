@@ -81,7 +81,7 @@ try {
         }
       }
       for (const [route, label] of routes) {
-        const response = await page.goto(new URL(route, base), { waitUntil: "networkidle" });
+        const response = await page.goto(new URL(route, base).href, { waitUntil: "networkidle" });
         assert.equal(response?.status(), 200, `${label} must be publicly available`);
         await page.getByRole("main").first().waitFor();
         await scan(label);
