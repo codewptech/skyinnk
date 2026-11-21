@@ -1,5 +1,11 @@
 # Skyinnk V1 — Shared execution checklist
 
+## Current V1 global execution status (21 November 2026)
+
+**Current development:** `4f732ef1ddabecefe670d5e30df6714e2a5edd89` ([post-merge CI passed](https://github.com/codewptech/skyinnk/actions/runs/44897891096)). Completed source integrations: #14 first publication, #18 resource bytes, #20 classroom accessibility, #56 browser-test runner, #16 Auth0 freshness and #55 governance charter. The shared global guest-learning milestone is [V1-58](https://github.com/codewptech/skyinnk/issues/58), **not complete**. Explicitly pending: actual integrated Chromium matrix, resource delivery/headers, real approved learning content and videos, legal/media, Auth0 tenant/disposable DB, and release rehearsal/owner authorization. Old V1-01–15 rows below refer to the November 11 starting checklist, not today’s release progress or branch status.
+
+---
+
 This table records the original V1 implementation milestones. For subsequent merges, successful fictional Chromium coverage and current release gates, see the [canonical release state](V1-RELEASE-STATE.md).
 
 Updated: 11 November 2026. Target: 18 November 2026, conditional on release gates.

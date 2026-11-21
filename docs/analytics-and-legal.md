@@ -1,5 +1,11 @@
 # Analytics and legal review
 
+## Current V1/legal boundary — 21 November 2026
+
+The earlier Coming Soon implementation description below is a **historical baseline**, not the current application feature inventory. Nonproduction development now includes a guest homepage, published-only course discovery, route-based video/text lessons, notes/resources, six recent reviewed source/governance integrations and optional Auth0 sync. Its manifest currently has zero approved published courses. This document remains **not legal approval**: operator identity, contact, retention, minors’ disclosures, media rights, live Cookiebot/GTM consent behavior and real provider obligations must be confirmed before owner-authorized production release. See [current canonical release state](releases/V1-RELEASE-STATE.md). No production deployment, analytics-container change or Google OAuth branding approval is implied.
+
+---
+
 This implementation record describes the earlier homepage and baseline analytics settings. Review the actual V1 learning, media and account practices with the owner before publishing final legal copy. The [canonical release state](releases/V1-RELEASE-STATE.md) records current gates.
 
 ## Changed files

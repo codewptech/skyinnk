@@ -1,5 +1,24 @@
 # Skyinnk V1 — Canonical release state
 
+## Current verified integration checkpoint — 21 November 2026
+
+**Nonproduction development commit:** `4f732ef1ddabecefe670d5e30df6714e2a5edd89` (GitHub Development CI [SUCCESS, run 44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096)). **Production `main`:** remains `6bfc342e89a19b76570565854b643387d0139e90`; no V1 deployment authorized or performed.
+
+| Delivered PR | Integrated development SHA | Verified post-merge Development CI |
+| --- | --- | --- |
+| #14 first-publication test | `a90037c5310e617c9e197c15fd37f27da38cf992` | [44896930356](https://github.com/codewptech/skyinnk/actions/runs/44896930356) |
+| #55 six-role SDC governance charter (docs only) | `2011ad51b1eb010e11c6fcee4554c952d01b2fb4` | [44897212626](https://github.com/codewptech/skyinnk/actions/runs/44897212626) |
+| #18 approved resource bytes | `d5ac266787f5d5f1646bce988f1b4fe606bf5378` | [44897365514](https://github.com/codewptech/skyinnk/actions/runs/44897365514) |
+| #20 classroom accessibility | `0ba3f4a381f3cbf64241bbc013cc86b8a6a4ca98` | [44897531287](https://github.com/codewptech/skyinnk/actions/runs/44897531287) |
+| #56 guest course Chromium test runner | `c08e8e65058136b576565eb9f3c25d86e52b3332` | [44897665280](https://github.com/codewptech/skyinnk/actions/runs/44897665280) |
+| #16 Auth0 freshness source and mocked tests | `4f732ef1ddabecefe670d5e30df6714e2a5edd89` | [44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096) |
+
+**Still NOT verified:** The checked-in `content/catalogue.json` has **zero published courses**. Global milestone [#58](https://github.com/codewptech/skyinnk/issues/58) remains OPEN pending full integrated Chromium empty/fictional published catalogue tests; video/notes/history/keyboard, 320px positive/negative overflow; real HTTP bytes and `nosniff`; approved real educational content/media; and actual learner/device review. [Issue #15](https://github.com/codewptech/skyinnk/issues/15) remains OPEN pending real disposable PostgreSQL concurrent Auth0 sync and approved live Auth0 tenant verification. Release [#27](https://github.com/codewptech/skyinnk/issues/27) remains blocked on a real local Docker image/database restore rehearsal and owner decisions; #28 is a draft source proposal. Legal/privacy/consent sign-off, production authorization, Cashfree/V2, and any real database migration remain separate, unperformed gates. Controller #59/#62 is separately deferred at owner request and **not operational**.
+
+Historical records below describe earlier dated snapshots, not the current integrated SHA or current test count. Preserve their original evidence rather than replacing it with today's results.
+
+---
+
 **Last verified:** 19 November 2026 (GitHub and pinned independent audit evidence)\
 **Scope:** ADR-069/070, seven-day-target **public/free-learning V1**, not the full V2 learning-commerce platform\
 **Repository:** `codewptech/skyinnk`\

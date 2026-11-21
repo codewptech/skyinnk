@@ -1,5 +1,11 @@
 # Testing and CI
 
+## Current hosted verification record — 21 November 2026
+
+At nonproduction development `4f732ef1ddabecefe670d5e30df6714e2a5edd89`, [Development CI run 44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096) succeeded with the six new integrated source/governance PRs. Historical Node test counts below belong to their dated commits; do not reuse them as exact current counts. The current CI covers locked dependencies, lightweight Node tests, Prisma generation/types and Nuxt build, **not** a real browser session, actual concurrent PostgreSQL transactions, live Auth0, production content or release deployment. Opt-in Chromium runners now exist in source for course discovery and classroom accessibility, but were not executed in this Chat-only integration pass. Evidence gates remain in [V1 milestone #58](releases/V1-RELEASE-STATE.md).
+
+---
+
 ## Commands
 
 Use the installed dependencies and Node 24.22+ (verified locally on 24.22.1):
