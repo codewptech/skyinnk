@@ -10,10 +10,21 @@ export class RequestError extends Error {
 }
 export class ConnectionError extends Error {}
 
+const stored = () => ({ id: "stored-user" });
+const defaults = {
+  createManyAndReturn: async () => [stored()],
+  updateManyAndReturn: async () => [stored()],
+  findUniqueOrThrow: async () => stored(),
+  findFirst: async () => stored(),
+};
+
 export const database = {
+  $transaction: mock.fn(async (run) => run(database)),
   user: {
-    upsert: mock.fn(async () => ({ id: "stored-user" })),
-    findFirst: mock.fn(async () => ({ id: "stored-user" })),
+    createManyAndReturn: mock.fn(defaults.createManyAndReturn),
+    updateManyAndReturn: mock.fn(defaults.updateManyAndReturn),
+    findUniqueOrThrow: mock.fn(defaults.findUniqueOrThrow),
+    findFirst: mock.fn(defaults.findFirst),
   },
 };
 
@@ -28,8 +39,9 @@ mock.module("@prisma/client", {
 mock.module("../server/utils/prisma.ts", { exports: { default: database } });
 
 export function resetDatabase() {
-  for (const operation of Object.values(database.user)) {
+  database.$transaction.mock.resetCalls();
+  for (const [name, operation] of Object.entries(database.user)) {
     operation.mock.resetCalls();
-    operation.mock.mockImplementation(async () => ({ id: "stored-user" }));
+    operation.mock.mockImplementation(defaults[name]);
   }
 }
