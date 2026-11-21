@@ -1,22 +1,27 @@
 # Skyinnk V1 — Canonical release state
 
-## Current verified integration checkpoint — 21 November 2026
+## Latest verified technical acceptance — 21 November 2026
 
-**Nonproduction development commit:** `4f732ef1ddabecefe670d5e30df6714e2a5edd89` (GitHub Development CI [SUCCESS, run 44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096)). **Production `main`:** remains `6bfc342e89a19b76570565854b643387d0139e90`; no V1 deployment authorized or performed.
+**Last independently verifiable application/test baseline before this documentation-only change:** `3714ae1e8eeb9cde2d38f8a51c3763c49527861e`; [post-merge Development CI SUCCESS 44900429542](https://github.com/codewptech/skyinnk/actions/runs/44900429542). The current GitHub development ref and [global V1 milestone #58](https://github.com/codewptech/skyinnk/issues/58) remain authoritative for any later documentation-only commit. **Production `main`:** `6bfc342e89a19b76570565854b643387d0139e90`; no V1 production release or live Neon migration authorized/performed.
 
-| Delivered PR | Integrated development SHA | Verified post-merge Development CI |
+| Integrated PR | What changed | Exact postmerge validation |
 | --- | --- | --- |
-| #14 first-publication test | `a90037c5310e617c9e197c15fd37f27da38cf992` | [44896930356](https://github.com/codewptech/skyinnk/actions/runs/44896930356) |
-| #55 six-role SDC governance charter (docs only) | `2011ad51b1eb010e11c6fcee4554c952d01b2fb4` | [44897212626](https://github.com/codewptech/skyinnk/actions/runs/44897212626) |
-| #18 approved resource bytes | `d5ac266787f5d5f1646bce988f1b4fe606bf5378` | [44897365514](https://github.com/codewptech/skyinnk/actions/runs/44897365514) |
-| #20 classroom accessibility | `0ba3f4a381f3cbf64241bbc013cc86b8a6a4ca98` | [44897531287](https://github.com/codewptech/skyinnk/actions/runs/44897531287) |
-| #56 guest course Chromium test runner | `c08e8e65058136b576565eb9f3c25d86e52b3332` | [44897665280](https://github.com/codewptech/skyinnk/actions/runs/44897665280) |
-| #16 Auth0 freshness source and mocked tests | `4f732ef1ddabecefe670d5e30df6714e2a5edd89` | [44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096) |
+| #14 | First-publication regression test | [Development CI 44896930356](https://github.com/codewptech/skyinnk/actions/runs/44896930356) |
+| #55 | Six-role SDC charter, **documentation only** | [Development CI 44897212626](https://github.com/codewptech/skyinnk/actions/runs/44897212626) |
+| #18 | Reviewed public resource SHA-256/format/size verification | [Development CI 44897365514](https://github.com/codewptech/skyinnk/actions/runs/44897365514) |
+| #20 | Classroom keyboard, tab and mobile dialog corrections | [Development CI 44897531287](https://github.com/codewptech/skyinnk/actions/runs/44897531287) |
+| #56 | Guest Chromium runner with 320/330px overflow control | [Development CI 44897665280](https://github.com/codewptech/skyinnk/actions/runs/44897665280) |
+| #16 | Auth0 timestamp-safe write source and mocked tests | [Development CI 44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096) |
+| #30 | Corrected canonical release/testing historical evidence | [Development CI 44898437701](https://github.com/codewptech/skyinnk/actions/runs/44898437701) |
+| #28 | Disposable backup/restore/recovery rehearsal and owner-gate **proposal only** | [Development CI 44899733987](https://github.com/codewptech/skyinnk/actions/runs/44899733987); [real Docker/PG18 recovery 44899600841](https://github.com/codewptech/skyinnk/actions/runs/44899600841) |
+| #65 | Actual empty/fictional published guest Chromium/Nitro/HTTP suite | [Development CI 44899981477](https://github.com/codewptech/skyinnk/actions/runs/44899981477); [real Chromium 44899981497](https://github.com/codewptech/skyinnk/actions/runs/44899981497) |
+| #67 | Actual concurrency and freshness tests against PostgreSQL 18 | [Development CI 44900429542](https://github.com/codewptech/skyinnk/actions/runs/44900429542); [real PG18 44900429586](https://github.com/codewptech/skyinnk/actions/runs/44900429586) |
 
-**Still NOT verified:** The checked-in `content/catalogue.json` has **zero published courses**. Global milestone [#58](https://github.com/codewptech/skyinnk/issues/58) remains OPEN pending full integrated Chromium empty/fictional published catalogue tests; video/notes/history/keyboard, 320px positive/negative overflow; real HTTP bytes and `nosniff`; approved real educational content/media; and actual learner/device review. [Issue #15](https://github.com/codewptech/skyinnk/issues/15) remains OPEN pending real disposable PostgreSQL concurrent Auth0 sync and approved live Auth0 tenant verification. Release [#27](https://github.com/codewptech/skyinnk/issues/27) remains blocked on a real local Docker image/database restore rehearsal and owner decisions; #28 is a draft source proposal. Legal/privacy/consent sign-off, production authorization, Cashfree/V2, and any real database migration remain separate, unperformed gates. Controller #59/#62 is separately deferred at owner request and **not operational**.
+**Technically verified on disposable/fictional infrastructure:** Chromium 141 at 320/375/768/1365px with touch, keyboard, 320/330px overflow negative control, safe Notes, lesson navigation/history, tab/dialog focus; exact served SHA-256 resource bytes, `nosniff` and unlisted-resource denial; PG18 UUIDv7 first-sync concurrency and timestamp watermark integrity; local-only Docker/PG18 backup restore, expected 503 unreadiness and retained-image rollback. These are actual CI jobs, **not** real-course educational, real-identity-provider or production acceptance. Source reviews written inline by Architecture HQ are advisory COMMENT records, not separately authenticated SDC 03 Work approvals.
 
-Historical records below describe earlier dated snapshots, not the current integrated SHA or current test count. Preserve their original evidence rather than replacing it with today's results.
+**Real V1 release gates remain OPEN (#58):** The checked-in publication catalogue still contains **zero educator-approved courses**. Supply and formally review substantive Class 10 Mathematics/English lessons, objectives, Markdown notes, and legally usable videos/resources; real devices/assistive technology and media playback; an approved Auth0 test-tenant Universal Login/callback/logout/session flow; operator identity/legal/privacy/cookie/analytics/under-18 obligations; and an explicit owner-approved release with real production rollback and monitoring. No provider secrets, live data or production deployment were used by these tests. Cashfree and V2 academic models remain separate approved V2 work. SDC execution controller #59/#62/#63 is **deferred and not operational**.
 
+Everything below the divider is a **dated historical source snapshot** and must not be mistaken for the present status or exact test count.
 ---
 
 **Last verified:** 19 November 2026 (GitHub and pinned independent audit evidence)\

@@ -1,9 +1,14 @@
 # Testing and CI
 
-## Current hosted verification record — 21 November 2026
+## Current hosted verification — 21 November 2026
 
-At nonproduction development `4f732ef1ddabecefe670d5e30df6714e2a5edd89`, [Development CI run 44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096) succeeded with the six new integrated source/governance PRs. Historical Node test counts below belong to their dated commits; do not reuse them as exact current counts. The current CI covers locked dependencies, lightweight Node tests, Prisma generation/types and Nuxt build, **not** a real browser session, actual concurrent PostgreSQL transactions, live Auth0, production content or release deployment. Opt-in Chromium runners now exist in source for course discovery and classroom accessibility, but were not executed in this Chat-only integration pass. Evidence gates remain in [V1 milestone #58](releases/V1-RELEASE-STATE.md).
+**Last verified application/test SHA before this documentation-only revision:** `3714ae1e8eeb9cde2d38f8a51c3763c49527861e`; [Development CI SUCCESS 44900429542](https://github.com/codewptech/skyinnk/actions/runs/44900429542). Ordinary `test:all`/`check:all` still use mocks and never connect to live services, but three **additional opt-in real integration workflows** now exist and executed successfully:
 
+- [V1 real Chromium/Nitro, postmerge 44899981497](https://github.com/codewptech/skyinnk/actions/runs/44899981497): both empty and fictional published catalogues, Chromium 141 at 320/375/768/1365px, 320/330px overflow controls, keyboard/touch, direct URLs/history, classroom tabs/dialog/notes/video, API/HTTP published resource SHA-256 bytes, `nosniff` and unlisted denial, no browser errors.
+- [Auth0 real PostgreSQL 18, postmerge 44900429586](https://github.com/codewptech/skyinnk/actions/runs/44900429586): actual disposable PG18 User migration/native UUIDv7, eight concurrent first-sync callers with one identity, racing old/new/undated provider timestamps, trigger-backed `updatedAt`, duplicate-email distinct identities, invalid subject rejection.
+- [Local-only recovery rehearsal, 44899600841](https://github.com/codewptech/skyinnk/actions/runs/44899600841): Docker runtime and disposable PG18 backup/restore, staged candidate, intentional readiness=503 while liveness=200, then original-image rollback with healthy probes; no production access.
+
+These checks use fictional content/identities and temporary runners. They do **not** authenticate a real Auth0 tenant, license real lesson media, establish legal/cookie compliance, or authorize a production release. The historical test command/count reports below refer only to their dated snapshots. Read [V1 milestone #58](https://github.com/codewptech/skyinnk/issues/58) for external release blockers.
 ---
 
 ## Commands

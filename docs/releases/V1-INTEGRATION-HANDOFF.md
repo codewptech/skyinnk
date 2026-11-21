@@ -1,9 +1,10 @@
 # V1 direct GitHub development workflow
 
-## Current status (21 November 2026)
+## Current status — 21 November 2026
 
-This file retains the November 11 **historical pre-merge handoff** for audit purposes. PR #1 was successfully merged in 2026 and is **not an open integration task**. The current nonproduction development SHA is `4f732ef1ddabecefe670d5e30df6714e2a5edd89` after reviewed PRs #14/#55/#18/#20/#56/#16, each with verified post-merge Development CI. See [canonical current release state](V1-RELEASE-STATE.md). Guest browser, real published content, actual tenant/Auth0, release/legal review and production authorization remain incomplete. The older PR #1 draft and earlier branch/SHA references below are preserved solely as historical context.
+The application/test source last validated before this documentation-only checkpoint is `3714ae1e8eeb9cde2d38f8a51c3763c49527861e` (postmerge Development CI and real disposable PostgreSQL acceptance passed). The completed source/governance integrations are #14/#55/#18/#20/#56/#16/#30/#28/#65/#67. Actual empty/fictional Chromium+Nitro, SHA-256 resource delivery, disposable PG18 subject concurrency, and isolated Docker restore/recovery have all run and passed; see [canonical release state](V1-RELEASE-STATE.md) for exact evidence.
 
+**Not production-ready:** there are zero educator-approved published courses, and actual tenant/Auth0, real media, legal/consent, accessibility on genuine devices and owner release/production rollback sign-off are outstanding on [global V1 #58](https://github.com/codewptech/skyinnk/issues/58). The historical PR #1 draft instructions and obsolete branches/SHAs below are retained for audit, not current execution directions. No controller activation occurred.
 ---
 
 This is the historical pre-merge integration handoff. For verified merged routes, current test evidence and release gates, see the [canonical release state](V1-RELEASE-STATE.md).
