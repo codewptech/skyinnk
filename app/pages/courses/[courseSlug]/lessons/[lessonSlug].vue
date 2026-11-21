@@ -36,7 +36,10 @@ const sidebarExpanded = ref(true);
 const videoLoaded = ref(false);
 const drawer = ref<HTMLDialogElement>();
 const drawerToggle = ref<HTMLButtonElement>();
+const desktopToggle = ref<HTMLButtonElement>();
+const lessonHeading = ref<HTMLHeadingElement>();
 const drawerOpen = ref(false);
+let mobileLayout: MediaQueryList | undefined;
 
 function openDrawer() {
   drawer.value?.showModal();
@@ -46,11 +49,15 @@ function closeDrawer() {
   if (!drawer.value?.open) return;
   drawer.value.close();
   drawerOpen.value = false;
-  drawerToggle.value?.focus();
 }
 function drawerClosed() {
   drawerOpen.value = false;
-  drawerToggle.value?.focus();
+  if (document.activeElement === lessonHeading.value) return;
+  const toggle = mobileLayout?.matches ? drawerToggle.value : desktopToggle.value;
+  toggle?.focus();
+}
+function onLayoutChange(event: MediaQueryListEvent) {
+  if (!event.matches) closeDrawer();
 }
 function onDrawerBackdrop(event: MouseEvent) {
   if (event.target !== drawer.value) return;
@@ -95,13 +102,22 @@ onBeforeRouteUpdate((to) => {
 });
 watch(
   () => lesson.value.key,
-  () => {
+  async () => {
     activeTab.value = "overview";
     videoLoaded.value = false;
     closeDrawer();
+    await nextTick();
+    lessonHeading.value?.focus();
   },
 );
-onBeforeUnmount(closeDrawer);
+onMounted(() => {
+  mobileLayout = window.matchMedia("(max-width: 700px)");
+  mobileLayout.addEventListener("change", onLayoutChange);
+});
+onBeforeUnmount(() => {
+  mobileLayout?.removeEventListener("change", onLayoutChange);
+  closeDrawer();
+});
 useHead(() => ({
   title: `${lesson.value.title} | ${course.value.title} | Skyinnk`,
   link: [
@@ -132,6 +148,7 @@ useHead(() => ({
     </nav>
     <div class="classroom-toolbar">
       <button
+        ref="desktopToggle"
         class="syllabus-toggle desktop-toggle"
         type="button"
         :aria-expanded="sidebarExpanded"
@@ -214,7 +231,7 @@ useHead(() => ({
         </div>
         <div class="lesson-heading">
           <span class="eyebrow">{{ course.subject }} · PUBLIC LESSON</span>
-          <h1 id="lesson-title">{{ lesson.title }}</h1>
+          <h1 id="lesson-title" ref="lessonHeading" tabindex="-1">{{ lesson.title }}</h1>
           <p>Free to learn. No account required.</p>
         </div>
         <div class="lesson-tabs" role="tablist" aria-label="Lesson content">
@@ -234,21 +251,24 @@ useHead(() => ({
           </button>
         </div>
         <section
-          :id="`lesson-panel-${activeTab}`"
+          v-for="item in availableTabs"
+          :id="`lesson-panel-${item.key}`"
+          :key="item.key"
           class="lesson-panel"
           role="tabpanel"
-          :aria-labelledby="`lesson-tab-${activeTab}`"
-          tabindex="0"
+          :aria-labelledby="`lesson-tab-${item.key}`"
+          :hidden="activeTab !== item.key"
+          :tabindex="activeTab === item.key ? 0 : undefined"
         >
-          <template v-if="activeTab === 'overview'"
+          <template v-if="item.key === 'overview' && activeTab === item.key"
             ><h2>About this lesson</h2>
             <p class="overview-copy">{{ lesson.overview }}</p></template
           >
-          <template v-else-if="activeTab === 'notes'"
+          <template v-else-if="item.key === 'notes' && activeTab === item.key"
             ><h2 class="sr-only">Lesson notes</h2>
             <MarkdownNotes :source="lesson.notesMarkdown"
           /></template>
-          <template v-else-if="activeTab === 'resources'"
+          <template v-else-if="item.key === 'resources' && activeTab === item.key"
             ><h2>Lesson resources</h2>
             <p>These resources are available to everyone.</p>
             <ul class="resource-list">

@@ -4,20 +4,57 @@ import {
   statSync,
   realpathSync,
   existsSync,
+  lstatSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { resolve, join, sep } from "node:path";
-import MarkdownIt from "markdown-it";
+import { markdownResourcePaths } from "../app/utils/render-markdown.ts";
 import {
   validatePublicCatalogue,
   type PublicCatalogue,
 } from "../shared/public-content.ts";
+
+function matchesResourceFormat(bytes: Buffer, type: string): boolean {
+  switch (type) {
+    case "PDF":
+      return /^%PDF-[12]\.\d(?:\r|\n)/.test(bytes.subarray(0, 10).toString("latin1")) &&
+        /%%EOF\s*$/.test(bytes.subarray(-1024).toString("latin1"));
+    case "PNG":
+      return bytes.length >= 45 &&
+        bytes.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex")) &&
+        bytes.readUInt32BE(8) === 13 &&
+        bytes.toString("latin1", 12, 16) === "IHDR" &&
+        bytes.subarray(-12).equals(Buffer.from("0000000049454e44ae426082", "hex"));
+    case "JPG":
+    case "JPEG":
+      return bytes.length >= 6 && bytes[0] === 0xff && bytes[1] === 0xd8 &&
+        bytes[2] === 0xff && bytes.readUInt16BE(bytes.length - 2) === 0xffd9;
+    case "WEBP":
+      return bytes.length >= 21 &&
+        bytes.toString("latin1", 0, 4) === "RIFF" &&
+        bytes.readUInt32LE(4) === bytes.length - 8 &&
+        bytes.toString("latin1", 8, 12) === "WEBP" &&
+        ["VP8 ", "VP8L", "VP8X"].includes(bytes.toString("latin1", 12, 16)) &&
+        bytes.readUInt32LE(16) > 0 && bytes.readUInt32LE(16) <= bytes.length - 20;
+    case "TXT":
+      if (bytes.includes(0)) return false;
+      try {
+        new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        return true;
+      } catch {
+        return false;
+      }
+    default:
+      return false;
+  }
+}
 
 /** Validate actual build inputs; no runtime draft switch or filesystem URL lookup. */
 export function checkPublicContent(root = resolve(".")): PublicCatalogue {
   const catalogue = validatePublicCatalogue(
     JSON.parse(readFileSync(join(root, "content/catalogue.json"), "utf8")),
   );
-  const resources = new Map<string, number>();
+  const resources = new Set<string>();
   const notes: string[] = [];
   for (const course of catalogue.courses)
     for (const module of course.modules)
@@ -36,26 +73,22 @@ export function checkPublicContent(root = resolve(".")): PublicCatalogue {
             throw new Error(
               `Missing or unsafe public resource: ${resource.url}`,
             );
-          if (statSync(path).size !== resource.sizeBytes)
+          if (!resource.sha256)
+            throw new Error(`Missing approved resource SHA-256: ${resource.url}`);
+          const bytes = readFileSync(path);
+          if (bytes.length !== resource.sizeBytes)
             throw new Error(`Incorrect resource size: ${resource.url}`);
-          resources.set(resource.url, resource.sizeBytes);
+          if (!matchesResourceFormat(bytes, resource.type))
+            throw new Error(`Incorrect resource format: ${resource.url}`);
+          if (createHash("sha256").update(bytes).digest("hex") !== resource.sha256)
+            throw new Error(`Resource differs from approved bytes: ${resource.url}`);
+          resources.add(resource.url);
         }
       }
-  const parser = new MarkdownIt({ html: false });
   for (const source of notes) {
-    const walk = (tokens: ReturnType<typeof parser.parse>) => {
-      for (const token of tokens) {
-        const url = token.attrGet(token.type === "image" ? "src" : "href");
-        if (
-          typeof url === "string" &&
-          url.startsWith("/resources/public/") &&
-          !resources.has(url)
-        )
-          throw new Error(`Notes reference an unreviewed resource: ${url}`);
-        if (token.children) walk(token.children);
-      }
-    };
-    walk(parser.parse(source, {}));
+    for (const path of markdownResourcePaths(source)) {
+      if (!resources.has(path)) throw new Error(`Notes reference an unreviewed resource: ${path}`);
+    }
   }
   const resourceRoot = join(root, "public/resources");
   const walkFiles = (directory: string) => {
@@ -75,6 +108,10 @@ export function checkPublicContent(root = resolve(".")): PublicCatalogue {
         throw new Error(`Unlisted file in public resources: ${path}`);
     }
   };
-  if (existsSync(resourceRoot)) walkFiles(resourceRoot);
+  if (existsSync(resourceRoot)) {
+    if (!lstatSync(resourceRoot).isDirectory())
+      throw new Error("Public resources must be a real directory");
+    walkFiles(resourceRoot);
+  }
   return catalogue;
 }
