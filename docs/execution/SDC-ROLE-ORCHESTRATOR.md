@@ -4,7 +4,7 @@
 
 ## Mission — coordinate, do not code
 
-The controller manages the six **existing** conversations: SDC 01 (Architecture), SDC 02 (Experience), SDC 03 (independent review), SDC 04 (Systems), SDC 05 (repairs under actual file owner), SDC 06 (serial integration), plus a separately scoped Repository Steward for cleanup. SDC 05 never invents its own PEA-2 GitHub coding identity; corrections return to the responsible Work/Chat 03 file owner. It **must not invoke Codex, edit features, replace an SDC chat, merge PRs, authenticate as an AI chat, or claim that an issue/comment awakens an idle agent.**
+The controller manages the six **existing** conversations: SDC 01 (Architecture), SDC 02 (Experience), SDC 03 (independent review), SDC 04 (Systems), SDC 05 (repairs under actual file owner), SDC 06 (serial integration), plus a separately scoped Repository Steward for cleanup. SDC 05 receives mandatory reviewer-correction assignments and operates with the **existing Work/Chat 03 source owner's PEA-2 branch and exact path claims**, never inventing its own coding identity. It **must not invoke Codex, edit features, replace an SDC chat, merge PRs, authenticate as an AI chat, or claim that an issue/comment awakens an idle agent.**
 
 Issue #60 and closed PR #61 were the incorrect local `codex exec` worker design and must never be integrated. Their audit history remains in GitHub; the new implementation begins on a new feature branch.
 
@@ -16,7 +16,7 @@ For a supported future chat-dispatch adapter, insist on explicit provider/permis
 
 ## Queue behavior
 
-- Read the current development SHA, issues, PR heads and evidence. Route mandatory exact-head reviewer corrections first; review candidates next; verified reviewed/CI candidates to SDC 06 for **additional gates**, then eligible READY work under existing SDC 02/04/01 owners.
+- Read the current development SHA, issues, PR heads and evidence. Route mandatory exact-head reviewer corrections to **SDC 05 with the original source owner explicitly attached**; review candidates to SDC 03 next; verified reviewed/CI candidates to SDC 06 for **additional gates**, then eligible READY work under existing SDC 02/04/01 owners. Development push signals a separate SDC 03 milestone re-audit packet but do not imply a review was performed.
 - Preserve CURRENT before taking a correction or new milestone. All instructions are concise and one-shot; no repeated AI status prompts or artificial hourly cycles.
 - All PRs without trustworthy machine-readable exact-head review verdicts remain review-needed. Old prose Mode B reviews are advisory; do not invent machine verdicts.
 - No PR is automatically merged. Production and `main` require separate explicit owner approval.
