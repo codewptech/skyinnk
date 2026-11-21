@@ -16,7 +16,7 @@ Every task starts from the **latest remote development HEAD** on a fresh short-l
 
 ## Task ownership — before changing files
 
-Create one GitHub task issue using `.github/ISSUE_TEMPLATE/development-task.md`. Required metadata:
+Create one GitHub task issue using the PEA-2 template. The earlier development-task template governs existing historical tasks. Both formats include the following ownership metadata:
 
 ```text
 Workstream: Work
@@ -47,15 +47,25 @@ Shared hotspots include `package.json`, `package-lock.json`, `nuxt.config.ts`, `
 7. After merge, close the task and start new tasks from the latest development HEAD.
 8. Release to `main` requires **separate explicit human owner approval**, a verified production release PR, required `CI`, and release/rollback checks. A development merge never authorizes production.
 
+## PEA-2 task packet checks
+
+- The migration boundary is GitHub issue number #43. Existing task issues through #43 retain the legacy contract, including the nine historical audit PRs and the in-progress rollout tasks. New task issues above #43 use the [PEA-2 template](../../.github/ISSUE_TEMPLATE/parallel-execution-task.md). The gate uses the repository-issued number, so editing the issue title or labels cannot change the format requirement.
+- At PR validation the linked open issue must contain a valid typed packet. Its branch, workstream, and target must agree with the actual PR. Record an executor and advisory claim, cover every changed filename including both sides of a rename, and record `PR_OPEN`, `REVIEWING`, `READY_TO_INTEGRATE`, or `INTEGRATING` as applicable. `CHANGES_REQUESTED` blocks this check and retains the claim. A draft may be under review but cannot be ready for integration. After an issue-only change, rerun Development CI for the current PR.
+- Both `START` and `INTEGRATION` dependencies must have verified development integration before the PR can pass the gate. `START` names a task issue. `INTEGRATION` can name a task or PR. A completed issue must link to a normally merged development PR, and a new typed dependency issue must also declare `DONE`. The merged revision must be an ancestor of the current base and have a successful latest `Development CI` check from the development push workflow. An unfinished `SOFT` dependency can remain open. Its reference must resolve. The gate rejects cycles along hard task edges.
+- Current open PRs and active new-format issue claims contribute to conflict checks. The checkout consumes GitHub metadata through read-only API calls. Claims and executor fields are advisory snapshots, with no atomic lock or authenticated runtime proof. Lifecycle validation checks the current packet against the PR. Multi-event transition history, automatic reruns on issue edits, and independent check-source trust remain follow-on work. Issue #34 owns workflow wiring and permission verification, including read access to Actions and Checks and the separately focused policy suite.
+
 ## Emergency operations and limits
 
 Both important branches have active GitHub rulesets: PRs, required branch-specific checks, conversation resolution, current-base validation, deletion/force-push restrictions. The `codewptech` user is the sole **Always allow** emergency bypass. This is a deliberate recovery exception, not authorization for routine agent writes. Keep owner credentials carefully controlled.
 
 GitHub cannot prove which ChatGPT agent made a commit if agents share the same account. It cannot stop two agents editing local files before pushing. Task claims, automated PR checks and Chat 03 integration review mitigate this risk but do not replace isolated credentials or owner judgment. Code running in a PR can potentially change its own workflow, so sensitive workflow/policy modifications require deliberate review and ownership.
 
-## Pre-protocol V1 work
+## Changed paths and historical PRs
 
-Draft PR #1 (`work/v1-public-learning-integration`) predates this contract. It is temporarily exempt from **new task-branch name, issue-claim and shared-reservation metadata only**. Its already-reviewed list of 30 changed files is explicitly frozen in the policy checker, including the one-time Chat 03-reviewed public sitemap route and reconciled release-state file. PR #1 still must target development, may not add unreviewed paths, may not touch governance files, and must pass cross-stream safety and overlap checks against every other open PR plus normal CI/technical review. Retire this exception after PR #1 has been safely merged/closed. Do not discard its tested work.
+Ownership, reservations and overlap checks cover both paths of a rename.
+Work's technical exclusions include the Trusted App source, security
+documentation and its technical tests. The one-time PR #1 exception ended
+with its merge. Its reviewed history is available in the merged PR.
 
 Browser/mobile behavior, real Auth0 flows, educator-approved content, final legal text, live operational validation and production approval remain distinct V1 launch gates. This policy does not alter them.
 

@@ -33,5 +33,13 @@
     "prisma": "6.19.3",
     "typescript": "6.0.3",
     "vue-tsc": "3.3.14"
+  },
+  "overrides": {
+    "archiver@8.0.0": {
+      "readdir-glob": "4.0.0"
+    },
+    "@prisma/config@6.19.3": {
+      "deepmerge-ts": "8.0.2"
+    }
   }
 }
