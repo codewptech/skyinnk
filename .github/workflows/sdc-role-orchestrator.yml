@@ -1,0 +1,46 @@
+name: SDC Role Orchestration Snapshot
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited, closed]
+    branches: [development/v1-public-launch]
+  issues:
+    types: [opened, edited, reopened, closed]
+  push:
+    branches: [development/v1-public-launch]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: skyinnk-sdc-routing-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  route-only:
+    if: github.repository == 'codewptech/skyinnk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted development source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: development/v1-public-launch
+          persist-credentials: false
+      - name: Set up Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Read-only routing snapshot (NO agent dispatch)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/sdc-role-orchestrator.mjs --out sdc-routing.json
+      - name: Upload routing evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sdc-routing-${{ github.run_id }}
+          path: sdc-routing.json
+          retention-days: 7
