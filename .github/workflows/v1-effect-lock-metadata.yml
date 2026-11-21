@@ -1,0 +1,63 @@
+name: Temporary Effect Lockfile Resolution Evidence
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - development/v1-public-launch
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/v1-effect-lock-metadata.yml
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chat03/task-effect-security-override' }}
+    name: Read verified npm registry lockfile metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout temporary candidate without write credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Resolve exact patched lock entry and reveal only public registry metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const p = JSON.parse(fs.readFileSync('package.json','utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json','utf8'));
+          const effect = lock.packages['node_modules/effect'];
+          assert.equal(effect.version,'3.22.1');
+          assert.equal(lock.packages['node_modules/prisma'].version,'6.19.3');
+          assert.equal(lock.packages['node_modules/@prisma/client'].version,'6.19.3');
+          assert.equal(p.overrides['@prisma/config@6.19.3'].effect,'3.22.1');
+          console.log('EXACT_NPM_EFFECT_LOCK_ENTRY_START');
+          console.log(JSON.stringify(effect));
+          console.log('EXACT_NPM_EFFECT_LOCK_ENTRY_END');
+          const current = JSON.parse(fs.readFileSync('package-lock.json','utf8'));
+          console.log('Root lock package keys:', JSON.stringify(Object.keys(current.packages[''])));
+          EOF
+          git diff --numstat -- package-lock.json
+          git diff -- package-lock.json | head -n 180
+
+      - name: Confirm node_modules installation and Prisma 6.19.3 client generation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npx prisma generate
+          npm run test:all
