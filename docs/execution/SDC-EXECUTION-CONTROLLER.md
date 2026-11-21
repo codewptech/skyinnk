@@ -33,6 +33,17 @@ Continue task pickup whenever work is ready, without hourly/daily waits:
 
 The --max-tasks limit intentionally bounds a run. An owner-configured local process supervisor may restart successful runs. An error or blocked worktree must first be inspected; never blindly overwrite an unfinished task. Optional --role work uses Codex in the PEA-2 Work source lane; it does NOT activate the actual SDC 02 ChatGPT Work conversation.
 
+## One-prompt task policy and overnight operation
+
+- **Exactly one substantive Codex CLI invocation per eligible task** is the normal controller behavior. Its single prompt includes the task outcome, acceptance criteria, precise permitted files, base revision, implementation, test expectations, and source safety rules. Codex may use tools and self-correct inside its own turn; this does not mean only one internal model inference or guarantee a fixed token cost.
+- The controller does **not** send AI prompts to repeatedly plan, summarize unchanged issues, re-ask for implementation, or poll GitHub. Queue polling, tests, Git checks and PR creation are deterministic commands.
+- There is **no automatic second/third prompt retry** in this implementation. A failed Codex execution is blocked for inspection rather than consuming more AI usage on an identical attempt. Any future scoped retry policy needs explicit limits and tests.
+- An overnight loop can keep taking eligible READY tasks if its host computer or trusted server remains **powered on, awake, connected to the internet and authenticated**, a real supported Codex CLI is installed, and usage and permissions remain available. A sleeping laptop, expired credentials, exhausted quota or stopped process prevents new tasks.
+- This is a **serial** worker, not six simultaneous autonomous Work/Codex conversations. It does not wake the Reviewer or Integrator by itself. Those event triggers/runtimes require separate verified activation.
+- Usage is not directly measurable by this controller. The agreed Normal / Conservation / Strict Conservation / Protected Reserve thresholds are **policy only**, not automatic enforcement in this source. Do not assume that a five-hour reset also replenishes weekly usage. Activate a truthful budget guard before relying on an unattended run to preserve emergency usage.
+- The documented `--max-tasks 20` setting is a **per-process stop limit**, not a promise of completing 20 tasks in any five-hour window. The process also stops on serious errors and requires a supervisor for any restart; never blindly restart BLOCKED work.
+- Realistic throughput must be measured from completed tested deliverables, actual five-hour/weekly usage, and review rework rather than an assumed number of AI prompts.
+
 ## Execution steps
 
 1. Read GitHub issues, open PR filenames and development SHA. Do not work from stale chat memory.
