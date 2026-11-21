@@ -129,3 +129,25 @@ test('idempotency is explicitly limited to one snapshot without persistent dispa
   assert.equal(x.deduplication,'IN_MEMORY_THIS_SNAPSHOT_ONLY_NOT_PERSISTENT');
   assert.equal(x.summary.actualAgentRunsStarted,0);
 });
+
+test('newer failed exact-head CI overrides an older successful check-run',()=>{
+  const x=run({issues:[task(12)],prs:[pr(14,12)],
+    reviewsByPr:{14:[{headSha:HEAD,verdict:'ACCEPTED',independent:true}]},
+    checksByPr:{14:[
+      {id:1,headSha:HEAD,name:'Development CI',conclusion:'success'},
+      {id:2,headSha:HEAD,name:'Development CI',conclusion:'failure'},
+    ]},
+  });
+  assert.equal(x.assignments.some(p=>p.kind==='INTEGRATION_GATE'),false);
+  assert.match(x.blockers.join(' '),/CI not verified/);
+});
+test('latest successful exact-head CI supersedes previous failure',()=>{
+  const x=run({issues:[task(12)],prs:[pr(14,12)],
+    reviewsByPr:{14:[{headSha:HEAD,verdict:'ACCEPTED',independent:true}]},
+    checksByPr:{14:[
+      {id:1,headSha:HEAD,name:'Development CI',conclusion:'failure'},
+      {id:2,headSha:HEAD,name:'Development CI',conclusion:'success'},
+    ]},
+  });
+  assert.equal(x.assignments.find(p=>p.pr===14)?.kind,'INTEGRATION_GATE');
+});
