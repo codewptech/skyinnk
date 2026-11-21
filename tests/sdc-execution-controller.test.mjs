@@ -154,6 +154,8 @@ test('Codex task prompt conveys exact approved file paths and safety boundaries'
   const prompt=promptForTask(issuePacket(makeIssue(61)),'abc123');
   assert.match(prompt,/Issue #61/);
   assert.match(prompt,/Allowed changed paths ONLY: scripts\/sdc-test-61.mjs/);
-  assert.match(prompt,/DO NOT run git push/);
+  assert.match(prompt,/In THIS SINGLE execution:/);
+  assert.match(prompt,/Do not stop after planning/);
+  assert.match(prompt,/never modify unclaimed paths/);
   assert.match(prompt,/abc123/);
 });
