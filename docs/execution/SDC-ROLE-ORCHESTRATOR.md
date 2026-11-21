@@ -1,0 +1,53 @@
+# Skyinnk — Six-Role Orchestration Controller (new design)
+
+**Status: source candidate; NOT an active multi-chat dispatcher.** Authority: owner correction, Issues #58, #59, #62; PEA-2 contract and existing SDC six-role charter (PR #55).
+
+## Mission — coordinate, do not code
+
+The controller manages the six **existing** conversations: SDC 01 (Architecture), SDC 02 (Experience), SDC 03 (independent review), SDC 04 (Systems), SDC 05 (repairs under actual file owner), SDC 06 (serial integration), plus a separately scoped Repository Steward for cleanup. SDC 05 never invents its own PEA-2 GitHub coding identity; corrections return to the responsible Work/Chat 03 file owner. It **must not invoke Codex, edit features, replace an SDC chat, merge PRs, authenticate as an AI chat, or claim that an issue/comment awakens an idle agent.**
+
+Issue #60 and closed PR #61 were the incorrect local `codex exec` worker design and must never be integrated. Their audit history remains in GitHub; the new implementation begins on a new feature branch.
+
+## Real dispatch vs planned work
+
+GitHub Actions may run this read-only script on PR/issue/push signals and publish a task routing **artifact**. It does not dispatch work into ChatGPT Work/Codex sessions. Every generated assignment has `dispatchStatus: BLOCKED_NO_VERIFIED_CHAT_TRIGGER`; `summary.actualAgentRunsStarted` is zero. Only actual, supported Work/Codex scheduled/triggered agent runs with an external run ID and a verifiable acknowledgment may advance REQUESTED -> ACKNOWLEDGED -> RUNNING -> COMPLETED. A GitHub comment or action output is *not* that receipt.
+
+For a supported future chat-dispatch adapter, insist on explicit provider/permissions, a real event trigger, idempotent event key per role/task/PR/head, observed run ID, no hidden spend, one CURRENT assignment per executor, error handling, and independent review gates. Never infer this from mere issue metadata.
+
+## Queue behavior
+
+- Read the current development SHA, issues, PR heads and evidence. Route mandatory exact-head reviewer corrections first; review candidates next; verified reviewed/CI candidates to SDC 06 for **additional gates**, then eligible READY work under existing SDC 02/04/01 owners.
+- Preserve CURRENT before taking a correction or new milestone. All instructions are concise and one-shot; no repeated AI status prompts or artificial hourly cycles.
+- All PRs without trustworthy machine-readable exact-head review verdicts remain review-needed. Old prose Mode B reviews are advisory; do not invent machine verdicts.
+- No PR is automatically merged. Production and `main` require separate explicit owner approval.
+- The Steward may report cleanup but does not own coding, review or integration.
+- One global active V1 milestone #58; runtime acceptance #59 remains open until a real existing-chat task -> PR -> review -> corrections/integration -> next task loop is demonstrated.
+
+## Zero-hosting GitHub Actions setup
+
+Workflow `.github/workflows/sdc-role-orchestrator.yml` uses the public repository's standard GitHub-hosted runner, read-only GitHub token permissions, pinned checkout/setup-node, and an artifact. Triggers run an observation and produce assignments; they do NOT directly launch the six chats. Event runs are bounded and deduplicated by workflow concurrency; assignment idempotency keys are deterministic. No VPS, panel, paid OpenAI API key, personal ChatGPT auth tokens or services are installed.
+
+Run locally:
+
+```sh
+node --test tests/sdc-role-orchestrator.test.mjs
+GITHUB_REPOSITORY=codewptech/skyinnk node scripts/sdc-role-orchestrator.mjs --out sdc-routing.json
+```
+
+The CLI requires access to the public repository; a limited `GITHUB_TOKEN` is recommended to avoid API rate limits. It reads GitHub only and writes an output report locally.
+
+## Budget-saving policy (not yet machine-enforced)
+
+- Normal: >55% remaining allowance.
+- Conservation: 36–55%; one primary coding task in the existing SDC lane.
+- Strict conservation: 21–35%; milestone-critical corrections only.
+- Protected reserve: <=20%; emergency preservation/security/recovery only.
+- Apply separately to five-hour and weekly allowance, take stricter active mode. **Do not invent live usage readings or claim automatic enforcement.** If a reliable allowance signal is unavailable, human-supplied mode or a conservative task cap is required for real unattended dispatch. Deterministic Actions route snapshots consume no model prompts.
+
+## Acceptance / remaining blockers
+
+- Tests must pass; CI must pass at the exact PR head.
+- Independent SDC 03 review and protected development integration required.
+- Confirm available chat triggers, credentials, receipt protocol and permission scopes before claiming automatic role dispatch.
+- The old SDC03 daily review watcher and redundant cleanup reminder were explicitly paused on owner instruction; do not reactivate them.
+- No blanket deletion of active V1 feature PRs or unique-commit unmerged branch refs.
