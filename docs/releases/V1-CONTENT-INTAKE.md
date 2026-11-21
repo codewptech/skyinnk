@@ -29,4 +29,10 @@ The integrator transcribes approved content into `content/catalogue.json` using 
 
 These fields record a real human approval; automated tests must never invent that approval. Synthetic fixtures live only in tests or isolated temporary copies. Drafts stay outside the public catalogue and public assets.
 
+Record each reviewed resource's exact `sizeBytes` and lowercase `sha256`.
+For example, use `sha256sum public/resources/public/worksheet.pdf` after the
+reviewer approves those bytes. Review replacement files before recording a new
+digest. The build checks the approved digest and a basic format signature, or
+valid UTF-8 for TXT. Educator and rights review still applies to the file itself.
+
 Run the content validator through the normal Nuxt build, run all tests, and verify actual public URLs/media/resources in browser preview before asking for release authorization. A code change is not a production publishing action.
