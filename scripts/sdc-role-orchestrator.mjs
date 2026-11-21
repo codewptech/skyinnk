@@ -54,8 +54,9 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},developmentS
     const correction=exact.find(x=>x.verdict==='CHANGES_REQUESTED');
     const accepted=exact.find(x=>x.verdict==='ACCEPTED' && x.independent===true);
     if(correction){
-      const repairRole=owner==='SDC 02'?'SDC 02':'SDC 04';
-      packets.push(packet(repairRole,'REVIEW_CORRECTION',{issue:task.number,pr:pr.number,head,priority:0,reason:'Exact-head independent correction',instructions:'Finish CURRENT first; then apply independently verified reviewer correction to existing claimed files. Read PR #'+pr.number+' and review evidence; never preempt live work or expand ownership.'}));
+      // SDC 05 performs the repair coordination, but retains the ORIGINAL PEA-2 file owner.
+      const repair=packet('SDC 05','REVIEW_CORRECTION',{issue:task.number,pr:pr.number,head,priority:0,reason:'Exact-head independent correction',instructions:'Finish CURRENT first. Repair PR #'+pr.number+' using the existing source owner '+owner+' and its PEA-2 branch/path claims. Re-read actual reviewer findings; do not impersonate an independent review, preempt current work, or expand ownership.'});
+      packets.push({...repair,sourceOwner:owner});
       continue;
     }
     if(!accepted){
@@ -75,6 +76,9 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},developmentS
     if(!role)continue;
     if(openPRs.some(p=>new RegExp('(?:^|\\n)Task issue:\\s*#'+issue.number+'\\b','i').test(p.body||'')))continue;
     packets.push(packet(role,'ELIGIBLE_TASK',{issue:issue.number,priority:3,reason:'READY task, requires live eligibility and ownership recheck',instructions:'After CURRENT and mandatory reviewer corrections, validate Issue #'+issue.number+' against the single global V1 milestone #58, current dependencies, task claims and open PRs; then use the existing '+role+' agent to execute one concise assignment. Do not claim started until that agent acknowledges a real run.'}));
+  }
+  if(event.kind==='push'){
+    packets.push(packet('SDC 03','MILESTONE_REAUDIT',{head:developmentSha,priority:2,reason:'Verified development push event requires updated global milestone assessment',instructions:'Read merged PR and successful post-merge Development CI at '+developmentSha+'; re-audit current global V1 milestone #58, update acceptance evidence, and prepare only the next eligible global milestone. Do not treat this routing packet as an executed review.'}));
   }
   packets.push(packet('Steward','CLEANUP_AUDIT',{priority:4,reason:'Maintenance only',instructions:'Inspect obsolete refs and claims; preserve unique commits and V1 work; record a concise cleanup report in Issue #2. Do not replace engineering/review roles.'}));
   const seen=new Set();
