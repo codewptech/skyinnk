@@ -74,7 +74,11 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},filesByPr={}
       continue;
     }
     const checks=checksByPr[pr.number]||[];
-    const ci=checks.some(c=>c.headSha===head&&c.name==='Development CI'&&c.conclusion==='success');
+    // Only the latest authenticated check-run at this exact SHA can satisfy
+    // CI. A previous green attempt must never override a newer failing run.
+    const latestCi=checks.filter(c=>c.headSha===head&&c.name==='Development CI')
+      .sort((a,b)=>(a.id||0)-(b.id||0)).at(-1);
+    const ci=latestCi?.conclusion==='success';
     if(!ci){blockers.push('PR #'+pr.number+': required exact-head Development CI not verified');continue;}
     packets.push(packet('SDC 06','INTEGRATION_GATE',{issue:task.number,pr:pr.number,head,priority:1,reason:'Exact-head review/CI metadata accepted for further verification',instructions:'Check current development SHA, full PEA-2 dependency and protected-branch rules; integrate PR #'+pr.number+' only under existing authorization. Never bypass protection or merge on this packet alone.'}));
   }
@@ -163,7 +167,7 @@ export async function snapshot({token,repo}){
       if(!Array.isArray(checks.check_runs))throw Error('invalid check-run response');
       checksByPr[pr.number]=checks.check_runs.filter(c=>
         c.name==='Development CI'&&c.app?.slug==='github-actions'
-      ).map(c=>({headSha:c.head_sha,name:c.name,conclusion:c.conclusion}));
+      ).map(c=>({id:c.id,headSha:c.head_sha,name:c.name,conclusion:c.conclusion}));
     } catch(error){errors.push('check-runs: '+error.message);checksByPr[pr.number]=[];}
     try {
       const changed=await pages('pulls/'+pr.number+'/files',token,repo);
