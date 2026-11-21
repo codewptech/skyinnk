@@ -1,0 +1,77 @@
+name: V1 Locked Dependency Security Audit
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/v1-dependency-security-audit.yml
+  push:
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/v1-dependency-security-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit:
+    if: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chat03/task-v1-dependency-security-audit') }}
+    name: Audit locked runtime and build packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact PR candidate or integrated development
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Consult npm advisory database (never autofix or mutate lock)
+        shell: bash
+        run: |
+          set -uo pipefail
+          npm audit --omit=dev --json > "$RUNNER_TEMP/prod-audit.json"
+          prod_status=$?
+          npm audit --json > "$RUNNER_TEMP/all-audit.json"
+          all_status=$?
+          echo "npm CLI status runtime=$prod_status all=$all_status"
+          PROD_AUDIT="$RUNNER_TEMP/prod-audit.json" ALL_AUDIT="$RUNNER_TEMP/all-audit.json" node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          const files = [['runtime', process.env.PROD_AUDIT], ['all-dependencies', process.env.ALL_AUDIT]];
+          let blocking = 0;
+          for (const [scope, file] of files) {
+            let body;
+            try { body = JSON.parse(fs.readFileSync(file, 'utf8')); }
+            catch (error) { console.error(scope + ' audit did not return valid JSON:', error); process.exitCode = 1; continue; }
+            if (body.error || !body.metadata?.vulnerabilities || !body.vulnerabilities) {
+              console.error(scope + ' npm audit missing valid advisory metadata:', JSON.stringify(body.error || body).slice(0, 1000));
+              process.exitCode = 1;
+              continue;
+            }
+            const counts = body.metadata.vulnerabilities;
+            const advisories = Object.entries(body.vulnerabilities).map(([name, data]) => ({
+              name, severity: data.severity, range: data.range, direct: data.isDirect,
+              fix: data.fixAvailable === false ? 'none' : JSON.stringify(data.fixAvailable),
+            }));
+            const high = advisories.filter(x => x.severity === 'high' || x.severity === 'critical');
+            console.log(scope + ': ' + JSON.stringify(counts) + '; high/critical=' + high.length);
+            for (const row of advisories) console.log(scope + ': ' + JSON.stringify(row));
+            if (high.length) blocking++;
+            if (process.env.GITHUB_STEP_SUMMARY) {
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+                '### ' + scope + '\n\n' + JSON.stringify(counts) +
+                '\n\nHigh/critical advisory packages: ' + high.map(x => x.name).join(', ') + '\n\n');
+            }
+          }
+          if (blocking) {
+            console.error('High/critical dependency advisories require separate correction/review; do not pass this audit.');
+            process.exitCode = 1;
+          }
+          EOF
