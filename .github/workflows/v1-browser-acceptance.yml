@@ -7,13 +7,18 @@ on:
       - development/v1-public-launch
     paths:
       - .github/workflows/v1-browser-acceptance.yml
+  push:
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/v1-browser-acceptance.yml
 
 permissions:
   contents: read
 
 jobs:
   integrated-browser:
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chat03/task-v1-runtime-browser-acceptance' }}
+    if: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chat03/task-v1-runtime-browser-acceptance') }}
     name: Real Chromium + isolated Nitro fixtures
     runs-on: ubuntu-24.04
     timeout-minutes: 25
