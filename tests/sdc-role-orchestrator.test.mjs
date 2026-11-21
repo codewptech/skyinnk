@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { plan } from '../scripts/sdc-role-orchestrator.mjs';
 const SHA='a'.repeat(40), HEAD='b'.repeat(40);
 function task(n,role='Chat 03',state='PR_OPEN'){
-  return {number:n,state:'open',body:'Workstream: '+role+'\n### Execution state\n'+state+'\n'};
+  return {number:n,state:'open',body:'Workstream: '+role+'\n### Execution state\n'+state+'\n### Dependencies\n- START: none\n- INTEGRATION: none\n### Owned / affected paths\n- `scripts/owned-'+n+'.mjs`\n'};
 }
 function pr(n,taskNum,head=HEAD,draft=false){
   return {number:n,state:'open',draft,body:'Task issue: #'+taskNum+'\n',head:{sha:head}};
@@ -78,5 +78,54 @@ test('development push signals SDC 03 milestone re-audit without pretending it r
   assert.equal(audit.role,'SDC 03');
   assert.equal(audit.head,SHA);
   assert.equal(audit.dispatchStatus,'BLOCKED_NO_VERIFIED_CHAT_TRIGGER');
+  assert.equal(x.summary.actualAgentRunsStarted,0);
+});
+
+test('existing CURRENT work blocks another READY task in the same executor lane',()=>{
+  const x=run({issues:[task(35,'Work','REVIEWING'),task(36,'Work','READY')]});
+  assert.equal(x.assignments.some(p=>p.kind==='ELIGIBLE_TASK'&&p.issue===36),false);
+  assert.match(x.blockers.join(' '),/CURRENT work not finished/);
+});
+test('unresolved START dependency blocks PEA-2 READY task without guessing',()=>{
+  const issue=task(65,'Work','READY');
+  issue.body=issue.body.replace('- START: none','- START: #64');
+  const x=run({issues:[issue]});
+  assert.equal(x.assignments.some(p=>p.kind==='ELIGIBLE_TASK'),false);
+  assert.match(x.blockers.join(' '),/dependency integration not verified/);
+});
+test('missing typed dependencies or path claims block READY task',()=>{
+  const issue=task(65,'Work','READY');
+  issue.body=issue.body.replace('- START: none','');
+  const missingDeps=run({issues:[issue]});
+  assert.match(missingDeps.blockers.join(' '),/unverified typed dependencies/);
+  const missingPaths=task(66,'Work','READY');
+  missingPaths.body=missingPaths.body.replace('- `scripts/owned-66.mjs`','');
+  const result=run({issues:[missingPaths]});
+  assert.match(result.blockers.join(' '),/no exact claimed paths/);
+});
+test('READY claimed path cannot overlap an existing open PR',()=>{
+  const issue=task(65,'Work','READY');
+  const x=run({
+    issues:[issue,task(35,'Chat 03','REVIEWING')],
+    prs:[pr(56,35)],
+    filesByPr:{56:['scripts/owned-65.mjs']},
+  });
+  assert.equal(x.assignments.some(p=>p.kind==='ELIGIBLE_TASK'&&p.issue===65),false);
+  assert.match(x.blockers.join(' '),/overlap an open PR/);
+});
+test('missing GitHub evidence explicitly blocks review or integration routing',()=>{
+  const x=run({issues:[task(35,'Work')],prs:[pr(56,35)],
+    evidenceErrorsByPr:{56:['check-runs unavailable']}});
+  assert.equal(x.assignments.some(p=>p.pr===56),false);
+  assert.match(x.blockers.join(' '),/GitHub evidence unavailable/);
+});
+test('untrusted reviewer correction cannot route mandatory engineer repair',()=>{
+  const x=run({issues:[task(35,'Work')],prs:[pr(56,35)],
+    reviewsByPr:{56:[{headSha:HEAD,verdict:'CHANGES_REQUESTED',independent:false}]}});
+  assert.equal(x.assignments.find(p=>p.pr===56).kind,'INDEPENDENT_REVIEW');
+});
+test('idempotency is explicitly limited to one snapshot without persistent dispatch',()=>{
+  const x=run();
+  assert.equal(x.deduplication,'IN_MEMORY_THIS_SNAPSHOT_ONLY_NOT_PERSISTENT');
   assert.equal(x.summary.actualAgentRunsStarted,0);
 });
