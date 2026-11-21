@@ -182,3 +182,24 @@ export function renderMarkdown(source: string): string {
   }
   return markdown.render(source);
 }
+
+/** Resolve the local resource requests that the rendered notes can produce. */
+export function markdownResourcePaths(source: string): Set<string> {
+  const paths = new Set<string>();
+  const base = "https://publication.invalid";
+  const walk = (tokens: ReturnType<typeof markdown.parse>) => {
+    for (const token of tokens) {
+      const image = token.type === "image";
+      const value = token.attrGet(image ? "src" : "href");
+      if (typeof value === "string" && value.startsWith("/") &&
+          (image ? isSafeMarkdownImage(value) : isSafeMarkdownLink(value))) {
+        const url = new URL(value, base);
+        const path = decodeURIComponent(url.pathname);
+        if (url.origin === base && path.startsWith("/resources/public/")) paths.add(path);
+      }
+      if (token.children) walk(token.children);
+    }
+  };
+  walk(markdown.parse(source, {}));
+  return paths;
+}

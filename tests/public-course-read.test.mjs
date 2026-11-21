@@ -8,11 +8,31 @@ import {
 } from "../server/utils/public-course-read.ts";
 import { publicCatalogueFixture } from "./fixtures/public-catalogue.mjs";
 
-test("live V1 publication manifest provides no fictional public course API results", () => {
+test("the checked-in publication manifest exposes its released courses", () => {
   const manifest = JSON.parse(readFileSync(new URL("../content/catalogue.json", import.meta.url), "utf8"));
-  assert.deepEqual(listPublicCourseSummaries(manifest.courses), { courses: [] });
-  assert.equal(readPublicCourseOutline(manifest.courses, "not-released"), undefined);
-  assert.equal(readPublicLesson(manifest.courses, "not-released", "not-released"), undefined);
+  const { courses } = listPublicCourseSummaries(manifest.courses);
+  assert.deepEqual(
+    courses.map(({ key, slug }) => ({ key, slug })),
+    manifest.courses.map(({ key, slug }) => ({ key, slug })),
+  );
+  for (const course of courses) {
+    const outline = readPublicCourseOutline(manifest.courses, course.slug);
+    assert.equal(outline?.course.key, course.key);
+    assert.equal(outline.course.modules.length, course.moduleCount);
+    const lessons = outline.course.modules.flatMap((module) => module.lessons);
+    assert.equal(lessons.length, course.lessonCount);
+    for (const lesson of lessons) {
+      const detail = readPublicLesson(manifest.courses, course.slug, lesson.slug);
+      assert.equal(detail?.lesson.key, lesson.key);
+    }
+  }
+});
+
+test("an empty publication fixture returns no public course or lesson", () => {
+  const courses = [];
+  assert.deepEqual(listPublicCourseSummaries(courses), { courses: [] });
+  assert.equal(readPublicCourseOutline(courses, "not-released"), undefined);
+  assert.equal(readPublicLesson(courses, "not-released", "not-released"), undefined);
 });
 
 test("public course API lists explicit summary fields without notes, media, review metadata or user data", () => {
