@@ -6,12 +6,33 @@ on:
     branches:
       - development/v1-public-launch
     paths:
+      - app/pages/**
+      - app/components/**
+      - app/utils/**
+      - content/catalogue.json
+      - shared/public-content.ts
+      - scripts/validate-public-content.ts
+      - nuxt.config.ts
+      - package.json
+      - package-lock.json
+      - scripts/smoke-v1.mjs
       - scripts/smoke-axe-public.mjs
       - .github/workflows/v1-axe-accessibility.yml
   push:
     branches:
       - development/v1-public-launch
     paths:
+      - app/pages/**
+      - app/components/**
+      - app/utils/**
+      - content/catalogue.json
+      - shared/public-content.ts
+      - scripts/validate-public-content.ts
+      - nuxt.config.ts
+      - package.json
+      - package-lock.json
+      - scripts/smoke-v1.mjs
+      - scripts/smoke-axe-public.mjs
       - .github/workflows/v1-axe-accessibility.yml
 
 permissions:
@@ -19,7 +40,7 @@ permissions:
 
 jobs:
   axe-wcag:
-    if: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chat03/task-axe-guest-a11y-regression') }}
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     name: Chromium axe-core WCAG 2/2.1 A/AA
     runs-on: ubuntu-24.04
     timeout-minutes: 25
