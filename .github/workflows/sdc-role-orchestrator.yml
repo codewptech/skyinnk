@@ -4,16 +4,14 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, edited, closed]
     branches: [development/v1-public-launch]
-  issues:
-    types: [opened, edited, reopened, closed]
   push:
     branches: [development/v1-public-launch]
-  workflow_dispatch:
 
 permissions:
   contents: read
   issues: read
   pull-requests: read
+  checks: read
 
 concurrency:
   group: skyinnk-sdc-routing-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
@@ -25,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout trusted development source
+      - name: Checkout integrated trusted development source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: development/v1-public-launch
           persist-credentials: false
       - name: Set up Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
