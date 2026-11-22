@@ -9,9 +9,8 @@ on:
       - .github/workflows/skyinnk-sdc-cycle.lock.yml
       - .github/workflows/skyinnk-gh-aw-compile.yml
 
-# TEMPORARY ONE-TIME FEATURE-BRANCH BOOTSTRAP. MUST RESTORE contents: read BEFORE INTEGRATION.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: skyinnk-sdc-gh-aw-compile-${{ github.event.pull_request.number || github.ref }}
@@ -19,19 +18,14 @@ concurrency:
 
 jobs:
   compile-and-validate:
-    if: >
-      github.repository == 'codewptech/skyinnk' &&
-      github.event.pull_request.head.repo.full_name == 'codewptech/skyinnk' &&
-      github.event.pull_request.head.ref == 'chat03/task-gh-aw-sdc-cycle' &&
-      github.event.pull_request.base.ref == 'development/v1-public-launch'
+    if: github.repository == 'codewptech/skyinnk'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: Checkout exact same-repo task branch head
+      - name: Checkout proposed GitHub-only AI workflow source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: true
+          persist-credentials: false
       - name: Install official GitHub Agentic Workflows compiler
         env:
           GH_TOKEN: ${{ github.token }}
@@ -39,26 +33,19 @@ jobs:
           set -euo pipefail
           gh extension install github/gh-aw
           gh aw --version
-      - name: Compile source without an AI model and commit ONLY generated lock to this feature branch
+      - name: Compile and validate exact committed lock without any AI model inference
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "${GITHUB_REPOSITORY}" = "codewptech/skyinnk"
-          gh aw compile
           test -s .github/workflows/skyinnk-sdc-cycle.lock.yml
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- .github/workflows/skyinnk-sdc-cycle.lock.yml
-          if git diff --cached --quiet; then
-            echo "Generated lock already tracked and current."
-          else
-            git diff --cached --name-only | grep -Fx '.github/workflows/skyinnk-sdc-cycle.lock.yml'
-            git commit -m "build(sdc): add official gh-aw-generated lock for task 78"
-            git push origin HEAD:refs/heads/chat03/task-gh-aw-sdc-cycle
-            echo "Generated lock committed to feature branch only; restore read-only CI permissions."
-          fi
-      - name: Preserve generated artifact
+          gh aw compile
+          git diff --exit-code -- .github/workflows/skyinnk-sdc-cycle.lock.yml || {
+            echo "::error::Committed gh-aw lock differs from official compiler output."
+            exit 1
+          }
+          echo "Official gh-aw compile successful; committed lock matches."
+      - name: Upload generated lock for source provenance
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: skyinnk-sdc-gh-aw-compiled-lock
