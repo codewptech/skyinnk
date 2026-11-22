@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { plan } from '../scripts/sdc-role-orchestrator.mjs';
 const SHA='a'.repeat(40), HEAD='b'.repeat(40);
 function task(n,role='Chat 03',state='PR_OPEN'){
-  return {number:n,state:'open',body:'Workstream: '+role+'\n### Execution state\n'+state+'\n### Dependencies\n- START: none\n- INTEGRATION: none\n### Owned / affected paths\n- `scripts/owned-'+n+'.mjs`\n'};
+  return {number:n,state:'open',body:'Workstream: '+role+'\nBranch: `'+(role==='Work'?'work':role==='Chat 01'?'chat01':'chat03')+'/task-test-'+n+'`\nTarget: `development/v1-public-launch`\n### Execution state\n'+state+'\n### Dependencies\n- START: none\n- INTEGRATION: none\n### Owned / affected paths\n- `scripts/owned-'+n+'.mjs`\n'};
 }
 function pr(n,taskNum,head=HEAD,draft=false,baseRef='development/v1-public-launch'){
   return {number:n,state:'open',draft,body:'Task issue: #'+taskNum+'\n',head:{sha:head},base:{ref:baseRef}};
@@ -81,6 +81,22 @@ test('development push signals SDC 03 milestone re-audit without pretending it r
   assert.equal(x.summary.actualAgentRunsStarted,0);
 });
 
+test('READY target and branch ownership must agree with PEA-2 lane',()=>{
+  const wrongBranch=task(66,'Work','READY');
+  wrongBranch.body=wrongBranch.body.replace('work/task-test-66','chat03/task-cross-owner');
+  const a=run({issues:[wrongBranch]});
+  assert.equal(a.assignments.some(p=>p.kind==='ELIGIBLE_TASK'),false);
+  assert.match(a.blockers.join(' '),/PEA-2 target\/branch ownership not verified/);
+  const wrongTarget=task(67,'Chat 03','READY');
+  wrongTarget.body=wrongTarget.body.replace('Target: `development/v1-public-launch`','Target: `main`');
+  const b=run({issues:[wrongTarget]});
+  assert.equal(b.assignments.some(p=>p.kind==='ELIGIBLE_TASK'),false);
+  assert.match(b.blockers.join(' '),/PEA-2 target\/branch ownership not verified/);
+});
+test('canonical quoted PEA-2 branch and target admit all three source lanes',()=>{
+  const x=run({issues:[task(65,'Work','READY'),task(66,'Chat 03','READY'),task(67,'Chat 01','READY')]});
+  assert.deepEqual(x.assignments.filter(p=>p.kind==='ELIGIBLE_TASK').map(p=>p.issue).sort((a,b)=>a-b),[65,66,67]);
+});
 test('one NEXT eligible READY packet per actual workstream, others retained in queue',()=>{
   const x=run({issues:[task(35,'Work','READY'),task(36,'Work','READY'),task(37,'Chat 03','READY')]});
   const ready=x.assignments.filter(p=>p.kind==='ELIGIBLE_TASK');
