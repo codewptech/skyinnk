@@ -3,6 +3,8 @@ name: Skyinnk SDC — GitHub Agentic Engineering Cycle
 description: Bounded GitHub-hosted V1 engineering, one eligible PEA-2 task and one draft PR per run
 engine: copilot
 on:
+  issues:
+    types: [opened, edited, reopened]
   workflow_dispatch:
   workflow_run:
     workflows: ["Development PR CI"]
@@ -37,7 +39,7 @@ on:
             const owned = b.match(/^### Owned \/ affected paths\s*\n([\s\S]*?)(?=^### |$(?![\s\S]))/m)?.[1] || '';
             if (!/^\s*-\s*\x60[^\x60]+\x60\s*$/m.test(owned)) return false;
             if (!/^### Reserved shared paths\s*$/m.test(b)) return false;
-            if (issues.some(other => other.number !== issue.number && lane(other.body) === role && ['CLAIMED','BUILDING','PR_OPEN','REVIEWING','CHANGES_REQUESTED','READY_TO_INTEGRATE','INTEGRATING'].includes(state(other.body)))) return false;
+            if (issues.some(other => other.number !== issue.number && lane(other.body) === role && ['CLAIMED','BUILDING','CHANGES_REQUESTED','INTEGRATING'].includes(state(other.body)))) return false;
             if (prs.some(pr => new RegExp('(?:^|\\n)Task issue:\\s*#' + issue.number + '\\b','i').test(pr.body || ''))) return false;
             return true;
           };
