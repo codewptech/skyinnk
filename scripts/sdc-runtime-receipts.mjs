@@ -123,7 +123,7 @@ export function verify(input) {
   need(Number.isSafeInteger(maxIdleMs) && maxIdleMs >= 1000 && maxIdleMs <= 86_400_000,
     'maxIdleMs must be 1 second to 24 hours');
   let state = 'ELIGIBLE', lastTime = -Infinity, lastActive = null, executor = null, pr = null, merge = null;
-  let activeAttempt = null;
+  let activeAttempt = null, candidateCi = null;
   const seenEventIds = new Set(), seenReceiptIds = new Set(), usedAttempts = new Set(), usedRuns = new Set();
   const history = [];
   for (const e of input.events) {
@@ -181,6 +181,7 @@ export function verify(input) {
         'REVIEW_PENDING: stale PR head, repository or target');
     } else if (e.kind === 'REVIEWED') {
       validateReview(e, pr, executor, a);
+      candidateCi = { runId: e.ci.runId, reference: e.ci.reference };
     } else if (e.kind === 'INTEGRATION_PENDING') {
       source(e, 'github_pr');
       need(pr && sameSha(e.expectedHeadSha, pr.headSha) && e.prNumber === pr.number &&
@@ -188,6 +189,9 @@ export function verify(input) {
         sameSha(e.currentDevelopmentSha, pr.baseSha),
         'INTEGRATION_PENDING: stale reviewed PR head, repository or development base');
       ci(e.ci, { phase: 'candidate', assignment: a, pr }, 'INTEGRATION_PENDING');
+      need(candidateCi && e.ci.runId === candidateCi.runId &&
+        e.ci.reference === candidateCi.reference,
+        'INTEGRATION_PENDING: reviewed candidate CI run identity/reference changed');
     } else if (e.kind === 'INTEGRATED') {
       source(e, 'github_merge');
       const m = e.merge;
@@ -203,6 +207,9 @@ export function verify(input) {
       source(e, 'github_ci');
       need(merge, 'VERIFIED: missing merge evidence');
       ci(e.postmergeCi, { phase: 'postmerge', assignment: a, merge }, 'VERIFIED post-merge');
+      need(candidateCi && e.postmergeCi.runId !== candidateCi.runId &&
+        e.postmergeCi.reference !== candidateCi.reference,
+        'VERIFIED: candidate CI run ID or reference replayed as post-merge CI');
     } else if (e.kind === 'EXPIRED') {
       source(e, 'observation');
       if (state === 'ASSIGNED') need(at - lastTimeBefore(history) >= maxIdleMs,

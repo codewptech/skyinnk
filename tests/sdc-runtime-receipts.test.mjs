@@ -206,3 +206,20 @@ test('refuse integration pending event citing another PR',()=>
   fails(x=>{x.events[6].prNumber+=1;},/INTEGRATION_PENDING: stale reviewed PR head/));
 test('refuse integration pending event citing an older base',()=>
   fails(x=>{x.events[6].currentDevelopmentSha=A;},/INTEGRATION_PENDING: stale reviewed PR head/));
+
+// SDC 03 second independent review: a PR CI and the post-merge push CI
+// cannot be the same GitHub Actions run, even if asserted event types differ.
+test('valid candidate CI identity is reusable at review and integration, but not postmerge',()=>{
+  const x=fixture();
+  assert.equal(x.events[5].ci.runId,x.events[6].ci.runId);
+  assert.equal(x.events[5].ci.reference,x.events[6].ci.reference);
+  assert.notEqual(x.events[5].ci.runId,x.events[8].postmergeCi.runId);
+  assert.notEqual(x.events[5].ci.reference,x.events[8].postmergeCi.reference);
+  assert.equal(verify(x).state,'VERIFIED');
+});
+test('reject same candidate GitHub Actions run ID as postmerge push CI',()=>
+  fails(x=>{x.events[8].postmergeCi.runId=x.events[5].ci.runId;},/candidate CI run ID or reference replayed as post-merge CI/));
+test('reject same candidate GitHub Actions run reference as postmerge push CI',()=>
+  fails(x=>{x.events[8].postmergeCi.reference=x.events[5].ci.reference;},/candidate CI run ID or reference replayed as post-merge CI/));
+test('reject changing the reviewed candidate CI run at integration',()=>
+  fails(x=>{x.events[6].ci.runId='different-candidate-ci';},/reviewed candidate CI run identity\/reference changed/));
