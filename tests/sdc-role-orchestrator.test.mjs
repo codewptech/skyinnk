@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { plan } from '../scripts/sdc-role-orchestrator.mjs';
 const SHA='a'.repeat(40), HEAD='b'.repeat(40);
 function task(n,role='Chat 03',state='PR_OPEN'){
-  return {number:n,state:'open',body:'Workstream: '+role+'\nBranch: `'+(role==='Work'?'work':role==='Chat 01'?'chat01':'chat03')+'/task-test-'+n+'`\nTarget: `development/v1-public-launch`\n### Execution state\n'+state+'\n### Dependencies\n- START: none\n- INTEGRATION: none\n### Owned / affected paths\n- `scripts/owned-'+n+'.mjs`\n'};
+  let source='chat03';
+  if(role==='Work') source='work';
+  else if(role==='Chat 01') source='chat01';
+  const body='Workstream: '+role+'\nBranch: `'+source+'/task-test-'+n+'`\nTarget: `development/v1-public-launch`\n### Execution state\n'+state+'\n### Dependencies\n- START: none\n- INTEGRATION: none\n### Owned / affected paths\n- `scripts/owned-'+n+'.mjs`\n';
+  return {number:n,state:'open',body};
 }
 function pr(n,taskNum,head=HEAD,draft=false,baseRef='development/v1-public-launch'){
   return {number:n,state:'open',draft,body:'Task issue: #'+taskNum+'\n',head:{sha:head},base:{ref:baseRef}};
