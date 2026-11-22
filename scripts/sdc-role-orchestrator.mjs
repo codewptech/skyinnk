@@ -2,6 +2,7 @@
 // Skyinnk SDC controller: coordination only. NEVER invokes coding models, merges, or writes to GitHub.
 import { writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { changePaths, parsePacket } from '../docs/governance/parallel-task-policy.mjs';
 
 const ROLES = Object.freeze({
   'SDC 01': 'Architecture Authority',
@@ -16,6 +17,10 @@ const SOURCE_ROLES = Object.freeze({ 'Chat 01':'SDC 01', 'Chat 03':'SDC 04', 'Wo
 const SHA = /^[a-f0-9]{40}$/i;
 const COMPLETED = new Set(['DONE','CANCELLED','DEFERRED']);
 const CURRENT = new Set(['CLAIMED','BUILDING','PR_OPEN','REVIEWING','CHANGES_REQUESTED','READY_TO_INTEGRATE','INTEGRATING']);
+// Match the Development CI PEA-2 claim lifecycle and legacy cutoff.
+const LAST_LEGACY_ISSUE = 43;
+const CLAIM_STATES = new Set([...CURRENT, 'PAUSED', 'BLOCKED']);
+const UNDECLARED_EXECUTOR = /^(?:unclaimed|unassigned|none|pending|unknown|n\/a)$/i;
 const line = (body,name) => (body||'').match(new RegExp('^'+name+':\\s*(.*)$','im'))?.[1]?.trim()||'';
 const section = (body,name) => (body||'').match(new RegExp('^### '+name+'\\s*\\n([^\\n]*)','im'))?.[1]?.trim()||'';
 const assignedRole = body => SOURCE_ROLES[line(body,'Workstream')] || null;
@@ -29,6 +34,17 @@ const claimedPaths=(body)=>{
   const chunk=(body||'').match(/^### Owned \/ affected paths\s*\n([\s\S]*?)(?=^### |$(?![\s\S]))/m)?.[1]||'';
   return [...chunk.matchAll(/^\s*-\s*`([^`]+)`\s*$/gm)].map(x=>x[1]);
 };
+function exactClaimPaths(task) {
+  if (!task.owned.length || task.pathErrors.length ||
+      task.duplicates.some(name => ['branch', 'owned / affected paths', 'reserved shared paths'].includes(name))) return null;
+  const paths = [...task.owned, ...task.shared];
+  if (paths.some(path => path.includes('*') || path.startsWith('REPLACE'))) return null;
+  try {
+    return changePaths(paths);
+  } catch {
+    return null;
+  }
+}
 const sorted = values => [...values].sort((a,b)=>a.number-b.number);
 const packet = (role,kind,{issue=null,pr=null,head=null,reason='',instructions='',priority=2}) => ({
   role,roleName:ROLES[role],kind,priority,issue,pr,head,
@@ -48,6 +64,14 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},filesByPr={}
     .filter(p=>p.base?.ref!=='development/v1-public-launch')
     .map(p=>'PR #'+p.number+': not a verified development-targeted PR');
   const issueByNumber=new Map(issues.map(i=>[i.number,i]));
+  const activeClaims=[];
+  for (const issue of activeIssues) {
+    if (issue.number <= LAST_LEGACY_ISSUE) continue;
+    const claim = parsePacket(issue.body);
+    if (!CLAIM_STATES.has(claim.state) ||
+        (claim.state === 'BLOCKED' && (!claim.executor || UNDECLARED_EXECUTOR.test(claim.executor)))) continue;
+    activeClaims.push({ number: issue.number, branch: claim.branch, paths: exactClaimPaths(claim) });
+  }
   // A role's CURRENT assignment is not preempted by an unrelated new task.
   const current={};
   for(const issue of activeIssues){
@@ -65,14 +89,16 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},filesByPr={}
     const head=pr.head?.sha;
     if(!SHA.test(head)){blockers.push('PR #'+pr.number+': missing head SHA');continue;}
     const reviews=reviewsByPr[pr.number]||[];
-    // A superseded review from the SAME authenticated independent reviewer must
-    // not permanently block a later approval (or hide a later correction).
-    // GitHub native review IDs increase as review submissions are created.
+    // GitHub marks a dismissed review record DISMISSED in place. It contributes
+    // no decision, just like an informational review, and cannot erase a
+    // separate surviving decision. Review IDs order the remaining submissions.
     const exact=reviews.filter(x=>x.headSha===head && x.independent===true)
       .sort((a,b)=>(a.reviewId||0)-(b.reviewId||0));
     const latestByReviewer=new Map();
     for(const review of exact){
-      latestByReviewer.set(review.reviewerLogin||'synthetic-reviewer',review);
+      if (review.verdict === 'ACCEPTED' || review.verdict === 'CHANGES_REQUESTED') {
+        latestByReviewer.set(review.reviewerLogin||'synthetic-reviewer',review);
+      }
     }
     const latest=[...latestByReviewer.values()];
     const correction=latest.find(x=>x.verdict==='CHANGES_REQUESTED');
@@ -116,15 +142,29 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},filesByPr={}
     }
     if(openPRs.some(p=>new RegExp('(?:^|\\n)Task issue:\\s*#'+issue.number+'\\b','i').test(p.body||'')))continue;
     if(current[role]?.length){blockers.push('Issue #'+issue.number+': '+role+' CURRENT work not finished');continue;}
-    if(issue.number>43){
+    if(issue.number>LAST_LEGACY_ISSUE){
       const start=activeDependency(issue.body,'START');
       const integrate=activeDependency(issue.body,'INTEGRATION');
       if(start===null||integrate===null){blockers.push('Issue #'+issue.number+': unverified typed dependencies');continue;}
       if(start.length||integrate.length){blockers.push('Issue #'+issue.number+': dependency integration not verified');continue;}
     }
-    const paths=claimedPaths(issue.body);
-    if(!paths.length){blockers.push('Issue #'+issue.number+': no exact claimed paths; not eligible');continue;}
-    if(openPRs.some(pr=>(filesByPr[pr.number]||[]).some(path=>paths.includes(path)))){
+    const task = parsePacket(issue.body);
+    const paths = issue.number > LAST_LEGACY_ISSUE
+      ? exactClaimPaths(task)
+      : [...claimedPaths(issue.body), ...task.shared];
+    if(!paths?.length){blockers.push('Issue #'+issue.number+': no exact claimed paths; not eligible');continue;}
+    const conflict = activeClaims.find(claim => claim.number !== issue.number &&
+      (claim.branch === branch || claim.paths?.some(path => paths.includes(path))));
+    if (conflict) {
+      blockers.push('Issue #'+issue.number+': conflicts with active claim on issue #'+conflict.number);
+      continue;
+    }
+    const incomplete = activeClaims.find(claim => claim.number !== issue.number && (!claim.branch || !claim.paths));
+    if (incomplete) {
+      blockers.push('Issue #'+issue.number+': active claim evidence unavailable for issue #'+incomplete.number);
+      continue;
+    }
+    if(openPRs.some(pr=>Array.isArray(filesByPr[pr.number])&&filesByPr[pr.number].some(path=>paths.includes(path)))){
       blockers.push('Issue #'+issue.number+': claimed paths overlap an open PR');continue;
     }
     if(openPRs.some(pr=>!Array.isArray(filesByPr[pr.number]))){
@@ -190,7 +230,8 @@ export async function snapshot({token,repo}){
           headSha:x.commit_id||'',
           reviewerLogin:login,
           reviewId:x.id,
-          verdict:independent&&x.state==='APPROVED'?'ACCEPTED':independent&&x.state==='CHANGES_REQUESTED'?'CHANGES_REQUESTED':'UNKNOWN',
+          verdict: x.state === 'APPROVED' ? 'ACCEPTED' : x.state === 'CHANGES_REQUESTED' ? 'CHANGES_REQUESTED' :
+            x.state === 'DISMISSED' ? 'DISMISSED' : 'UNKNOWN',
           independent,
         };
       });

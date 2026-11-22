@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { plan } from '../scripts/sdc-role-orchestrator.mjs';
+import { plan, snapshot } from '../scripts/sdc-role-orchestrator.mjs';
 const SHA='a'.repeat(40), HEAD='b'.repeat(40);
 function task(n,role='Chat 03',state='PR_OPEN'){
   let source='chat03';
   if(role==='Work') source='work';
   else if(role==='Chat 01') source='chat01';
-  const body='Workstream: '+role+'\nBranch: `'+source+'/task-test-'+n+'`\nTarget: `development/v1-public-launch`\n### Execution state\n'+state+'\n### Dependencies\n- START: none\n- INTEGRATION: none\n### Owned / affected paths\n- `scripts/owned-'+n+'.mjs`\n';
+  const body='Workstream: '+role+'\nBranch: `'+source+'/task-test-'+n+'`\nTarget: `development/v1-public-launch`\n### Execution state\n'+state+'\n### Executor\n'+(state==='READY'?'unclaimed':'Test executor')+'\n### Dependencies\n- START: none\n- INTEGRATION: none\n### Owned / affected paths\n- `scripts/owned-'+n+'.mjs`\n### Reserved shared paths\nNone.\n';
   return {number:n,state:'open',body};
 }
 function pr(n,taskNum,head=HEAD,draft=false,baseRef='development/v1-public-launch'){
@@ -246,4 +246,82 @@ test('a correction from another independently trusted reviewer still blocks inte
     checksByPr:{14:[{id:1,headSha:HEAD,name:'Development CI',conclusion:'success'}]},
   });
   assert.equal(x.assignments.find(a=>a.pr===14)?.kind,'REVIEW_CORRECTION');
+});
+
+test('cross-workstream BUILDING claim blocks an overlapping READY issue before any PR',()=>{
+  const active=task(64,'Work','BUILDING');
+  active.body=active.body.replace('scripts/owned-64.mjs','scripts/owned-65.mjs');
+  const x=run({issues:[active,task(65,'Chat 03','READY'),task(66,'Chat 03','READY')]});
+  assert.match(x.blockers.join(' '),/Issue #65: conflicts with active claim on issue #64/);
+  assert.deepEqual(x.assignments.filter(p=>p.kind==='ELIGIBLE_TASK').map(p=>p.issue),[66]);
+});
+
+test('PAUSED and executor-held BLOCKED claims protect exact shared reservations',()=>{
+  for(const state of ['PAUSED','BLOCKED']){
+    const active=task(64,'Chat 01',state);
+    active.body=active.body.replace('None.','- `nuxt.config.ts`');
+    const ready=task(65,'Chat 03','READY');
+    ready.body=ready.body.replace('None.','- `nuxt.config.ts`');
+    const x=run({issues:[active,ready]});
+    assert.equal(x.assignments.some(p=>p.kind==='ELIGIBLE_TASK'),false);
+    assert.match(x.blockers.join(' '),/conflicts with active claim on issue #64/);
+    active.body=active.body.replace('Test executor','unclaimed');
+    if(state==='BLOCKED'){
+      assert.equal(run({issues:[active,ready]}).assignments.find(p=>p.kind==='ELIGIBLE_TASK')?.issue,65);
+    }
+  }
+});
+
+test('an active issue claiming the same branch blocks a disjoint READY task',()=>{
+  const active=task(64,'Chat 03','PAUSED');
+  active.body=active.body.replace('chat03/task-test-64','chat03/task-test-65');
+  const x=run({issues:[active,task(65,'Chat 03','READY')]});
+  assert.equal(x.assignments.some(p=>p.kind==='ELIGIBLE_TASK'),false);
+  assert.match(x.blockers.join(' '),/conflicts with active claim on issue #64/);
+});
+
+test('missing or malformed active path evidence blocks READY routing explicitly',()=>{
+  const active=task(64,'Work','BUILDING');
+  active.body=active.body.replace('None.','- `scripts/*`');
+  const x=run({issues:[active,task(65,'Chat 03','READY')]});
+  assert.equal(x.assignments.some(p=>p.kind==='ELIGIBLE_TASK'),false);
+  assert.match(x.blockers.join(' '),/active claim evidence unavailable for issue #64/);
+});
+
+test('native comments and dismissals preserve only surviving exact-head review decisions',async t=>{
+  const rawPr={...pr(14,12),user:{login:'author'}};
+  const results={
+    '/issues':[task(12)],'/pulls':[rawPr],
+    '/branches/development/v1-public-launch':{commit:{sha:SHA}},
+    '/pulls/14/files':[],
+    [`/commits/${HEAD}/check-runs`]:{check_runs:[
+      {id:1,head_sha:HEAD,name:'Development CI',app:{slug:'github-actions'},conclusion:'success'},
+    ]},
+  };
+  const correction={id:1,commit_id:HEAD,state:'CHANGES_REQUESTED',user:{login:'reviewer-a'}};
+  const approval={id:2,commit_id:HEAD,state:'APPROVED',user:{login:'reviewer-b'}};
+  const comment={...correction,id:3,state:'COMMENTED'};
+  const dismissed={...correction,id:4,state:'DISMISSED'};
+  t.mock.method(globalThis,'fetch',async url=>{
+    const path=new URL(url).pathname.replace('/repos/codewptech/skyinnk','');
+    assert.ok(Object.hasOwn(results,path),path);
+    return Response.json(results[path]);
+  });
+  const previous=process.env.SDC_TRUSTED_REVIEWER_LOGINS;
+  process.env.SDC_TRUSTED_REVIEWER_LOGINS='reviewer-a,reviewer-b';
+  t.after(()=>{
+    if(previous===undefined) delete process.env.SDC_TRUSTED_REVIEWER_LOGINS;
+    else process.env.SDC_TRUSTED_REVIEWER_LOGINS=previous;
+  });
+  for(const [reviews,expected] of [
+    [[correction,approval,comment],'REVIEW_CORRECTION'],
+    [[correction,approval,dismissed],'REVIEW_CORRECTION'],
+    [[{...correction,state:'DISMISSED'},approval,comment],'INTEGRATION_GATE'],
+    [[{...approval,state:'DISMISSED'},comment],'INDEPENDENT_REVIEW'],
+    [[approval,{...approval,id:3,state:'COMMENTED'}],'INTEGRATION_GATE'],
+  ]){
+    results['/pulls/14/reviews']=reviews;
+    const x=plan(await snapshot({repo:'codewptech/skyinnk'}));
+    assert.equal(x.assignments.find(p=>p.pr===14)?.kind,expected);
+  }
 });
