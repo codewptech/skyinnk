@@ -7,9 +7,9 @@ const repo = 'codewptech/skyinnk';
 const time = i => new Date(Date.UTC(2026, 10, 22, 0, i, 0)).toISOString();
 function fixture(taskIssue=84) {
   const assignment = {repository:repo,milestone:58,role:'SDC 04',taskIssue,
-    operation:'ENGINEERING_TASK',sourceSha:A,controllerIdempotencyKey:`SDC 04:ELIGIBLE_TASK:${taskIssue}:0:${A}`};
+    operation:'ENGINEERING_TASK',sourceSha:A,controllerIdempotencyKey:`SDC 04:ELIGIBLE_TASK:${taskIssue}:0:none`};
   const id = assignmentId(assignment);
-  const receipt = (n) => ({provider:'Codex',runId:'actual-product-run-001',sessionId:'sdc04-original-thread',
+  const receipt = (n) => ({provider:'Codex',runId:'synthetic-product-run-001',sessionId:'sdc04-original-thread',
     actorId:'engineering-actor',receiptId:`product-record-${n}`,productRecordReference:`https://example.test/codex/${n}`,
     role:'SDC 04',sourceSha:A});
   const assigned = {id:'event-1',kind:'ASSIGNED',at:time(1),assignmentId:id,
