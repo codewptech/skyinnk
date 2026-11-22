@@ -1,5 +1,14 @@
 # V1 direct GitHub development workflow
 
+## Current status — 21 November 2026
+
+The application/test source last validated before this documentation-only checkpoint is `3714ae1e8eeb9cde2d38f8a51c3763c49527861e` (postmerge Development CI and real disposable PostgreSQL acceptance passed). The completed source/governance integrations are #14/#55/#18/#20/#56/#16/#30/#28/#65/#67. Actual empty/fictional Chromium+Nitro, SHA-256 resource delivery, disposable PG18 subject concurrency, and isolated Docker restore/recovery have all run and passed; see [canonical release state](V1-RELEASE-STATE.md) for exact evidence.
+
+**Not production-ready:** there are zero educator-approved published courses, and actual tenant/Auth0, real media, legal/consent, accessibility on genuine devices and owner release/production rollback sign-off are outstanding on [global V1 #58](https://github.com/codewptech/skyinnk/issues/58). The historical PR #1 draft instructions and obsolete branches/SHAs below are retained for audit, not current execution directions. No controller activation occurred.
+---
+
+This is the historical pre-merge integration handoff. For verified merged routes, current test evidence and release gates, see the [canonical release state](V1-RELEASE-STATE.md).
+
 Permanent workflow: **GitHub → Codex/Work → tested commits → development branch → controlled release**. Manual ZIP and patch integration is retired as the normal workflow.
 
 Repository: `codewptech/skyinnk`.

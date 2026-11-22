@@ -1,5 +1,14 @@
 # Skyinnk V1 — Shared execution checklist
 
+## Current global V1 status — 21 November 2026
+
+**Tested source baseline:** `3714ae1e8eeb9cde2d38f8a51c3763c49527861e` immediately before this documentation-only update; [exact Development CI PASS 44900429542](https://github.com/codewptech/skyinnk/actions/runs/44900429542). The shared milestone is **V1-58 — technically fixture-verified, release acceptance OPEN**. Integrated source/governance PRs #14/#55/#18/#20/#56/#16/#30/#28/#65/#67 have passed their normal nonproduction CI. Runtime evidence: [real browser 44899981497](https://github.com/codewptech/skyinnk/actions/runs/44899981497), [real disposable PostgreSQL 18 44900429586](https://github.com/codewptech/skyinnk/actions/runs/44900429586), and [recovery 44899600841](https://github.com/codewptech/skyinnk/actions/runs/44899600841).
+
+**Remaining owner/external gates:** actual reviewed Class 10 learning content (currently 0 published courses), media rights and real playback/device accessibility, real approved Auth0 tenant login/callback/logout and session checks, legal/operator identity/cookie-consent approval, production environment monitoring and separately authorized release. No production/main, live Neon or controller run authorized. Earlier V1-01–15 rows below were the **11 November historical launch checklist**, not current delivered/tested status.
+---
+
+This table records the original V1 implementation milestones. For subsequent merges, successful fictional Chromium coverage and current release gates, see the [canonical release state](V1-RELEASE-STATE.md).
+
 Updated: 11 November 2026. Target: 18 November 2026, conditional on release gates.
 Integration owner: V1 Work/Codex; Chat 03 remains backend/V2 owner. Branch: `work/v1-public-learning-integration` (published on GitHub); target `development/v1-public-launch`.
 

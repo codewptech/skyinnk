@@ -1,0 +1,109 @@
+name: V1 Integrated Guest Browser Acceptance
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/v1-browser-acceptance.yml
+  push:
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/v1-browser-acceptance.yml
+
+permissions:
+  contents: read
+
+jobs:
+  integrated-browser:
+    if: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chat03/task-v1-runtime-browser-acceptance') }}
+    name: Real Chromium + isolated Nitro fixtures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NUXT_PUBLIC_ANALYTICS_ENABLED: "false"
+      DATABASE_URL: postgresql://fixture:fictional@127.0.0.1:1/fixture
+      DIRECT_URL: postgresql://fixture:fictional@127.0.0.1:1/fixture
+      NUXT_AUTH0_DOMAIN: validation.example.invalid
+      NUXT_AUTH0_CLIENT_ID: fictional-test-only
+      NUXT_AUTH0_CLIENT_SECRET: fictional-client-secret-no-live-service
+      NUXT_AUTH0_SESSION_SECRET: fictional-session-secret-not-for-production
+      NUXT_AUTH0_APP_BASE_URL: http://127.0.0.1:4318
+      NITRO_HOST: 127.0.0.1
+      NITRO_PORT: "4318"
+    steps:
+      - name: Checkout nonproduction PR merge commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Install locked app and ephemeral browser runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm install --no-save --ignore-scripts --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+          echo "CHROMIUM_PATH=$(node -e 'process.stdout.write(require("playwright").chromium.executablePath())')" >> "$GITHUB_ENV"
+
+      - name: Verify real empty-catalogue Nuxt browser navigation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check:all
+          mkdir -p "$RUNNER_TEMP/skyinnk-empty"
+          node .output/server/index.mjs > "$RUNNER_TEMP/skyinnk-empty/preview.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" >/dev/null 2>&1 || true; wait "$server_pid" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for attempt in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:4318/api/v1/health >/dev/null; then ready=1; break; fi
+            if ! kill -0 "$server_pid" >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          if [ "$ready" != 1 ]; then cat "$RUNNER_TEMP/skyinnk-empty/preview.log"; exit 1; fi
+          node scripts/smoke-course-discovery.mjs http://127.0.0.1:4318
+          node scripts/smoke-v1.mjs --base-url http://127.0.0.1:4318 --artifacts "$RUNNER_TEMP/skyinnk-empty"
+
+      - name: Verify fictional published lesson, classroom and HTTP resource bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifacts="$RUNNER_TEMP/skyinnk-fictional-fixture"
+          mkdir -p "$artifacts"
+          node scripts/smoke-v1.mjs --isolated-fixture --serve-fixture --artifacts "$artifacts" --port 4319 > "$artifacts/controller.log" 2>&1 &
+          fixture_pid=$!
+          trap 'kill -TERM "$fixture_pid" >/dev/null 2>&1 || true; wait "$fixture_pid" >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for attempt in $(seq 1 180); do
+            if grep -q FIXTURE_READY "$artifacts/controller.log" && test -s "$artifacts/fixture-parameters.json"; then ready=1; break; fi
+            if ! kill -0 "$fixture_pid" >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          if [ "$ready" != 1 ]; then cat "$artifacts/controller.log"; exit 1; fi
+          node scripts/smoke-course-discovery.mjs http://127.0.0.1:4319 "$artifacts/fixture-parameters.json"
+          node scripts/smoke-classroom-a11y.mjs http://127.0.0.1:4319
+          node --input-type=module <<'EOF'
+          import assert from 'node:assert/strict';
+          import { createHash } from 'node:crypto';
+          const expected = Buffer.from('AUTOMATED TEST FIXTURE. Not educational content.\n');
+          const response = await fetch('http://127.0.0.1:4319/resources/public/fixture.txt');
+          assert.equal(response.status, 200);
+          assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+          const delivered = Buffer.from(await response.arrayBuffer());
+          assert.equal(delivered.length, expected.length);
+          assert.equal(createHash('sha256').update(delivered).digest('hex'), createHash('sha256').update(expected).digest('hex'));
+          assert.deepEqual(delivered, expected);
+          const unlisted = await fetch('http://127.0.0.1:4319/resources/public/not-reviewed.txt');
+          assert.equal(unlisted.status, 404);
+          console.log('PASS real HTTP reviewed resource bytes, SHA-256, nosniff, and unlisted denial');
+          EOF
+          cat "$artifacts/fixture-smoke.log"
+          cat "$artifacts/controller.log"

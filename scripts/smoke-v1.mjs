@@ -6,6 +6,7 @@
  * This script never changes source/content, deploys, or connects to a database.
  */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   readFile,
   mkdir,
@@ -130,7 +131,10 @@ try {
         "Raw content script executed in SSR",
       );
     }
-    if (fixture.resourcePath) await response(fixture.resourcePath);
+    if (fixture.resourcePath) {
+      const resource = await response(fixture.resourcePath);
+      assert.equal(resource.response.headers.get("x-content-type-options"), "nosniff");
+    }
     passed(
       "isolated fixture course, video/text lesson SSR and public resource served",
     );
@@ -372,6 +376,7 @@ async function runIsolatedFixture() {
         url: "/resources/public/fixture.txt",
         type: "TXT",
         sizeBytes: Buffer.byteLength(resourceBytes),
+        sha256: createHash("sha256").update(resourceBytes).digest("hex"),
         publication: testReview,
       },
     ],

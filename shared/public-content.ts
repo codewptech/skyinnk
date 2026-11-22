@@ -11,6 +11,7 @@ export type PublicResource = {
   url: string;
   type: string;
   sizeBytes: number;
+  sha256?: string;
   publication: Publication;
 };
 export type PublicLesson = {
@@ -201,7 +202,7 @@ export function validatePublicCatalogue(value: unknown): PublicCatalogue {
           for (const resource of lesson.resources) {
             record(
               resource,
-              ["key", "title", "url", "type", "sizeBytes", "publication"],
+              ["key", "title", "url", "type", "sizeBytes", "sha256", "publication"],
               "resource",
             );
             text(resource.title, "resource.title");
@@ -220,6 +221,13 @@ export function validatePublicCatalogue(value: unknown): PublicCatalogue {
                 resource.sizeBytes > 0,
               "resource sizeBytes must be positive",
             );
+            // The filesystem-backed build check requires this digest. Public
+            // API projections deliberately continue to omit reviewer metadata.
+            ensure(
+              resource.sha256 === undefined ||
+                (typeof resource.sha256 === "string" && /^[a-f0-9]{64}$/.test(resource.sha256)),
+              "resource sha256 must be a lowercase SHA-256 digest",
+            );
             publication(resource.publication, "resource");
             const review = resource.publication as Record<string, unknown>;
             const signature = JSON.stringify([
@@ -227,6 +235,7 @@ export function validatePublicCatalogue(value: unknown): PublicCatalogue {
               resource.url,
               resource.type,
               resource.sizeBytes,
+              resource.sha256,
               review.status,
               review.visibility,
               review.reviewedBy,
