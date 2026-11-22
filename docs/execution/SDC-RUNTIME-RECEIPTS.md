@@ -52,12 +52,30 @@ Each execution attempt must supply a distinct actual `attemptId`, and `ACKNOWLED
 
 - `ELIGIBLE → ASSIGNED`: `routing` source. Assignment does not prove a run started.
 - `ASSIGNED → ACKNOWLEDGED → RUNNING`: `product_execution` sources, correlated actual run/session/actor identity. Repeated `HEARTBEAT` events require fresh unique product receipts.
-- `RUNNING → COMPLETED`: product receipt plus PR number, exact head SHA, author identity and PR link.
-- `COMPLETED → REVIEW_PENDING`: `github_pr` source matching the completed PR and head.
-- `REVIEW_PENDING → REVIEWED`: `github_review` source. Requires an externally established, native `APPROVED` review at the exact PR head by a different authenticated actor from the source author/executor; `COMMENTED` is not an approval. Also requires latest exact-head successful `Development CI` evidence.
-- `REVIEWED → INTEGRATION_PENDING`: current exact head and latest successful Development CI must still agree.
-- `INTEGRATION_PENDING → INTEGRATED`: `github_merge` source, expected exact head, protected/authorized merge, pre-merge development revision, distinct merge commit and method.
-- `INTEGRATED → VERIFIED`: `github_ci` source and latest successful post-merge Development CI at the resulting merge commit.
+- `RUNNING → COMPLETED`: product receipt plus PR number, repository, protected-development target, exact PR `headSha` and `baseSha`, author identity and PR link.
+- `COMPLETED → REVIEW_PENDING`: `github_pr` source matching the completed PR number, repository, protected-development target and head.
+- `REVIEW_PENDING → REVIEWED`: `github_review` source. Requires a native `APPROVED` claim for that same repository, PR number, target and exact head, by a distinct actor; `COMMENTED` is not an approval. Also requires phase-specific candidate `Development CI` provenance.
+- `REVIEWED → INTEGRATION_PENDING`: current exact PR head, repository, number and protected-development base must agree, with the latest successful candidate PR CI.
+- `INTEGRATION_PENDING → INTEGRATED`: `github_merge` source matching the same repository, PR number, protected-development target, exact PR head and pre-merge development revision. Merge protection, explicit authorization, distinct merge SHA and supported method are required.
+- `INTEGRATED → VERIFIED`: `github_ci` source with a matching **development push**, not a candidate pull-request check, at the resulting protected-development merge commit.
+
+### Cross-phase evidence schema and consistency rules
+
+The approved target is exactly `development/v1-public-launch`, not `main` or another repository's branch. GitHub commits can be referenced by multiple PRs, so an identical head SHA is **not sufficient** to establish review or merge identity. All fields below are mandatory for the named stage. Field contents remain **untrusted fixture assertions**; this reducer performs internal consistency checks only.
+
+| Stage | Required identity/provenance fields |
+| --- | --- |
+| `COMPLETED.pr` | `repository`, integer `number`, `targetBranch`, exact `baseSha`, exact `headSha`, `authorActorId`, `reference`; repository must match assignment and target must be the protected development branch |
+| `REVIEW_PENDING` | `repository`, integer `prNumber`, `targetBranch`, exact `headSha`; all match completed PR |
+| `REVIEWED.review` | `repository`, integer `prNumber`, `targetBranch`, exact `headSha`, `state: APPROVED`, `independent: true`, `reviewId`, distinct `reviewerActorId`; `COMMENTED` is explicitly insufficient |
+| `REVIEWED.ci` and `INTEGRATION_PENDING.ci` | `workflow: Development PR CI`, `name: Development CI`, `event: pull_request`, `repository`, integer `prNumber`, `targetBranch`, `baseRef`, exact `baseSha` and `headSha`, `conclusion: success`, `latest: true`, `runId`, `reference`; CI base must equal the completed PR base, all identity fields must agree |
+| `INTEGRATION_PENDING` | Matching `repository`, `prNumber`, `targetBranch`, `expectedHeadSha`, and `currentDevelopmentSha` equal to the completed PR's declared base |
+| `INTEGRATED.merge` | Matching `repository`, integer `prNumber`, `targetBranch`, `expectedHeadSha`, `developmentBeforeSha` equal to completed PR base; `protected: true`, nonempty `authorizationReference`, distinct `mergeCommitSha`, one of `squash/merge/rebase` |
+| `VERIFIED.postmergeCi` | `workflow: Development PR CI`, `name: Development CI`, `event: push`, `repository`, `targetBranch`, `branch: development/v1-public-launch`, `headSha` equal to the merge commit, `conclusion: success`, `latest: true`, `runId`, `reference` |
+
+The `ci()` check deliberately applies **different event and branch/PR rules** to candidate and post-merge checks. A `push` event cannot stand in for PR candidate CI; a `pull_request` event cannot stand in for post-merge development CI. An incorrect or missing PR number, repository, target, CI phase, or development base is rejected even if every SHA and the fixture's `latest` flag otherwise looks correct. A changed development tip requires fresh candidate-base evidence before protected integration.
+
+The automated regression suite now includes the independent reviewer-discovered mismatched-PR and mismatched-target cases, reversed candidate/postmerge event provenance, missing identity fields, cross-repository evidence and stale-base negative controls. **All positive records remain synthetic** and neither a simulated review nor fabricated test run becomes authenticated evidence.
 
 Failure transitions are explicit: `BLOCKED`, `EXPIRED`, `RETRY_ELIGIBLE`, `ESCALATED`. A timed-out acknowledged or running task fails closed unless a valid, chronological expiration and retry with a **new** attempt/run is recorded. The verifier does not retry tasks. `maxIdleMs` is fixture-defined (default 15 minutes); `observedAt` drives deterministic expiry without reading the machine's clock. The JSON fixture must not be used to assert atomic leases or exactly-once dispatch.
 

@@ -4,6 +4,7 @@ import { assignmentId, verify } from '../scripts/sdc-runtime-receipts.mjs';
 
 const A = 'a'.repeat(40), B = 'b'.repeat(40), C = 'c'.repeat(40), D = 'd'.repeat(40);
 const repo = 'codewptech/skyinnk';
+const target = 'development/v1-public-launch';
 const time = i => new Date(Date.UTC(2026, 10, 22, 0, i, 0)).toISOString();
 function fixture(taskIssue=84) {
   const assignment = {repository:repo,milestone:58,role:'SDC 04',taskIssue,
@@ -20,23 +21,34 @@ function fixture(taskIssue=84) {
     source:{kind:'product_execution',reference:'https://example.test/product/runs/1'},receipt:receipt(3)};
   const completed = {id:'event-4',kind:'COMPLETED',at:time(4),assignmentId:id,attemptId:'attempt-a',
     source:{kind:'product_execution',reference:'https://example.test/product/runs/1'},receipt:receipt(4),
-    pr:{number:100+taskIssue,headSha:B,authorActorId:'engineering-actor',reference:'https://example.test/github/pr'}};
+    pr:{number:100+taskIssue,repository:repo,targetBranch:target,baseSha:D,headSha:B,
+      authorActorId:'engineering-actor',reference:'https://example.test/github/pr'}};
   const reviewPending = {id:'event-5',kind:'REVIEW_PENDING',at:time(5),assignmentId:id,
-    source:{kind:'github_pr',reference:'https://example.test/github/pr'},prNumber:100+taskIssue,headSha:B};
+    source:{kind:'github_pr',reference:'https://example.test/github/pr'},
+    repository:repo,targetBranch:target,prNumber:100+taskIssue,headSha:B};
+  const candidateCi = {workflow:'Development PR CI',event:'pull_request',repository:repo,
+    prNumber:100+taskIssue,targetBranch:target,baseRef:target,baseSha:D,
+    name:'Development CI',headSha:B,conclusion:'success',latest:true,
+    runId:'ci-1',reference:'https://example.test/github/ci'};
   const review = {id:'event-6',kind:'REVIEWED',at:time(6),assignmentId:id,
     source:{kind:'github_review',reference:'https://example.test/github/pr/reviews/1'},
-    review:{state:'APPROVED',independent:true,reviewId:'review-100',reviewerActorId:'independent-reviewer',headSha:B},
-    ci:{name:'Development CI',headSha:B,conclusion:'success',latest:true,runId:'ci-1',reference:'https://example.test/github/ci'}};
+    review:{state:'APPROVED',independent:true,reviewId:'review-100',reviewerActorId:'independent-reviewer',
+      repository:repo,prNumber:100+taskIssue,targetBranch:target,headSha:B},
+    ci:{...candidateCi}};
   const integrationPending = {id:'event-7',kind:'INTEGRATION_PENDING',at:time(7),assignmentId:id,
-    source:{kind:'github_pr',reference:'https://example.test/github/pr'},expectedHeadSha:B,
-    ci:{name:'Development CI',headSha:B,conclusion:'success',latest:true,runId:'ci-1',reference:'https://example.test/github/ci'}};
+    source:{kind:'github_pr',reference:'https://example.test/github/pr'},
+    repository:repo,prNumber:100+taskIssue,targetBranch:target,
+    expectedHeadSha:B,currentDevelopmentSha:D,ci:{...candidateCi}};
   const integrated = {id:'event-8',kind:'INTEGRATED',at:time(8),assignmentId:id,
     source:{kind:'github_merge',reference:'https://example.test/github/pr/merge'},
-    merge:{protected:true,authorizationReference:'https://example.test/github/approval',mergeCommitSha:C,
-      developmentBeforeSha:D,expectedHeadSha:B,method:'squash'}};
+    merge:{protected:true,authorizationReference:'https://example.test/github/approval',
+      repository:repo,prNumber:100+taskIssue,targetBranch:target,
+      mergeCommitSha:C,developmentBeforeSha:D,expectedHeadSha:B,method:'squash'}};
   const verified = {id:'event-9',kind:'VERIFIED',at:time(9),assignmentId:id,
     source:{kind:'github_ci',reference:'https://example.test/github/runs/last'},
-    postmergeCi:{name:'Development CI',headSha:C,conclusion:'success',latest:true,runId:'ci-post',reference:'https://example.test/github/runs/post'}};
+    postmergeCi:{workflow:'Development PR CI',event:'push',repository:repo,
+      targetBranch:target,branch:target,name:'Development CI',headSha:C,
+      conclusion:'success',latest:true,runId:'ci-post',reference:'https://example.test/github/runs/post'}};
   return {schemaVersion:1,mode:'SIMULATED',assignment,observedAt:time(10),maxIdleMs:10*60*1000,
     events:[assigned,ack,running,completed,reviewPending,review,integrationPending,integrated,verified]};
 }
@@ -127,3 +139,70 @@ test('ack without execution run proves nothing, regardless of claimed identity',
   const x=fixture();x.events=x.events.slice(0,2);x.events[1].receipt.productRecordReference='';
   assert.throws(()=>verify(x),/genuine product run/);
 });
+
+// SDC 03 independent exact-head correction findings for PR #85 (22 Nov 2026):
+// review/merge PR+repository+target binding and candidate/postmerge CI event provenance.
+test('refuse review proof from a different PR using identical commit SHA',()=>
+  fails(x=>{x.events[5].review.prNumber+=1;},/repository, PR and protected development target/));
+test('refuse review with missing PR number',()=>
+  fails(x=>{delete x.events[5].review.prNumber;},/repository, PR and protected development target/));
+test('refuse review from another repository at same SHA',()=>
+  fails(x=>{x.events[5].review.repository='somewhere/else';},/repository, PR and protected development target/));
+test('refuse review without a repository',()=>
+  fails(x=>{delete x.events[5].review.repository;},/repository, PR and protected development target/));
+test('refuse review of a different target branch',()=>
+  fails(x=>{x.events[5].review.targetBranch='main';},/repository, PR and protected development target/));
+test('refuse completed PR missing its protected development target',()=>
+  fails(x=>{delete x.events[3].pr.targetBranch;},/COMPLETED: matching repository/));
+test('refuse completed PR from a different repository',()=>
+  fails(x=>{x.events[3].pr.repository='wrong/repository';},/COMPLETED: matching repository/));
+test('refuse integration of another PR with the same head',()=>
+  fails(x=>{x.events[7].merge.prNumber+=1;},/authorized protected same-repository\/PR\/target/));
+test('refuse missing integrated PR identity',()=>
+  fails(x=>{delete x.events[7].merge.prNumber;},/authorized protected same-repository\/PR\/target/));
+test('refuse integration evidence from another repository',()=>
+  fails(x=>{x.events[7].merge.repository='wrong/repository';},/authorized protected same-repository\/PR\/target/));
+test('refuse integration to production main instead of development',()=>
+  fails(x=>{x.events[7].merge.targetBranch='main';},/authorized protected same-repository\/PR\/target/));
+test('refuse integration without target branch',()=>
+  fails(x=>{delete x.events[7].merge.targetBranch;},/authorized protected same-repository\/PR\/target/));
+test('refuse integration against a stale development base',()=>
+  fails(x=>{x.events[7].merge.developmentBeforeSha=A;},/authorized protected same-repository\/PR\/target/));
+test('refuse candidate CI carrying a push event',()=>
+  fails(x=>{x.events[5].ci.event='push';},/candidate exact-head Development CI provenance/));
+test('refuse candidate CI with no event provenance',()=>
+  fails(x=>{delete x.events[5].ci.event;},/candidate exact-head Development CI provenance/));
+test('refuse candidate CI with wrong workflow name',()=>
+  fails(x=>{x.events[5].ci.workflow='untrusted-check';},/candidate exact-head Development CI provenance/));
+test('refuse candidate CI from another repository',()=>
+  fails(x=>{x.events[5].ci.repository='wrong/repository';},/candidate exact-head Development CI provenance/));
+test('refuse candidate CI for another PR',()=>
+  fails(x=>{x.events[5].ci.prNumber+=1;},/candidate exact-head Development CI provenance/));
+test('refuse candidate CI for stale base',()=>
+  fails(x=>{x.events[5].ci.baseSha=A;},/candidate exact-head Development CI provenance/));
+test('refuse candidate CI for wrong target',()=>
+  fails(x=>{x.events[5].ci.targetBranch='main';},/candidate exact-head Development CI provenance/));
+test('refuse candidate CI with missing base ref',()=>
+  fails(x=>{delete x.events[5].ci.baseRef;},/candidate exact-head Development CI provenance/));
+test('refuse secondary candidate CI stage swapped with push evidence',()=>
+  fails(x=>{x.events[6].ci.event='push';},/candidate exact-head Development CI provenance/));
+test('refuse postmerge CI carrying a pull_request event',()=>
+  fails(x=>{x.events[8].postmergeCi.event='pull_request';},/postmerge exact-head Development CI provenance/));
+test('refuse postmerge CI without event type',()=>
+  fails(x=>{delete x.events[8].postmergeCi.event;},/postmerge exact-head Development CI provenance/));
+test('refuse postmerge CI from a different repository',()=>
+  fails(x=>{x.events[8].postmergeCi.repository='wrong/repository';},/postmerge exact-head Development CI provenance/));
+test('refuse postmerge CI for main instead of protected development',()=>
+  fails(x=>{x.events[8].postmergeCi.branch='main';},/postmerge exact-head Development CI provenance/));
+test('refuse postmerge CI from wrong workflow',()=>
+  fails(x=>{x.events[8].postmergeCi.workflow='not-development';},/postmerge exact-head Development CI provenance/));
+test('refuse missing postmerge CI target branch',()=>
+  fails(x=>{delete x.events[8].postmergeCi.targetBranch;},/postmerge exact-head Development CI provenance/));
+test('refuse review pending event targeting another PR',()=>
+  fails(x=>{x.events[4].prNumber+=1;},/REVIEW_PENDING: stale PR head/));
+test('refuse review pending event citing another repository',()=>
+  fails(x=>{x.events[4].repository='wrong/repository';},/REVIEW_PENDING: stale PR head/));
+test('refuse integration pending event citing another PR',()=>
+  fails(x=>{x.events[6].prNumber+=1;},/INTEGRATION_PENDING: stale reviewed PR head/));
+test('refuse integration pending event citing an older base',()=>
+  fails(x=>{x.events[6].currentDevelopmentSha=A;},/INTEGRATION_PENDING: stale reviewed PR head/));

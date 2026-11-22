@@ -5,6 +5,8 @@ import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 const SHA = /^[0-9a-f]{40}$/i;
+const DEV_BRANCH = 'development/v1-public-launch';
+const CI_WORKFLOW = 'Development PR CI';
 const ROLES = new Set(['SDC 01', 'SDC 02', 'SDC 03', 'SDC 04', 'SDC 05', 'SDC 06']);
 const OPERATIONS = new Set(['ENGINEERING_TASK', 'INDEPENDENT_REVIEW', 'INTEGRATION_GATE', 'MILESTONE_REAUDIT']);
 const KINDS = new Set(['ASSIGNED', 'ACKNOWLEDGED', 'RUNNING', 'HEARTBEAT', 'COMPLETED', 'REVIEW_PENDING', 'REVIEWED', 'INTEGRATION_PENDING', 'INTEGRATED', 'VERIFIED', 'BLOCKED', 'EXPIRED', 'RETRY_ELIGIBLE', 'ESCALATED']);
@@ -69,21 +71,41 @@ function productReceipt(e, current, assignment) {
   return { attemptId: e.attemptId, provider: r.provider, runId: r.runId,
     sessionId: r.sessionId, actorId: r.actorId };
 }
-function ci(check, head, label) {
-  need(check && check.name === 'Development CI' && check.conclusion === 'success' &&
-    check.latest === true && sha(check.headSha) && check.headSha.toLowerCase() === head.toLowerCase() &&
-    nonempty(check.runId) && nonempty(check.reference),
-    `${label}: latest successful exact-head Development CI evidence required`);
+// All provenance checks verify consistency only. References and source identities are asserted fixture data,
+// not independently authenticated provider/GitHub records. An authenticated adapter is out of #84 scope.
+const sameRepository = (left, right) => nonempty(left) && nonempty(right) &&
+  left.toLowerCase() === right.toLowerCase();
+const sameSha = (left, right) => sha(left) && sha(right) &&
+  left.toLowerCase() === right.toLowerCase();
+
+function ci(check, { phase, assignment, pr = null, merge = null }, label) {
+  const candidate = phase === 'candidate';
+  need(candidate || phase === 'postmerge', `${label}: unsupported CI phase`);
+  const head = candidate ? pr?.headSha : merge?.mergeCommitSha;
+  const common = check && check.workflow === CI_WORKFLOW && check.name === 'Development CI' &&
+    check.conclusion === 'success' && check.latest === true &&
+    sameRepository(check.repository, assignment.repository) &&
+    check.targetBranch === DEV_BRANCH && sameSha(check.headSha, head) &&
+    nonempty(check.runId) && nonempty(check.reference);
+  const provenance = candidate
+    ? check?.event === 'pull_request' && check.prNumber === pr?.number &&
+      check.baseRef === DEV_BRANCH && sameSha(check.baseSha, pr?.baseSha)
+    : check?.event === 'push' && check.branch === DEV_BRANCH;
+  need(common && provenance,
+    `${label}: latest successful ${phase} exact-head Development CI provenance required`);
 }
-function validateReview(e, pr, executor) {
+function validateReview(e, pr, executor, assignment) {
   source(e, 'github_review');
   const r = e.review;
   need(r && r.state === 'APPROVED' && r.independent === true && nonempty(r.reviewId) &&
-    nonempty(r.reviewerActorId) && sha(r.headSha) && r.headSha.toLowerCase() === pr.headSha.toLowerCase(),
+    nonempty(r.reviewerActorId) && sameSha(r.headSha, pr.headSha),
     'REVIEWED: independent native APPROVED review at exact PR head required; COMMENTED is inconclusive');
   need(r.reviewerActorId !== executor.actorId && r.reviewerActorId !== pr.authorActorId,
     'REVIEWED: self-authored or same-executor review prohibited');
-  ci(e.ci, pr.headSha, 'REVIEWED');
+  need(sameRepository(r.repository, assignment.repository) && r.prNumber === pr.number &&
+    r.targetBranch === DEV_BRANCH && pr.targetBranch === DEV_BRANCH,
+    'REVIEWED: repository, PR and protected development target must match the completed task');
+  ci(e.ci, { phase: 'candidate', assignment, pr }, 'REVIEWED');
 }
 
 /**
@@ -144,36 +166,43 @@ export function verify(input) {
       seenReceiptIds.add(e.receipt.receiptId);
       if (e.kind === 'COMPLETED') {
         need(e.pr && Number.isSafeInteger(e.pr.number) && e.pr.number > 0 && sha(e.pr.headSha) &&
-          nonempty(e.pr.authorActorId) && nonempty(e.pr.reference),
-          'COMPLETED: PR number, head, author and GitHub reference required');
-        need(e.pr.headSha.toLowerCase() !== a.sourceSha.toLowerCase(),
-          'COMPLETED: task PR head cannot equal unchanged base source revision');
+          sha(e.pr.baseSha) && nonempty(e.pr.authorActorId) && nonempty(e.pr.reference) &&
+          sameRepository(e.pr.repository, a.repository) && e.pr.targetBranch === DEV_BRANCH,
+          'COMPLETED: matching repository, PR number, protected development target, head/base, author and reference required');
+        need(!sameSha(e.pr.headSha, a.sourceSha) && !sameSha(e.pr.headSha, e.pr.baseSha),
+          'COMPLETED: task PR head cannot equal unchanged source or development base');
         pr = e.pr;
       }
       lastActive = at;
     } else if (e.kind === 'REVIEW_PENDING') {
       source(e, 'github_pr');
-      need(pr && e.prNumber === pr.number && e.headSha === pr.headSha,
-        'REVIEW_PENDING: stale PR head');
+      need(pr && e.prNumber === pr.number && sameSha(e.headSha, pr.headSha) &&
+        sameRepository(e.repository, a.repository) && e.targetBranch === DEV_BRANCH,
+        'REVIEW_PENDING: stale PR head, repository or target');
     } else if (e.kind === 'REVIEWED') {
-      validateReview(e, pr, executor);
+      validateReview(e, pr, executor, a);
     } else if (e.kind === 'INTEGRATION_PENDING') {
       source(e, 'github_pr');
-      need(e.expectedHeadSha === pr?.headSha, 'INTEGRATION_PENDING: stale reviewed PR head');
-      ci(e.ci, pr.headSha, 'INTEGRATION_PENDING');
+      need(pr && sameSha(e.expectedHeadSha, pr.headSha) && e.prNumber === pr.number &&
+        sameRepository(e.repository, a.repository) && e.targetBranch === DEV_BRANCH &&
+        sameSha(e.currentDevelopmentSha, pr.baseSha),
+        'INTEGRATION_PENDING: stale reviewed PR head, repository or development base');
+      ci(e.ci, { phase: 'candidate', assignment: a, pr }, 'INTEGRATION_PENDING');
     } else if (e.kind === 'INTEGRATED') {
       source(e, 'github_merge');
       const m = e.merge;
-      need(m && m.protected === true && nonempty(m.authorizationReference) &&
-        sha(m.mergeCommitSha) && sha(m.developmentBeforeSha) &&
-        m.expectedHeadSha === pr?.headSha && m.mergeCommitSha !== m.developmentBeforeSha &&
+      need(m && pr && m.protected === true && nonempty(m.authorizationReference) &&
+        sameRepository(m.repository, a.repository) && m.prNumber === pr.number &&
+        m.targetBranch === DEV_BRANCH && sameSha(m.expectedHeadSha, pr.headSha) &&
+        sha(m.mergeCommitSha) && sameSha(m.developmentBeforeSha, pr.baseSha) &&
+        !sameSha(m.mergeCommitSha, m.developmentBeforeSha) &&
         ['squash', 'merge', 'rebase'].includes(m.method),
-        'INTEGRATED: authorized protected exact-head merge evidence required');
+        'INTEGRATED: authorized protected same-repository/PR/target exact-head merge evidence required');
       merge = m;
     } else if (e.kind === 'VERIFIED') {
       source(e, 'github_ci');
       need(merge, 'VERIFIED: missing merge evidence');
-      ci(e.postmergeCi, merge.mergeCommitSha, 'VERIFIED post-merge');
+      ci(e.postmergeCi, { phase: 'postmerge', assignment: a, merge }, 'VERIFIED post-merge');
     } else if (e.kind === 'EXPIRED') {
       source(e, 'observation');
       if (state === 'ASSIGNED') need(at - lastTimeBefore(history) >= maxIdleMs,
