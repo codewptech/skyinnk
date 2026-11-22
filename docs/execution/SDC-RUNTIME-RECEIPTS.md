@@ -26,7 +26,7 @@ The CLI reads one local JSON file and prints deterministic JSON or a blocking er
     "taskIssue": 84,
     "operation": "ENGINEERING_TASK",
     "sourceSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "controllerIdempotencyKey": "SDC 04:ELIGIBLE_TASK:84:0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    "controllerIdempotencyKey": "SDC 04:ELIGIBLE_TASK:84:0:none"
   },
   "events": [
     {
@@ -44,7 +44,7 @@ Replace the placeholder assignment ID with the computed 64-hex digest. Every eve
 
 ### Stable assignment and compatibility
 
-The verifier's `sdc-a1-<sha256>` identity covers a canonical, newline-separated tuple: version, lowercased repository, global milestone, SDC role, PEA-2 task issue, operation and exact source SHA. It is deterministic for one assignment and changes when its task, role or source SHA changes. The existing controller's `idempotencyKey: [role,kind,issue,pr,head].join(':')` can be attached as `controllerIdempotencyKey` for correlation **without claiming identity equivalence**. The current controller's `dispatchStatus=BLOCKED_NO_VERIFIED_CHAT_TRIGGER` remains unchanged.
+The verifier's `sdc-a1-<sha256>` identity covers a canonical, newline-separated tuple: version, lowercased repository, global milestone, SDC role, PEA-2 task issue, operation and exact source SHA. It is deterministic for one assignment and changes when its task, role or source SHA changes. The existing controller's `idempotencyKey: [role,kind,issue,pr,head].join(':')` can be attached as `controllerIdempotencyKey` for correlation **without claiming identity equivalence**. For an `ELIGIBLE_TASK` routing packet, the existing controller carries no PR or head SHA, so its actual legacy key ends in `:0:none`; the new versioned verifier separately includes the verified development `sourceSha` in its own stable assignment identity. A copied legacy key is still **advisory metadata only**, never authenticated run evidence. The current controller's `dispatchStatus=BLOCKED_NO_VERIFIED_CHAT_TRIGGER` remains unchanged.
 
 Each execution attempt must supply a distinct actual `attemptId`, and `ACKNOWLEDGED` must have a product execution receipt with `provider`, `runId`, `sessionId`, `actorId`, `receiptId`, `productRecordReference`, assigned `role` and `sourceSha`. Subsequent `RUNNING`, `HEARTBEAT`, and `COMPLETED` receipts must retain that exact role, source revision, attempt, provider, run, session and actor. Every receipt has its own unique `receiptId`. GitHub issues/comments, routing snapshots, action artifacts or CI checks are **not** product run acknowledgements. Replayed attempt IDs, event IDs, receipts and run IDs fail closed.
 
