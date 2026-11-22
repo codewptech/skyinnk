@@ -63,6 +63,27 @@ try {
         }, tags);
         scans++;
         console.log(`AXE ${width}px ${label}: ${result.passes.length} rules passed, ${result.violations.length} violations, ${result.incomplete.length} needs manual review`);
+        for (const finding of result.incomplete) {
+          const affected = finding.nodes.slice(0, 6).map(node => {
+            const checks = [...node.any, ...node.all, ...node.none];
+            const reason = node.failureSummary ||
+              checks.map(check => check.message).filter(Boolean).join("; ");
+            const target = node.target.slice(0, 8).map(selector =>
+              Array.isArray(selector)
+                ? selector.slice(0, 8).map(part => part.slice(0, 300))
+                : selector.slice(0, 300)
+            );
+            return { target, reason: reason.slice(0, 300) || undefined };
+          });
+          console.log(JSON.stringify({
+            kind: "incomplete",
+            viewport: width,
+            page: label,
+            id: finding.id,
+            affected,
+            omittedNodes: finding.nodes.length - affected.length,
+          }));
+        }
         for (const violation of result.violations) {
           violations++;
           console.error(JSON.stringify({
