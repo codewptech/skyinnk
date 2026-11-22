@@ -34,12 +34,18 @@ const availableTabs = computed(() => [
 ]);
 const sidebarExpanded = ref(true);
 const videoLoaded = ref(false);
+const videoFallback = ref<HTMLAnchorElement>();
 const drawer = ref<HTMLDialogElement>();
 const drawerToggle = ref<HTMLButtonElement>();
 const desktopToggle = ref<HTMLButtonElement>();
 const lessonHeading = ref<HTMLHeadingElement>();
 const drawerOpen = ref(false);
 let mobileLayout: MediaQueryList | undefined;
+
+function loadVideo(event: MouseEvent) {
+  videoLoaded.value = true;
+  if (event.detail === 0) videoFallback.value?.focus();
+}
 
 function openDrawer() {
   drawer.value?.showModal();
@@ -199,28 +205,29 @@ useHead(() => ({
       </aside>
       <article class="lesson-workspace" aria-labelledby="lesson-title">
         <div v-if="lesson.video?.provider === 'youtube'" class="video-player">
-          <iframe
-            v-if="videoLoaded"
-            :key="lesson.key"
-            :src="`https://www.youtube-nocookie.com/embed/${encodeURIComponent(lesson.video.publicId)}`"
-            :title="lesson.title"
-            allow="fullscreen; picture-in-picture"
-            referrerpolicy="strict-origin-when-cross-origin"
-            allowfullscreen
-          />
-          <div v-else class="video-placeholder">
-            <span class="play-symbol" aria-hidden="true">▷</span>
-            <button
-              type="button"
-              class="load-video"
-              @click="videoLoaded = true"
-            >
-              Load lesson video
-            </button>
-            <p>
-              Loads a video from YouTube. Playback starts when you press play.
-            </p>
+          <div class="video-screen">
+            <iframe
+              v-if="videoLoaded"
+              :key="lesson.key"
+              :src="`https://www.youtube-nocookie.com/embed/${encodeURIComponent(lesson.video.publicId)}`"
+              :title="lesson.title"
+              allow="fullscreen; picture-in-picture"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen
+            />
+            <div v-else class="video-placeholder">
+              <span class="play-symbol" aria-hidden="true">▷</span>
+              <button type="button" class="load-video" @click="loadVideo">
+                Load lesson video
+              </button>
+              <p>
+                Loads a video from YouTube. Playback starts when you press play.
+              </p>
+            </div>
+          </div>
+          <div class="video-fallback">
             <a
+              ref="videoFallback"
               :href="`https://www.youtube.com/watch?v=${encodeURIComponent(lesson.video.publicId)}`"
               target="_blank"
               rel="noopener noreferrer"
@@ -454,10 +461,12 @@ button {
   border-radius: 1rem;
 }
 .video-player {
-  aspect-ratio: 16 / 9;
   background: #112a26;
 }
-.video-player iframe {
+.video-screen {
+  aspect-ratio: 16 / 9;
+}
+.video-screen iframe {
   width: 100%;
   height: 100%;
   display: block;
@@ -496,9 +505,16 @@ button {
   line-height: 1.5;
   color: #d0dfd7;
 }
-.video-placeholder a {
-  font-size: 0.8rem;
+.video-fallback {
+  padding: 0.65rem 1rem;
+  text-align: center;
+}
+.video-fallback a {
+  font-size: 0.875rem;
   color: #e1efdf;
+}
+.video-fallback a:focus-visible {
+  outline-color: #e1efdf;
 }
 .lesson-heading {
   padding: 1.8rem 2rem 1.4rem;
@@ -727,9 +743,6 @@ a:focus-visible,
     padding: 0.75rem;
   }
   .video-placeholder p {
-    font-size: 0.7rem;
-  }
-  .video-placeholder a {
     font-size: 0.7rem;
   }
   .load-video {
