@@ -96,7 +96,11 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},filesByPr={}
     if(!ci){blockers.push('PR #'+pr.number+': required exact-head Development CI not verified');continue;}
     packets.push(packet('SDC 06','INTEGRATION_GATE',{issue:task.number,pr:pr.number,head,priority:1,reason:'Exact-head review/CI metadata accepted for further verification',instructions:'Check current development SHA, full PEA-2 dependency and protected-branch rules; integrate PR #'+pr.number+' only under existing authorization. Never bypass protection or merge on this packet alone.'}));
   }
-  // Ready engineering issues without an active PR: assign the actual existing owner, not a generic coding worker.
+  // Ready engineering issues without an active PR: queue one NEXT eligible task per
+  // actual executor lane, never fan out simultaneous new assignments to that lane.
+  // A later READY task stays queued until the earlier eligible task is handed off.
+  const selectedReadyRoles=new Set();
+  const queuedReady=[];
   for(const issue of activeIssues){
     const state=section(issue.body,'Execution state');
     if(state!=='READY')continue;
@@ -118,7 +122,12 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},filesByPr={}
     if(openPRs.some(pr=>!Array.isArray(filesByPr[pr.number]))){
       blockers.push('Issue #'+issue.number+': current PR path evidence unavailable');continue;
     }
+    if(selectedReadyRoles.has(role)){
+      queuedReady.push({role,issue:issue.number,reason:'AWAIT_PREVIOUS_ELIGIBLE_TASK_HANDOFF'});
+      continue;
+    }
     packets.push(packet(role,'ELIGIBLE_TASK',{issue:issue.number,priority:3,reason:'READY task, requires live eligibility and ownership recheck',instructions:'After CURRENT and mandatory reviewer corrections, validate Issue #'+issue.number+' against the single global V1 milestone #58, current dependencies, task claims and open PRs; then use the existing '+role+' agent to execute one concise assignment. Do not claim started until that agent acknowledges a real run.'}));
+    selectedReadyRoles.add(role);
   }
   if(event.kind==='push'){
     packets.push(packet('SDC 03','MILESTONE_REAUDIT',{head:developmentSha,priority:2,reason:'Verified development push event requires updated global milestone assessment',instructions:'Read merged PR and successful post-merge Development CI at '+developmentSha+'; re-audit current global V1 milestone #58, update acceptance evidence, and prepare only the next eligible global milestone. Do not treat this routing packet as an executed review.'}));
@@ -129,7 +138,7 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},filesByPr={}
   deduped.sort((a,b)=>a.priority-b.priority||a.role.localeCompare(b.role)||(a.issue||0)-(b.issue||0)||(a.pr||0)-(b.pr||0));
   return {schemaVersion:1,controller:'Skyinnk SDC Role Orchestrator',developmentSha,
     status:'ROUTING_ONLY_NO_AGENT_DISPATCH',
-    roles:ROLES,current,assignments:deduped,blockers,
+    roles:ROLES,current,assignments:deduped,queuedReady,blockers,
     signal:{kind:event.kind||'snapshot',number:event.number||null},
     deduplication:'IN_MEMORY_THIS_SNAPSHOT_ONLY_NOT_PERSISTENT',
     summary:{assignments:deduped.length,actualAgentRunsStarted:0,automaticMerges:0}};
