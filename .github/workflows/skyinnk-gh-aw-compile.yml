@@ -1,0 +1,58 @@
+name: SDC GitHub Agentic Workflow Compiler Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [development/v1-public-launch]
+    paths:
+      - .github/workflows/skyinnk-sdc-cycle.md
+      - .github/workflows/skyinnk-sdc-cycle.lock.yml
+      - .github/workflows/skyinnk-gh-aw-compile.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skyinnk-sdc-gh-aw-compile-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile-and-validate:
+    if: github.repository == 'codewptech/skyinnk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout proposed GitHub-only AI workflow source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install official GitHub Agentic Workflows compiler
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh extension install github/gh-aw
+          gh aw --version
+      - name: Compile and validate official lock file without any AI model inference
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh aw compile
+          test -s .github/workflows/skyinnk-sdc-cycle.lock.yml
+          echo "Official gh-aw compilation succeeded (no AI inference or code execution)."
+          if git ls-files --error-unmatch .github/workflows/skyinnk-sdc-cycle.lock.yml >/dev/null 2>&1; then
+            git diff --exit-code -- .github/workflows/skyinnk-sdc-cycle.lock.yml || {
+              echo "::error::Committed lock differs from compiler-generated lock; regenerate and commit exact output."
+              exit 1
+            }
+          else
+            echo "::warning::Compiled lock not yet committed. Capture artifact and add lock file before integration."
+          fi
+      - name: Upload official generated lock for controlled source commit
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: skyinnk-sdc-gh-aw-compiled-lock
+          path: .github/workflows/skyinnk-sdc-cycle.lock.yml
+          if-no-files-found: error
+          retention-days: 7
