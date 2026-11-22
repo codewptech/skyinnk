@@ -1,6 +1,6 @@
-# Skyinnk — Six-Role Orchestration Controller (new design)
+# Skyinnk — Original SDC Six-Role Coordination Controller
 
-**Status: source candidate; NOT an active multi-chat dispatcher.** Authority: owner correction, Issues #58, #59, #62; PEA-2 contract and existing SDC six-role charter (PR #55).
+**Status: implementation candidate only; NOT an active multi-chat dispatcher.** Authority: the integrated original `docs/governance/sdc/OPERATING-CONTRACT.md` (SDC Operating Contract v1), `AGENTS.md`, PEA-2 workflow, Issue #2, one global V1 milestone #58, runtime #59 and implementation task #62. Do not replace, fork or extend the approved six-role architecture.
 
 ## Mission — coordinate, do not code
 
@@ -19,7 +19,7 @@ For a supported future chat-dispatch adapter, insist on explicit provider/permis
 - Read the current development SHA, issues, PR heads and evidence. Route mandatory exact-head reviewer corrections to **SDC 05 with the original source owner explicitly attached**; review candidates to SDC 03 next; verified reviewed/CI candidates to SDC 06 for **additional gates**, then eligible READY work under existing SDC 02/04/01 owners. Development push signals a separate SDC 03 milestone re-audit packet but do not imply a review was performed.
 - Preserve CURRENT before taking a correction or new milestone. All instructions are concise and one-shot; no repeated AI status prompts or artificial hourly cycles.
 - The snapshot reads GitHub's actual check-runs and native PR review records for the exact head; unreadable evidence fails closed. Only an explicit configured allowlist of independently authenticated GitHub reviewers, different from the PR author, can yield machine-verifiable `ACCEPTED` (native `APPROVED`) or `CHANGES_REQUESTED`; untrusted `COMMENTED` reviews remain advisory. **No independent reviewer credentials are provisioned by this PR.**
-- An open task in CURRENT blocks additional READY task routing for that owner. New PEA-2 READY packets with missing typed START/INTEGRATION dependencies, unresolved hard dependencies, missing exact paths, or open-PR path overlaps fail closed. This is an advisory snapshot, not atomic distributed path leasing.
+- An open task in CURRENT blocks additional READY task routing for that owner. New PEA-2 READY packets with mismatched `Workstream`/`Branch`/`Target`, missing typed START/INTEGRATION dependencies, unresolved hard dependencies, missing exact paths, or open-PR path overlaps fail closed. At most **one NEXT READY packet per existing executor role** is proposed; later eligible issues are explicitly retained in `queuedReady` for a subsequent handoff. This is an advisory snapshot, not atomic distributed path leasing or an active cross-run queue.
 - All PRs without trustworthy machine-readable exact-head review verdicts remain review-needed. Old prose Mode B reviews are advisory; do not invent machine verdicts.
 - No PR is automatically merged. Production and `main` require separate explicit owner approval.
 - The Steward may report cleanup but does not own coding, review or integration.
@@ -48,7 +48,7 @@ The CLI requires access to the public repository; a limited `GITHUB_TOKEN` is re
 
 ## Acceptance / remaining blockers
 
-- Tests must pass; CI must pass at the exact PR head.
+- Tests and full Development CI must pass at the exact PR head. A previous failing experiment or an older green commit is not acceptance. The owner/implementation author may document a preflight but cannot substitute it for a real independent SDC 03 Work review.
 - Independent SDC 03 review and protected development integration required.
 - Confirm available chat triggers, independently authenticated reviewer credentials, receipt protocol, cross-run durable state, and permission scopes before claiming automatic role dispatch. Without those, route only blocked snapshot packets, and do not claim that the six chats are awake or advancing.
 - Owner deleted all four legacy ChatGPT watchers; do not recreate them as a substitute for event-driven dispatch.
