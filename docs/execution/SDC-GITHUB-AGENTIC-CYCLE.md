@@ -15,6 +15,14 @@ One agent per run; 80 main AI credits per run, 240 main credits per 24h window, 
 ## Why this is NOT live simply by merging into development
 GitHub Actions `schedule` and `workflow_dispatch` workflows are recognized from the repository's DEFAULT branch. Here the default branch is protected production `main`. **Even if the gh-aw source and lock are normally reviewed/merged into non-production development, the unattended recurring schedule does not become active until a separately owner-approved main workflow installation.** This must not be performed via owner-account branch bypass or automated merge. Do not deploy unrelated unfinished V1 production code to main just to install the automation; propose a narrowly controlled release workflow-only change with accurate diff/CI and owner approval.
 
+## CRITICAL: default-main push currently deploys and migrates production
+
+**Verified 22 Nov 2026 in `main:.github/workflows/deploy-production.yml`:** any `push` to protected `main` runs `Production CI/CD`, and a passing CI triggers a `deploy` job that connects to the VPS, runs `docker compose build`, runs **`npx prisma migrate deploy` against live production**, then starts the production application. The push trigger currently has **no path exclusion** for `.github/workflows/` or documentation.
+
+Therefore a "workflow-only" push to `main` is **not operationally harmless** even if it changes only the agentic `.md` and `.lock.yml`. **Do not merge/install it on `main` under the assumption no production deployment happens.** A narrowly scoped, reviewable protection must be engineered and owner-approved to prevent deployment on workflow-only changes (while preserving CI, production checks, branch protection, and genuine application releases). A deploy-workflow change is itself sensitive and must be independently verified BEFORE the scheduled agentic workflow goes live. The owner may alternatively explicitly authorize and supervise a production redeploy after inspecting every migration and rollback prerequisite; that is not the recommended shortcut.
+
+Never change the repository default branch to development as a workaround: it would alter protected production/release semantics. Do not use `[skip ci]`, bypasses, or unreviewed branch pushes to suppress deployment. Main/production/Neon migrations remain owner-gated.
+
 ## CI and source integration sequence
 1. New #78 task on fresh `chat03/task-gh-aw-sdc-cycle`; source and compiler workflow in original branch. No modifications to PR #63's four current claimed files.
 2. New PR into `development/v1-public-launch`; required Development CI + source compile check run. Download `skyinnk-sdc-gh-aw-compiled-lock` artifact. **Commit the exact gh-aw-generated lock to the same feature branch**, then rerun both checks. If compile/check fails, DO NOT merge.
