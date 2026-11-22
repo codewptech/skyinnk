@@ -5,8 +5,8 @@ const SHA='a'.repeat(40), HEAD='b'.repeat(40);
 function task(n,role='Chat 03',state='PR_OPEN'){
   return {number:n,state:'open',body:'Workstream: '+role+'\n### Execution state\n'+state+'\n### Dependencies\n- START: none\n- INTEGRATION: none\n### Owned / affected paths\n- `scripts/owned-'+n+'.mjs`\n'};
 }
-function pr(n,taskNum,head=HEAD,draft=false){
-  return {number:n,state:'open',draft,body:'Task issue: #'+taskNum+'\n',head:{sha:head}};
+function pr(n,taskNum,head=HEAD,draft=false,baseRef='development/v1-public-launch'){
+  return {number:n,state:'open',draft,body:'Task issue: #'+taskNum+'\n',head:{sha:head},base:{ref:baseRef}};
 }
 function run(opts={}){
   return plan({issues:[task(2)],prs:[],developmentSha:SHA,...opts});
@@ -61,7 +61,7 @@ test('draft and closed PRs not assigned to reviewers',()=>{
   assert.equal(x.assignments.filter(x=>x.pr).length,0);
 });
 test('unlinked PR blocked rather than invented assignment',()=>{
-  const x=run({issues:[],prs:[{number:40,state:'open',body:'',head:{sha:HEAD}}]});
+  const x=run({issues:[],prs:[{number:40,state:'open',body:'',head:{sha:HEAD},base:{ref:'development/v1-public-launch'}}]});
   assert.match(x.blockers.join(' '),/missing linked/);
 });
 test('identical signal snapshots preserve idempotency keys',()=>{
@@ -150,4 +150,58 @@ test('latest successful exact-head CI supersedes previous failure',()=>{
     ]},
   });
   assert.equal(x.assignments.find(p=>p.pr===14)?.kind,'INTEGRATION_GATE');
+});
+
+test('production and unknown-target PRs never enter development reviewer or integrator queue',()=>{
+  const accepted={headSha:HEAD,verdict:'ACCEPTED',independent:true,reviewerLogin:'trusted',reviewId:1};
+  const x=run({
+    issues:[task(12)],
+    prs:[pr(14,12,HEAD,false,'main'),pr(15,12,HEAD,false,'unknown')],
+    reviewsByPr:{14:[accepted],15:[accepted]},
+    checksByPr:{
+      14:[{id:1,headSha:HEAD,name:'Development CI',conclusion:'success'}],
+      15:[{id:1,headSha:HEAD,name:'Development CI',conclusion:'success'}],
+    },
+  });
+  assert.equal(x.assignments.some(a=>a.pr===14||a.pr===15),false);
+  assert.match(x.blockers.join(' '),/PR #14: not a verified development-targeted PR/);
+  assert.match(x.blockers.join(' '),/PR #15: not a verified development-targeted PR/);
+});
+
+test('newer independent approval supersedes old corrections from SAME authenticated reviewer',()=>{
+  const x=run({
+    issues:[task(12)],
+    prs:[pr(14,12)],
+    reviewsByPr:{14:[
+      {headSha:HEAD,verdict:'CHANGES_REQUESTED',independent:true,reviewerLogin:'trusted',reviewId:1},
+      {headSha:HEAD,verdict:'ACCEPTED',independent:true,reviewerLogin:'trusted',reviewId:2},
+    ]},
+    checksByPr:{14:[{id:1,headSha:HEAD,name:'Development CI',conclusion:'success'}]},
+  });
+  assert.equal(x.assignments.find(a=>a.pr===14)?.kind,'INTEGRATION_GATE');
+});
+
+test('newer independent correction supersedes earlier approval from SAME reviewer',()=>{
+  const x=run({
+    issues:[task(12)],
+    prs:[pr(14,12)],
+    reviewsByPr:{14:[
+      {headSha:HEAD,verdict:'ACCEPTED',independent:true,reviewerLogin:'trusted',reviewId:1},
+      {headSha:HEAD,verdict:'CHANGES_REQUESTED',independent:true,reviewerLogin:'trusted',reviewId:2},
+    ]},
+    checksByPr:{14:[{id:1,headSha:HEAD,name:'Development CI',conclusion:'success'}]},
+  });
+  assert.equal(x.assignments.find(a=>a.pr===14)?.kind,'REVIEW_CORRECTION');
+});
+
+test('a correction from another independently trusted reviewer still blocks integration',()=>{
+  const x=run({
+    issues:[task(12)],prs:[pr(14,12)],
+    reviewsByPr:{14:[
+      {headSha:HEAD,verdict:'CHANGES_REQUESTED',independent:true,reviewerLogin:'reviewer-a',reviewId:1},
+      {headSha:HEAD,verdict:'ACCEPTED',independent:true,reviewerLogin:'reviewer-b',reviewId:2},
+    ]},
+    checksByPr:{14:[{id:1,headSha:HEAD,name:'Development CI',conclusion:'success'}]},
+  });
+  assert.equal(x.assignments.find(a=>a.pr===14)?.kind,'REVIEW_CORRECTION');
 });
