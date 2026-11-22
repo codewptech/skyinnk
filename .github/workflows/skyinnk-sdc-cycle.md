@@ -10,6 +10,45 @@ on:
     branches: [development/v1-public-launch]
   schedule: every 4h
   cooldown: 1h
+  permissions:
+    issues: read
+    pull-requests: read
+  steps:
+    - name: Skip paid agent when no eligible PEA-2 task is READY
+      id: demand
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        script: |
+          const { data: records } = await github.rest.issues.listForRepo({ ...context.repo, state: 'open', per_page: 100 });
+          if (records.length >= 100) throw Error('Issue listing incomplete: fail closed');
+          const { data: prs } = await github.rest.pulls.list({ ...context.repo, state: 'open', per_page: 100 });
+          if (prs.length >= 100) throw Error('PR listing incomplete: fail closed');
+          const issues = records.filter(i => !i.pull_request);
+          const lane = body => (body || '').match(/^Workstream:\s*(Chat 03|Work|Chat 01)\s*$/m)?.[1] || '';
+          const state = body => (body || '').match(/^### Execution state\s*\n([A-Z_]+)\s*$/m)?.[1] || '';
+          const valid = issue => {
+            const b = issue.body || '';
+            const role = lane(b);
+            if (state(b) !== 'READY' || !['Work', 'Chat 03'].includes(role)) return false;
+            if (!/^Target:\s*development\/v1-public-launch\s*$/m.test(b)) return false;
+            const name = b.match(/^Branch:\s*\x60([^\x60]+)\x60\s*$/m)?.[1] || '';
+            if (!(role === 'Work' ? /^work\/task-[\w-]+$/.test(name) : /^chat03\/task-[\w-]+$/.test(name))) return false;
+            if (!/^-\s*START:\s*none\s*$/im.test(b) || !/^-\s*INTEGRATION:\s*none\s*$/im.test(b)) return false;
+            const owned = b.match(/^### Owned \/ affected paths\s*\n([\s\S]*?)(?=^### |$(?![\s\S]))/m)?.[1] || '';
+            if (!/^\s*-\s*\x60[^\x60]+\x60\s*$/m.test(owned)) return false;
+            if (!/^### Reserved shared paths\s*$/m.test(b)) return false;
+            if (issues.some(other => other.number !== issue.number && lane(other.body) === role && ['CLAIMED','BUILDING','PR_OPEN','REVIEWING','CHANGES_REQUESTED','READY_TO_INTEGRATE','INTEGRATING'].includes(state(other.body)))) return false;
+            if (prs.some(pr => new RegExp('(?:^|\\n)Task issue:\\s*#' + issue.number + '\\b','i').test(pr.body || ''))) return false;
+            return true;
+          };
+          const eligible = issues.filter(valid);
+          core.info('SDC demand-gate: openIssues=' + issues.length + ', openPRs=' + prs.length + ', eligible=' + eligible.map(i => i.number).join(','));
+          core.setOutput('eligible', eligible.length > 0 ? 'true' : 'false');
+jobs:
+  pre-activation:
+    outputs:
+      eligible: ${{ steps.demand.outputs.eligible }}
+if: needs.pre_activation.outputs.eligible == 'true'
 permissions:
   contents: read
   issues: read
