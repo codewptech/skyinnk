@@ -32,7 +32,7 @@ on:
             const b = issue.body || '';
             const role = lane(b);
             if (state(b) !== 'READY' || !['Work', 'Chat 03'].includes(role)) return false;
-            if (!/^Target:\s*development\/v1-public-launch\s*$/m.test(b)) return false;
+            if (!/^Target:\s*(?:`development\/v1-public-launch`|development\/v1-public-launch)\s*$/m.test(b)) return false;
             const name = b.match(/^Branch:\s*\x60([^\x60]+)\x60\s*$/m)?.[1] || '';
             if (!(role === 'Work' ? /^work\/task-[\w-]+$/.test(name) : /^chat03\/task-[\w-]+$/.test(name))) return false;
             if (!/^-\s*START:\s*none\s*$/im.test(b) || !/^-\s*INTEGRATION:\s*none\s*$/im.test(b)) return false;
