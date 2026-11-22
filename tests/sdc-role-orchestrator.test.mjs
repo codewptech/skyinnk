@@ -81,6 +81,28 @@ test('development push signals SDC 03 milestone re-audit without pretending it r
   assert.equal(x.summary.actualAgentRunsStarted,0);
 });
 
+test('one NEXT eligible READY packet per actual workstream, others retained in queue',()=>{
+  const x=run({issues:[task(35,'Work','READY'),task(36,'Work','READY'),task(37,'Chat 03','READY')]});
+  const ready=x.assignments.filter(p=>p.kind==='ELIGIBLE_TASK');
+  assert.deepEqual(ready.map(p=>p.issue).sort((a,b)=>a-b),[35,37]);
+  assert.deepEqual(x.queuedReady,[{role:'SDC 02',issue:36,reason:'AWAIT_PREVIOUS_ELIGIBLE_TASK_HANDOFF'}]);
+  assert.equal(x.summary.actualAgentRunsStarted,0);
+});
+test('unverifiable first READY task cannot starve later eligible task of same role',()=>{
+  const first=task(65,'Work','READY');
+  first.body=first.body.replace('- START: none','- START: #9999');
+  const x=run({issues:[first,task(66,'Work','READY')]});
+  assert.equal(x.assignments.find(p=>p.kind==='ELIGIBLE_TASK')?.issue,66);
+  assert.equal(x.queuedReady.length,0);
+  assert.match(x.blockers.join(' '),/Issue #65: dependency integration not verified/);
+});
+test('no new READY packet is emitted while same source role has CURRENT work',()=>{
+  const x=run({issues:[task(35,'Chat 03','REVIEWING'),task(36,'Chat 03','READY'),task(37,'Chat 03','READY')]});
+  assert.equal(x.assignments.filter(p=>p.kind==='ELIGIBLE_TASK').length,0);
+  assert.equal(x.queuedReady.length,0);
+  assert.match(x.blockers.join(' '),/CURRENT work not finished/);
+});
+
 test('existing CURRENT work blocks another READY task in the same executor lane',()=>{
   const x=run({issues:[task(35,'Work','REVIEWING'),task(36,'Work','READY')]});
   assert.equal(x.assignments.some(p=>p.kind==='ELIGIBLE_TASK'&&p.issue===36),false);
