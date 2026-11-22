@@ -40,8 +40,13 @@ const packet = (role,kind,{issue=null,pr=null,head=null,reason='',instructions='
 export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},filesByPr={},evidenceErrorsByPr={},developmentSha='',event={}}) {
   if(!SHA.test(developmentSha))throw Error('Verified development SHA required');
   const activeIssues=sorted(issues.filter(i=>i.state==='open'&&!i.pull_request));
-  const openPRs=sorted(prs.filter(p=>p.state==='open'));
-  const packets=[],blockers=[];
+  // Never route a production or otherwise unrelated PR into the V1 development queue.
+  // Missing target metadata is also a blocking evidence gap, not permission to guess.
+  const candidates=prs.filter(p=>p.state==='open');
+  const openPRs=sorted(candidates.filter(p=>p.base?.ref==='development/v1-public-launch'));
+  const packets=[],blockers=candidates
+    .filter(p=>p.base?.ref!=='development/v1-public-launch')
+    .map(p=>'PR #'+p.number+': not a verified development-targeted PR');
   const issueByNumber=new Map(issues.map(i=>[i.number,i]));
   // A role's CURRENT assignment is not preempted by an unrelated new task.
   const current={};
@@ -60,9 +65,18 @@ export function plan({issues=[],prs=[],reviewsByPr={},checksByPr={},filesByPr={}
     const head=pr.head?.sha;
     if(!SHA.test(head)){blockers.push('PR #'+pr.number+': missing head SHA');continue;}
     const reviews=reviewsByPr[pr.number]||[];
-    const exact=reviews.filter(x=>x.headSha===head);
-    const correction=exact.find(x=>x.verdict==='CHANGES_REQUESTED' && x.independent===true);
-    const accepted=exact.find(x=>x.verdict==='ACCEPTED' && x.independent===true);
+    // A superseded review from the SAME authenticated independent reviewer must
+    // not permanently block a later approval (or hide a later correction).
+    // GitHub native review IDs increase as review submissions are created.
+    const exact=reviews.filter(x=>x.headSha===head && x.independent===true)
+      .sort((a,b)=>(a.reviewId||0)-(b.reviewId||0));
+    const latestByReviewer=new Map();
+    for(const review of exact){
+      latestByReviewer.set(review.reviewerLogin||'synthetic-reviewer',review);
+    }
+    const latest=[...latestByReviewer.values()];
+    const correction=latest.find(x=>x.verdict==='CHANGES_REQUESTED');
+    const accepted=latest.find(x=>x.verdict==='ACCEPTED');
     if(correction){
       // SDC 05 performs the repair coordination, but retains the ORIGINAL PEA-2 file owner.
       const repair=packet('SDC 05','REVIEW_CORRECTION',{issue:task.number,pr:pr.number,head,priority:0,reason:'Exact-head independent correction',instructions:'Finish CURRENT first. Repair PR #'+pr.number+' using the existing source owner '+owner+' and its PEA-2 branch/path claims. Re-read actual reviewer findings; do not impersonate an independent review, preempt current work, or expand ownership.'});
@@ -157,6 +171,8 @@ export async function snapshot({token,repo}){
         const independent=trusted.has(login)&&login!==pr.user?.login;
         return {
           headSha:x.commit_id||'',
+          reviewerLogin:login,
+          reviewId:x.id,
           verdict:independent&&x.state==='APPROVED'?'ACCEPTED':independent&&x.state==='CHANGES_REQUESTED'?'CHANGES_REQUESTED':'UNKNOWN',
           independent,
         };
