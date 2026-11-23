@@ -336,6 +336,9 @@ async function runIsolatedFixture() {
   const project = resolve(new URL("..", import.meta.url).pathname);
   const directory = await mkdtemp(join(tmpdir(), "skyinnk-v1-fixture-"));
   const previewPort = option("--port") || "4319";
+  const lessonTitles = args.includes("--neutral-lesson-titles")
+    ? ["Foundations", "Practice"]
+    : ["Fixture video lesson", "Fixture text lesson"];
   const artifacts = resolve(
     option("--artifacts") || join(directory, "evidence"),
   );
@@ -364,7 +367,7 @@ async function runIsolatedFixture() {
     ...lesson(
       "fixture-video",
       "video-test",
-      "Fixture video lesson",
+      lessonTitles[0],
       "video",
       0,
     ),
@@ -384,7 +387,7 @@ async function runIsolatedFixture() {
   const text = lesson(
     "fixture-text",
     "text-test",
-    "Fixture text lesson",
+    lessonTitles[1],
     "text",
     0,
   );
@@ -499,7 +502,7 @@ async function runIsolatedFixture() {
         courseSlug: "fixture-course",
         courseTitle: "Automated fixture course",
         lessonSlugs: ["video-test", "text-test"],
-        lessonTitles: ["Fixture video lesson", "Fixture text lesson"],
+        lessonTitles,
         notesMarker: "Fixture notes marker",
         resourcePath: "/resources/public/fixture.txt",
       }),
