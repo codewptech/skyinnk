@@ -11,7 +11,7 @@ The subjects and examples are original, created for editorial review. They have 
 ## Draft inventory and learning flow
 
 | Candidate ID | Subject | Draft file | Format | Learning outcomes / self-check |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | M-01 | Class 10 Mathematics | `math-01-pair-of-linear-equations.md` | Text + KaTeX | Interpret equations, solve by elimination/substitution, check results and recognize special cases |
 | M-02 | Class 10 Mathematics | `math-02-quadratic-factorisation.md` | Text + KaTeX | Zero-product rule, factorisation, roots, meaningful applied solutions |
 | E-01 | Class 10 English | `english-01-formal-email.md` | Text | Plan, draft, revise and check an appropriately formal request email |
@@ -29,7 +29,7 @@ The original draft topics have now been compared provisionally with the **offici
 The qualified reviewer must read **every lesson**, solve the exercises independently and decide whether the depth, notation, reading level, language and instructional approach suit the *actual* intended learners and board. A code reviewer or automated test is not a substitute for this educational review.
 
 | Review gate | M-01 | M-02 | E-01 | E-02 | E-03 |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- |
 | Intended class, board and learning outcomes confirmed | ☐ | ☐ | ☐ | ☐ | ☐ |
 | Every worked solution independently verified | ☐ | ☐ | ☐ | ☐ | ☐ |
 | All practice answers independently verified | ☐ | ☐ | ☐ | ☐ | ☐ |
