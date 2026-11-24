@@ -18,7 +18,8 @@ Prepared from the official CBSE Academic Unit Class X curriculum listed on the 2
 | --- | --- | --- | --- |
 | **M-01: Pair of linear equations** | Graphical solution, consistency/inconsistency, algebraic number-of-solution conditions, substitution and elimination, situational problems | Covers substitutions, elimination, one/none/infinite cases and contextual examples. **Does not actually teach graph plotting or coefficient-based conditions** | Decide whether M-01 is explicitly labelled *Part 1: algebraic introduction*; approve a graphing/consistency follow-up before claiming full topic coverage |
 | **M-02: Quadratic factorisation** | Standard quadratic form, real roots by factorisation **and quadratic formula**, discriminant/nature of roots and situational problems | Covers standard form, factors, zero-product rule and situational roots. **No quadratic formula or discriminant lesson** | Keep the lesson narrowly titled *factorisation*, or commission a separate educator-reviewed formula/discriminant lesson for broader coverage |
-| **E-01: Formal email writing** | English Language & Literature (184) states **formal letter** writing in 100–120 words; a separate analytical paragraph task is specified | Teaches useful digital correspondence but **is not the specified formal-letter assessment format** | Either retain explicitly as *supplementary communication skills* or adapt into a **new, separately reviewed formal-letter** lesson with the prescribed format/word count. Do not call the current email draft a CBSE formal-letter model |
+| **E-01: Formal email writing** | English Language & Literature (184) states **formal letter** writing in 100–120 words; a separate analytical paragraph task is specified | Teaches useful digital correspondence but **is not the specified formal-letter assessment format** | Retain as *supplementary communication skills* only if an educator agrees. A separate E-03 formal-letter draft now exists, but is likewise **not yet educator approved**. Do not call E-01 a CBSE formal-letter model |
+| **E-03: Formal letter writing** | English Language & Literature (184) calls for a situational formal letter of 100–120 words | NEW original candidate teaches a letter layout, 108-word main message, editing and practice. **Teacher has not checked the format, word-count convention, curriculum year or response quality** | Independently verify all tasks and model text, whether the 108-word count applies to the instructed portion, and whether additional types of letters are needed; approve/revise/reject explicitly before publication |
 | **E-02: Evidence-based comprehension** | English Language & Literature (184) includes a discursive unseen passage around 400–450 words and a separate case-based factual passage around 200–250 words with visual/statistical material; comprehension, inference, vocabulary and analysis assessed | Original fictional garden passage supports evidence/inference practice but **does not claim the official passage length, case-based visual format or examination item structure** | Keep as a *reading skill warm-up*, or build separate teacher-approved exam-format activities; do not claim a complete board-style paper |
 
 ## Concrete reviewer questions
@@ -31,7 +32,8 @@ Prepared from the official CBSE Academic Unit Class X curriculum listed on the 2
 
 ### English reviewer
 
-- E-01: Confirm whether this module is a general life-skill email or supposed to serve as examination instruction. If examination-focused, change the **instructional format and title** to a qualified teacher-approved formal-letter lesson rather than merely renaming an email. Check 100–120-word expectations only after confirming the relevant board and current paper.
+- E-01: Confirm whether to keep this as a **supplementary general life-skill email**. Never relabel the existing email model as the letter examination format.
+- E-03: A separate, **unapproved original formal-letter lesson** now exists. Check sender/recipient/date layout, salutation, closing, fictional prompt, 108-word main message, practice questions and their answers against the verified actual board/year and any accepted word-count convention; a new candidate is not yet curriculum approval.
 - E-02: Decide whether the original passage is appropriate for early reading practice. If being presented as a CBSE unseen-passage assessment, match approved passage lengths, question formats and (when required) visual/statistical material through a separate revised assessment.
 - Confirm age suitability, fairness, clarity of models, evidence requirements and spelling/grammar.
 
@@ -49,5 +51,6 @@ Prepared from the official CBSE Academic Unit Class X curriculum listed on the 2
 | M-02 | | | | | |
 | E-01 | | | | | |
 | E-02 | | | | | |
+| E-03 | | | | | |
 
 **Nothing above fills a real approval field.** These are review aids only. The draft files must remain outside `content/catalogue.json` and `public/resources/`; no `published` or `reviewedBy/reviewedAt` record should be added until genuine approvals exist. GitHub CI can check file integrity and application regressions, not school curriculum acceptance or correctness certification.
