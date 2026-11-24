@@ -4,6 +4,7 @@ import {
   orderedPublicLessons,
 } from "../../../../utils/public-catalogue";
 import ClassroomSyllabus from "../../../../components/classroom/Syllabus.vue";
+import { resourceActionNames } from "../../../../utils/resource-action-names";
 
 // Keep the classroom shell mounted between lesson routes, including browser history.
 definePageMeta({ key: "public-classroom" });
@@ -24,6 +25,7 @@ const index = computed(() =>
 );
 const previous = computed(() => ordered.value[index.value - 1]);
 const next = computed(() => ordered.value[index.value + 1]);
+const resourceNames = computed(() => resourceActionNames(lesson.value.resources ?? []));
 const activeTab = ref("overview");
 const availableTabs = computed(() => [
   { key: "overview", label: "Overview" },
@@ -279,7 +281,7 @@ useHead(() => ({
             ><h2>Lesson resources</h2>
             <p>These resources are available to everyone.</p>
             <ul class="resource-list">
-              <li v-for="resource in lesson.resources" :key="resource.key">
+              <li v-for="(resource, resourceIndex) in lesson.resources" :key="resource.key + '-' + resourceIndex">
                 <div>
                   <strong>{{ resource.title }}</strong
                   ><span
@@ -297,11 +299,11 @@ useHead(() => ({
                     target="_blank"
                     rel="noopener noreferrer"
                     >Preview<span class="sr-only">
-                      {{ resource.title }} (opens in a new tab)</span
+                      {{ resourceNames[resourceIndex] }} (opens in a new tab)</span
                     ></a
                   ><a :href="resource.url" download
                     >Download<span class="sr-only">
-                      {{ resource.title }}</span
+                      {{ resourceNames[resourceIndex] }}</span
                     ></a
                   >
                 </div>
