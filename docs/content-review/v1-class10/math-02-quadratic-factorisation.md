@@ -1,5 +1,7 @@
 ## Learning outcomes
 
+> **Editorial scope note — NOT EDUCATOR APPROVED:** This is deliberately a factorisation-only introduction. The CBSE Class X 2026–27 broader quadratic-equations topic also includes the quadratic formula and discriminant/nature of roots; those are **not taught in this draft**. Do not label it a complete examination chapter without separate qualified educator review.
+
 By the end of this lesson, you should be able to:
 
 - Recognise a quadratic equation and write it in standard form.
