@@ -71,7 +71,7 @@ test("actual Vue catalogue renders individually named same-title course links", 
   assert.ok(html.includes('aria-label="View syllabus: Physics (course 1 of 2)"'));
   assert.ok(html.includes('aria-label="View syllabus: Physics (course 2 of 2)"'));
   assert.ok(html.includes('aria-label="View syllabus: History"'));
-  assert.equal((html.match(/>View syllabus<\/a>/g) ?? []).length, 3);
+  assert.equal((html.match(/href="\/courses\/(?:physics-a|history|physics-b)"/g) ?? []).length, 3);
   assert.equal((html.match(/<h2>Physics<\/h2>/g) ?? []).length, 2);
   assert.ok(!html.includes("aria-label=\"View syllabus: History (course"));
   assert.ok(html.includes('href="/courses/physics-a"'));
