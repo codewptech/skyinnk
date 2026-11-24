@@ -57,13 +57,13 @@ The Municipal Maintenance Officer
 
 Sir/Madam,
 
-I am writing on behalf of students who visit the community library after school.
+I am writing on behalf of students who use the community library after school.
 
-The recent rains have left several streetlights near the community library damaged. Students attending evening classes must walk along a poorly lit road, and residents have reported difficulty seeing approaching vehicles.
+Several streetlights near the library have stopped working. The road is poorly lit in the evening, making it difficult for students and other visitors to travel safely. We are concerned that limited visibility may increase the risk of accidents, particularly when people cross the road.
 
-I request your office to inspect the lights and arrange repairs at the earliest. A temporary safety notice would also help pedestrians until the work is completed. The library is an important learning space, and a safer route would benefit students and other visitors.
+I request your office to inspect the affected lights and arrange repairs as soon as possible. Until the lights are restored, a temporary safety notice could help alert pedestrians and drivers.
 
-Please share an estimated repair schedule and the contact point for further updates. Thank you for considering this request.
+Please share an estimated inspection and repair schedule, if available. Thank you for considering this request.
 
 Yours faithfully,  
 Student Reading Club Representative
