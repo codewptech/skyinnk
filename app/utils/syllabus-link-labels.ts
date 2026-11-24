@@ -23,7 +23,6 @@ export function syllabusAccessibleNames(
   const normalizeTitle = (title: string) => title.trim().replace(/\s+/gu, " ").toLowerCase();
   const counts = new Map<string, number>();
   for (const { lesson, type } of entries) {
-    const baseName = `${lesson.title}, ${type}`;
     const identity = `${normalizeTitle(lesson.title)}, ${type}`;
     counts.set(identity, (counts.get(identity) ?? 0) + 1);
   }
