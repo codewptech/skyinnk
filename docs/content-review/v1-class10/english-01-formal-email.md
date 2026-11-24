@@ -1,5 +1,7 @@
 ## Learning outcomes
 
+> **Editorial scope note — NOT EDUCATOR APPROVED:** This original draft teaches **formal email** as a general communication skill. The CBSE Class X English Language & Literature 2026–27 writing assessment specifies a **formal letter**, not an email. A qualified educator must decide whether to retain this as supplementary communication teaching or separately author and approve a formal-letter lesson. This email example is **not** a CBSE board-exam formal-letter model.
+
 After this lesson, you should be able to:
 
 - Identify the purpose, audience and expected response of a formal email.
