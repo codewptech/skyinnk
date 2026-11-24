@@ -9,12 +9,13 @@ if (!course)
 const orderedModules = [...course.modules].sort(
   (a, b) => a.position - b.position,
 );
+const lessonTitleIdentity = (title: string) => title.trim().replace(/\s+/gu, " ").toLowerCase();
 const lessonTitleCounts = new Map<string, number>();
 for (const module of orderedModules)
   for (const lesson of module.lessons)
     lessonTitleCounts.set(
-      lesson.title,
-      (lessonTitleCounts.get(lesson.title) ?? 0) + 1,
+      lessonTitleIdentity(lesson.title),
+      (lessonTitleCounts.get(lessonTitleIdentity(lesson.title)) ?? 0) + 1,
     );
 
 // Course links show only the lesson title. If it repeats, provide module and
@@ -25,8 +26,8 @@ function accessibleLessonName(
   moduleIndex: number,
   lessonIndex: number,
 ): string | undefined {
-  if ((lessonTitleCounts.get(title) ?? 0) < 2) return undefined;
-  return `${title}, ${moduleTitle} (module ${moduleIndex + 1}, lesson ${lessonIndex + 1})`;
+  if ((lessonTitleCounts.get(lessonTitleIdentity(title)) ?? 0) < 2) return undefined;
+  return `${title.trim().replace(/\s+/gu, " ")}, ${moduleTitle} (module ${moduleIndex + 1}, lesson ${lessonIndex + 1})`;
 }
 useHead({
   title: `${course.title} | Skyinnk`,
