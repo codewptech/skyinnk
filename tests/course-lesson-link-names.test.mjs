@@ -36,7 +36,7 @@ const fixtureCourse = {
   ],
 };
 
-async function renderCourse(slug) {
+async function renderCourse(slug, selectedCourse = fixtureCourse) {
   const filename = "app/pages/courses/[courseSlug]/index.vue";
   const { descriptor, errors } = parse(
     readFileSync(new URL(`../${filename}`, import.meta.url), "utf8"),
@@ -66,7 +66,7 @@ async function renderCourse(slug) {
         if (id.endsWith("/public-catalogue"))
           return {
             findPublicCourse: (requested) =>
-              requested === fixtureCourse.slug ? fixtureCourse : undefined,
+              requested === selectedCourse.slug ? selectedCourse : undefined,
           };
         return localRequire(id);
       },
@@ -119,4 +119,18 @@ test("unknown course remains unavailable without rendering an accidental page", 
     renderCourse("unpublished"),
     /Course not published/,
   );
+});
+
+test("real rendered course page separates visually identical lesson names with case/spacing variants", async () => {
+  const variant = structuredClone(fixtureCourse);
+  // First module has two different published lesson destinations.
+  variant.modules[1].lessons[0].title = "  introduction  ";
+  const { html } = await renderCourse("fixture-course", variant);
+  assert.ok(html.includes('aria-label="Introduction, Same module title (module 1, lesson 1)"'));
+  assert.ok(html.includes('aria-label="introduction, Same module title (module 1, lesson 2)"'));
+  assert.ok(html.includes('aria-label="Introduction, Same module title (module 2, lesson 1)"'));
+  assert.equal((html.match(/aria-label="(?:Introduction|introduction), /g) ?? []).length, 3);
+  for (const slug of ["first", "second", "third"]) {
+    assert.ok(html.includes('href="/courses/fixture-course/lessons/' + slug + '"'));
+  }
 });
