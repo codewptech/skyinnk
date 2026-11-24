@@ -2,6 +2,8 @@
 
 **Status: ORIGINAL EDITORIAL DRAFT — NOT EDUCATOR REVIEWED, NOT APPROVED, NOT PUBLISHED.**
 
+**Visibility distinction:** Skyinnk's GitHub repository is public. These Markdown drafts may be visible to people browsing the repository, even though they are NOT served as student lessons or listed in the site catalogue. Do not place private student data, confidential staff feedback, third-party copyrighted material or unreleased licensed assets in this review folder. Here **nonpublic** means *not published through the Skyinnk learning app*, not *a private GitHub document*.
+
 These four draft-only text lessons are proposed for the previously agreed free/public V1 learning scope. They are kept in `docs/content-review/`, **not** in `content/catalogue.json` or `public/resources/`. They do not become public lessons merely because this pull request passes CI or is merged into the nonproduction development branch.
 
 The subjects and examples are original, created for editorial review. They have **not** been independently checked against an identified education board, prescribed syllabus, examination pattern or school policy. All names, contexts and exercises are fictional. No third-party textbook passage, copyrighted worksheet, recording, image or media asset is included.
