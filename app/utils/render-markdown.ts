@@ -83,14 +83,29 @@ markdown.renderer.rules.link_open = (
   return defaultLinkOpen(tokens, index, options, environment, renderer);
 };
 
-markdown.renderer.rules.image = (tokens, index, options, environment, renderer) => {
+type InlineToken = NonNullable<ReturnType<typeof markdown.parse>[number]["children"]>[number];
+
+/** Strip inline syntax from image descriptions, including formatted and code text. */
+function plainImageLabel(tokens: readonly InlineToken[]): string {
+  let result = "";
+  for (const token of tokens) {
+    if (token.type === "text" || token.type === "code_inline") {
+      result += token.content;
+    } else if (token.type === "softbreak" || token.type === "hardbreak") {
+      result += " ";
+    } else if (token.children?.length) {
+      result += plainImageLabel(token.children);
+    }
+  }
+  return result;
+}
+
+markdown.renderer.rules.image = (tokens, index) => {
   const token = tokens[index]!;
   const source = String(token.attrGet("src") ?? "");
-  // Markdown syntax in image labels is formatting, not literal alt punctuation.
-  // Use Markdown-it's text renderer and escape it once for the HTML attribute.
-  const alt = markdown.utils.escapeHtml(
-    renderer.renderInlineAsText(token.children ?? [], options, environment),
-  );
+  // Only text/code and line-break meaning should reach an accessible name.
+  // Escape it once for the HTML attribute; reject raw HTML and remote images.
+  const alt = markdown.utils.escapeHtml(plainImageLabel(token.children ?? []));
   if (!isSafeMarkdownImage(source))
     return `<span class="image-unavailable">${alt}</span>`;
   const title = String(token.attrGet("title") ?? "");
