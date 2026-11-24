@@ -1,5 +1,7 @@
 ## Learning outcomes
 
+> **Editorial scope note — NOT EDUCATOR APPROVED:** This is an original short reading-skills practice, **not** a full CBSE Class X 2026–27 unseen-passage examination simulation. The official English curriculum distinguishes a longer discursive passage from a shorter case-based factual passage including visual/statistical material. A qualified educator must approve the format, passage length and question types before any board-exam claim.
+
 After this lesson, you should be able to:
 
 - Identify information stated directly in a passage.
