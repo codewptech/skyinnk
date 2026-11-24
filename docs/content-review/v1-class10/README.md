@@ -17,6 +17,10 @@ The subjects and examples are original, created for editorial review. They have 
 
 The Markdown lessons start at `##` beneath the webpage title, following `docs/releases/V1-CONTENT-INTAKE.md`. They contain objectives, explanations, examples, exercises and sample solutions. No student authentication, signup, tracking or external links are required by these drafts.
 
+## Independent curriculum-reference comparison
+
+The original draft topics have now been compared provisionally with the **official CBSE Class X 2026–27 curriculum**. This is not board approval. Read [the curriculum-alignment gap and reviewer decision register](./curriculum-alignment-2026-27.md) before a subject educator chooses what to keep, relabel or extend. The reference explicitly flags that **formal email is not the specified CBSE formal-letter assessment**, that the two mathematics drafts do not yet cover all graphical/quadratic-formula/discriminant outcomes, and that the reading activity is not a complete board-format unseen-passage assessment.
+
 ## Required independent educator and content-owner review
 
 The qualified reviewer must read **every lesson**, solve the exercises independently and decide whether the depth, notation, reading level, language and instructional approach suit the *actual* intended learners and board. A code reviewer or automated test is not a substitute for this educational review.
