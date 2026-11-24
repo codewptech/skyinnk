@@ -27,7 +27,12 @@ useHead({
       <article v-for="course in courses" :key="course.key">
         <h2>{{ course.title }}</h2>
         <p>{{ course.summary }}</p>
-        <NuxtLink :to="`/courses/${course.slug}`">View syllabus</NuxtLink>
+        <NuxtLink
+          :to="`/courses/${course.slug}`"
+          :aria-label="`View syllabus: ${course.title}`"
+        >
+          View syllabus
+        </NuxtLink>
       </article>
     </div>
     <section v-else aria-label="No published courses">
