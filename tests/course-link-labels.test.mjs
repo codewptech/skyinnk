@@ -86,3 +86,15 @@ test("actual Vue catalogue preserves the honest no-publication empty state", asy
   assert.ok(html.includes("There are no published courses to browse yet."));
   assert.ok(!html.includes("View syllabus"));
 });
+
+test("course names that differ only in casing or whitespace are disambiguated", () => {
+  assert.deepEqual(courseSyllabusLinkLabels([
+    { title: " Physics 101 " },
+    { title: "physics   101" },
+    { title: "Biology" },
+  ]), [
+    "View syllabus: Physics 101 (course 1 of 2)",
+    "View syllabus: physics 101 (course 2 of 2)",
+    "View syllabus: Biology",
+  ]);
+});
