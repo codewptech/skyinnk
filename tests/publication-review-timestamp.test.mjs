@@ -10,15 +10,21 @@ const impossible = [
   "1900-02-29T00:00:00Z",
   "2026-04-31T13:45:00Z",
   "2026-11-31T00:00:00Z",
+  "2026-12-31T24:00:00Z",
+  "2024-02-29T24:00:00Z",
+  "2026-11-24T24:00:00+05:30",
 ];
 const real = [
   "2024-02-29T00:00:00Z",
   "2000-02-29T23:59:59.000Z",
   "2026-11-24T17:00:00+05:30",
   "2026-01-31T12:34:56.123Z",
+  "2026-12-31T23:59:59.999Z",
 ];
 
 test("public source validator rejects impossible review dates instead of Date.parse rollover", () => {
+  assert.ok(Number.isFinite(Date.parse("2026-12-31T24:00:00Z")),
+    "native parsing must reproduce the 24:00 rollover edge case");
   assert.ok(Number.isFinite(Date.parse("2026-02-30T00:00:00Z")),
     "the regression tests the real native date-rollover behavior");
   for (const invalid of impossible) {
