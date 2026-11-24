@@ -1,5 +1,7 @@
 ## Learning outcomes
 
+> **Editorial scope note — NOT EDUCATOR APPROVED:** This is an algebraic introduction. The CBSE Class X 2026–27 topic also includes plotting and graphical solutions plus coefficient-based conditions for the number of solutions; these are **not fully taught here**. A qualified educator must approve the target board and any later graphing lesson before claiming complete chapter coverage. See the internal curriculum-alignment review packet.
+
 By the end of this lesson, you should be able to:
 
 - Explain what a pair of linear equations in two variables represents.
