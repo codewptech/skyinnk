@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { focusMainContent } from "./utils/focus-main-content";
+function onSkipToContent() {
+  focusMainContent();
+}
 useHead({
   htmlAttrs: { lang: "en" },
   meta: [
@@ -11,7 +15,7 @@ useHead({
 
 <template>
   <div class="site-shell">
-    <a class="skip-link" href="#main-content">Skip to content</a>
+    <a class="skip-link" href="#main-content" @click="onSkipToContent">Skip to content</a>
     <NuxtRouteAnnouncer />
     <NuxtPage />
     <footer class="site-footer">
