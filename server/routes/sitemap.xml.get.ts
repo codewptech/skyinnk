@@ -4,7 +4,7 @@ import {
 } from "../../app/utils/public-catalogue";
 export default defineEventHandler((event) => {
   setHeader(event, "Content-Type", "application/xml; charset=utf-8");
-  const paths = ["/", "/courses"];
+  const paths = ["/", "/courses", "/privacy-policy", "/terms-of-service"];
   for (const course of listPublicCourses()) {
     paths.push(`/courses/${course.slug}`);
     for (const lesson of orderedPublicLessons(course))
