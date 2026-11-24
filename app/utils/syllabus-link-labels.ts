@@ -20,18 +20,20 @@ export function syllabusAccessibleNames(
         })),
     );
 
+  const normalizeLabel = (value: string) => value.trim().replace(/\s+/gu, " ").toLowerCase();
   const counts = new Map<string, number>();
   for (const { lesson, type } of entries) {
     const baseName = `${lesson.title}, ${type}`;
-    counts.set(baseName, (counts.get(baseName) ?? 0) + 1);
+    const identity = normalizeLabel(baseName);
+    counts.set(identity, (counts.get(identity) ?? 0) + 1);
   }
 
   const names = new Map<string, string>();
   for (const { module, moduleIndex, lesson, lessonIndex, type } of entries) {
     const baseName = `${lesson.title}, ${type}`;
     const name =
-      (counts.get(baseName) ?? 0) > 1
-        ? `${lesson.title}, ${module.title} (module ${moduleIndex + 1}, lesson ${lessonIndex + 1}), ${type}`
+      (counts.get(normalizeLabel(baseName)) ?? 0) > 1
+        ? `${lesson.title.trim().replace(/\s+/gu, " ")}, ${module.title} (module ${moduleIndex + 1}, lesson ${lessonIndex + 1}), ${type}`
         : baseName;
     names.set(lesson.key, name);
   }
