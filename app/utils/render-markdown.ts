@@ -37,7 +37,7 @@ export function isSafeMarkdownImage(value: string): boolean {
     return false;
   }
   return (
-    /^\/resources\/public\/[a-zA-Z0-9_./-]+\.(?:png|jpe?g|webp|gif|avif)$/i.test(
+    /^\/resources\/public\/[a-zA-Z0-9_./-]+\.(?:png|jpe?g|webp)$/i.test(
       decoded,
     ) && !decoded.split("/").some((part) => part === "." || part === "..")
   );
@@ -83,10 +83,14 @@ markdown.renderer.rules.link_open = (
   return defaultLinkOpen(tokens, index, options, environment, renderer);
 };
 
-markdown.renderer.rules.image = (tokens, index) => {
+markdown.renderer.rules.image = (tokens, index, options, environment, renderer) => {
   const token = tokens[index]!;
   const source = String(token.attrGet("src") ?? "");
-  const alt = markdown.utils.escapeHtml(token.content);
+  // Markdown syntax in image labels is formatting, not literal alt punctuation.
+  // Use Markdown-it's text renderer and escape it once for the HTML attribute.
+  const alt = markdown.utils.escapeHtml(
+    renderer.renderInlineAsText(token.children ?? [], options, environment),
+  );
   if (!isSafeMarkdownImage(source))
     return `<span class="image-unavailable">${alt}</span>`;
   const title = String(token.attrGet("title") ?? "");
