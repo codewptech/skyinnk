@@ -89,7 +89,7 @@ type InlineToken = NonNullable<ReturnType<typeof markdown.parse>[number]["childr
 function plainImageLabel(tokens: readonly InlineToken[]): string {
   let result = "";
   for (const token of tokens) {
-    if (token.type === "text" || token.type === "code_inline") {
+    if (token.type === "text" || token.type === "code_inline" || token.type === "math_inline") {
       result += token.content;
     } else if (token.type === "softbreak" || token.type === "hardbreak") {
       result += " ";
