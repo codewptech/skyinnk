@@ -3,7 +3,9 @@
  * Empty production preview: node scripts/smoke-course-discovery.mjs http://127.0.0.1:4318
  * Fictional preview: run node scripts/smoke-v1.mjs --isolated-fixture --http-only
  * --serve-fixture --artifacts <directory>, then pass its URL and
- * <directory>/fixture-parameters.json to this script.
+ * <directory>/fixture-parameters.json to this script. For a disposable build
+ * with multiple fictional courses, pass an array of those same parameter
+ * objects, one for each course in the fixture catalogue.
  *
  * Requires Playwright and its Chromium browser, or CHROMIUM_PATH.
  */
@@ -21,7 +23,9 @@ assert.ok(
 const fixture = fixturePath
   ? JSON.parse(await readFile(fixturePath, "utf8"))
   : null;
-const coursePath = fixture ? `/courses/${fixture.courseSlug}` : null;
+const courses = Array.isArray(fixture) ? fixture : fixture ? [fixture] : [];
+assert.ok(!fixture || courses.length, "Provide at least one fictional course");
+const nameFailures = [];
 
 const require = createRequire(import.meta.url);
 const runtime = process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES;
@@ -91,7 +95,8 @@ async function exerciseOverflowControls(page) {
       marker,
     );
     await assert.rejects(
-      () => expectNoHorizontalOverflow(page, "330px oversized negative control"),
+      () =>
+        expectNoHorizontalOverflow(page, "330px oversized negative control"),
       /Horizontal overflow/,
     );
   } finally {
@@ -104,6 +109,43 @@ async function expectPage(page, path, name) {
   await page.waitForURL(new URL(path, base).href);
   await page.getByRole("heading", { level: 1, name, exact: true }).waitFor();
   await expectNoHorizontalOverflow(page, path);
+}
+
+async function checkCourseNavigation(page, course, coursePath, mobile) {
+  assert.equal(
+    await page.getByRole("link", { name: "All courses" }).getAttribute("href"),
+    "/courses",
+  );
+
+  for (const [index, slug] of course.lessonSlugs.entries()) {
+    const lesson = page.getByRole("link", {
+      name: course.lessonTitles[index],
+      exact: true,
+    });
+    assert.equal(
+      await lesson.getAttribute("href"),
+      `${coursePath}/lessons/${slug}`,
+    );
+  }
+  const lessonPath = `${coursePath}/lessons/${course.lessonSlugs[0]}`;
+  await activateLink(page, course.lessonTitles[0], mobile);
+  await expectPage(page, lessonPath, course.lessonTitles[0]);
+  await page.goBack();
+  await expectPage(page, coursePath, course.courseTitle);
+  await page.goBack();
+  await expectPage(page, "/courses", "Explore courses");
+  await page.goForward();
+  await expectPage(page, coursePath, course.courseTitle);
+  assert.equal((await page.goto(new URL(coursePath, base).href)).status(), 200);
+  await expectPage(page, coursePath, course.courseTitle);
+  assert.equal(
+    (
+      await page.goto(
+        new URL(`${coursePath}/lessons/missing-lesson`, base).href,
+      )
+    ).status(),
+    404,
+  );
 }
 
 try {
@@ -128,57 +170,59 @@ try {
       const empty = catalogue.getByRole("heading", {
         name: "Lessons are being prepared",
       });
-      if (fixture) {
+      if (courses.length) {
         assert.equal(await empty.count(), 0);
-        const card = catalogue
-          .getByRole("article")
-          .filter({ hasText: fixture.courseTitle });
-        const syllabus = card.getByRole("link", {
-          name: "View syllabus",
-          exact: true,
-        });
-        assert.equal(await syllabus.getAttribute("href"), coursePath);
-        await activateLink(page, "View syllabus", mobile);
-        await expectPage(page, coursePath, fixture.courseTitle);
-        assert.equal(
-          await page
-            .getByRole("link", { name: "All courses" })
-            .getAttribute("href"),
-          "/courses",
-        );
-
-        for (const [index, slug] of fixture.lessonSlugs.entries()) {
-          const lesson = page.getByRole("link", {
-            name: fixture.lessonTitles[index],
+        const cards = catalogue.getByRole("article");
+        assert.equal(await cards.count(), courses.length);
+        const missingNames = [];
+        for (const course of courses) {
+          const heading = page.getByRole("heading", {
+            level: 2,
+            name: course.courseTitle,
             exact: true,
           });
+          const card = cards.filter({ has: heading });
+          assert.equal(await card.count(), 1);
+          const link = card.getByRole("link");
+          assert.equal((await link.innerText()).trim(), "View syllabus");
           assert.equal(
-            await lesson.getAttribute("href"),
-            `${coursePath}/lessons/${slug}`,
+            await link.getAttribute("href"),
+            `/courses/${course.courseSlug}`,
           );
+
+          const name = `View syllabus: ${course.courseTitle}`;
+          if (
+            (await card.getByRole("link", { name, exact: true }).count()) !==
+              1 ||
+            (await catalogue
+              .getByRole("link", { name, exact: true })
+              .count()) !== 1
+          ) {
+            missingNames.push(name);
+          }
         }
-        const lessonPath = `${coursePath}/lessons/${fixture.lessonSlugs[0]}`;
-        await activateLink(page, fixture.lessonTitles[0], mobile);
-        await expectPage(page, lessonPath, fixture.lessonTitles[0]);
-        await page.goBack();
-        await expectPage(page, coursePath, fixture.courseTitle);
-        await page.goBack();
-        await expectPage(page, "/courses", "Explore courses");
-        await page.goForward();
-        await expectPage(page, coursePath, fixture.courseTitle);
-        assert.equal(
-          (await page.goto(new URL(coursePath, base).href)).status(),
-          200,
-        );
-        await expectPage(page, coursePath, fixture.courseTitle);
-        assert.equal(
-          (
-            await page.goto(
-              new URL(`${coursePath}/lessons/missing-lesson`, base).href,
-            )
-          ).status(),
-          404,
-        );
+        if (missingNames.length) {
+          const snapshot = await cards.all();
+          const observed = await Promise.all(
+            snapshot.map((card) => card.ariaSnapshot()),
+          );
+          nameFailures.push(`${width}px expected one link for each of ${missingNames.join(", ")}:
+${observed.join("\n")}`);
+          continue;
+        }
+
+        for (const course of courses) {
+          const coursePath = `/courses/${course.courseSlug}`;
+          await activateLink(
+            page,
+            `View syllabus: ${course.courseTitle}`,
+            mobile,
+          );
+          await expectPage(page, coursePath, course.courseTitle);
+          await checkCourseNavigation(page, course, coursePath, mobile);
+          await page.goto(new URL("/courses", base).href);
+          await expectPage(page, "/courses", "Explore courses");
+        }
       } else {
         await empty.waitFor();
         assert.equal(await catalogue.getByRole("article").count(), 0);
@@ -200,12 +244,17 @@ try {
       );
       assert.deepEqual(pageErrors, []);
       console.log(
-        `PASS ${fixture ? "fictional" : "empty"} catalogue at ${width}px (${mobile ? "touch" : "keyboard"})`,
+        `PASS ${courses.length ? `${courses.length}-course fictional` : "empty"} catalogue at ${width}px (${mobile ? "touch" : "keyboard"})`,
       );
     } finally {
       await page.close();
     }
   }
+  assert.equal(
+    nameFailures.length,
+    0,
+    `Course-specific accessible names failed:\n${nameFailures.join("\n")}`,
+  );
 } finally {
   await browser.close();
 }
