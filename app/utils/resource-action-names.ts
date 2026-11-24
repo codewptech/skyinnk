@@ -4,15 +4,18 @@ import type { PublicResource } from "../../shared/public-content";
 export function resourceActionNames(
   resources: readonly Pick<PublicResource, "title">[],
 ): string[] {
+  const identity = (title: string) => title.trim().replace(/\s+/gu, " ").toLowerCase();
   const totals = new Map<string, number>();
   for (const resource of resources) {
-    totals.set(resource.title, (totals.get(resource.title) ?? 0) + 1);
+    const key = identity(resource.title);
+    totals.set(key, (totals.get(key) ?? 0) + 1);
   }
   const seen = new Map<string, number>();
   return resources.map(({ title }) => {
-    if (totals.get(title) === 1) return title;
-    const occurrence = (seen.get(title) ?? 0) + 1;
-    seen.set(title, occurrence);
-    return `${title} (resource ${occurrence} of ${totals.get(title)})`;
+    const key = identity(title);
+    if (totals.get(key) === 1) return title;
+    const occurrence = (seen.get(key) ?? 0) + 1;
+    seen.set(key, occurrence);
+    return `${title.trim().replace(/\s+/gu, " ")} (resource ${occurrence} of ${totals.get(key)})`;
   });
 }
