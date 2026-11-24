@@ -174,3 +174,17 @@ test("real classroom syllabus component renders distinct accessible link names a
   assert.match(html, /aria-current="page"/);
   assert.equal((html.match(/<a\b/g) ?? []).length, 3);
 });
+
+test("visually equivalent syllabus names receive distinct positions, while different lesson kinds remain concise", () => {
+  const labels = syllabusAccessibleNames([
+    { key: "module-a", title: "Unit", position: 0, lessons: [
+      lesson("a", "Introduction", "text", 0),
+      lesson("b", "  introduction  ", "text", 1),
+      lesson("c", "INTRODUCTION", "video", 2),
+    ] },
+  ]);
+  assert.equal(labels.get("a"), "Introduction, Unit (module 1, lesson 1), Text lesson");
+  assert.equal(labels.get("b"), "introduction, Unit (module 1, lesson 2), Text lesson");
+  assert.equal(labels.get("c"), "INTRODUCTION, Video lesson");
+  assert.equal(new Set(labels.values()).size, 3);
+});
