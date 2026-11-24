@@ -124,7 +124,7 @@ Notice the missing purpose, vague timing, demanding tone and absent detail about
 >
 > Dear Teacher,
 >
-> I am writing to ask whether I may submit the assignment two days after the original deadline. An unexpected family commitment has reduced the time available for completing the work. I have finished the planning and will use the additional time to review the final answer carefully.
+> I am writing to ask whether I may submit the assignment two days after the original deadline. An unexpected family commitment has limited my study time. I have finished the planning and will use the additional time to review the final answer carefully.
 >
 > Please let me know if the revised submission date would be acceptable. I understand that the original deadline remains in place unless you approve a change.
 >
