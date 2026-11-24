@@ -101,3 +101,15 @@ test("real classroom resource tab distinguishes duplicate document actions witho
   assert.ok(html.includes("download"));
   assert.equal((html.match(/class="resource-actions"/g) ?? []).length, 3);
 });
+
+test("resource links with visually equivalent spacing and case receive distinct names", () => {
+  assert.deepEqual(resourceActionNames([
+    { title: " Worksheet " }, { title: "worksheet" },
+    { title: "Work\t sheet" }, { title: "Summary" },
+  ]), [
+    "Worksheet (resource 1 of 2)",
+    "worksheet (resource 2 of 2)",
+    "Work\t sheet",
+    "Summary",
+  ]);
+});
