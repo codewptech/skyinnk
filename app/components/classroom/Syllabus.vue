@@ -29,6 +29,7 @@ const orderedModules = computed(() =>
         >
           <NuxtLink
             :to="`/courses/${courseSlug}/lessons/${item.slug}`"
+            :aria-label="`${item.title}, ${item.kind === 'video' ? 'Video lesson' : 'Text lesson'}`"
             :aria-current="item.key === lessonKey ? 'page' : undefined"
             @click="emit('navigate')"
           >

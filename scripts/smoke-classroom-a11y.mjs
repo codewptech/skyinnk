@@ -1,5 +1,6 @@
 // Start the fictional preview with smoke-v1.mjs --isolated-fixture --serve-fixture --http-only.
 // Run this check against that local preview: node scripts/smoke-classroom-a11y.mjs http://127.0.0.1:4319
+// Pass --neutral-lesson-titles to both scripts for the syllabus label checks.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -23,7 +24,106 @@ const browser = await playwright.chromium.launch({
 });
 const lesson = "/courses/fixture-course/lessons/video-test";
 const next = "/courses/fixture-course/lessons/text-test";
+const neutralTitles = process.argv.includes("--neutral-lesson-titles", 3);
+const [videoTitle, textTitle] = neutralTitles
+  ? ["Foundations", "Practice"]
+  : ["Fixture video lesson", "Fixture text lesson"];
 const focus = (node) => node === document.activeElement;
+
+async function checkSyllabusLessonTypes(width) {
+  const mobileLayout = width === 375;
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  try {
+    await page.route("**/*", (route) =>
+      new URL(route.request().url()).origin === base.origin
+        ? route.continue()
+        : route.abort(),
+    );
+    await page.goto(new URL(lesson, base).href);
+    const dialog = page.getByRole("dialog", { name: "Course syllabus" });
+    const toggle = page.getByRole("button", {
+      name: mobileLayout ? "Course syllabus" : "Hide syllabus",
+      exact: true,
+    });
+    const panel = mobileLayout
+      ? dialog
+      : page.getByRole("complementary", { name: "Course syllabus" });
+    const syllabus = panel.getByRole("navigation", { name: "Course lessons" });
+    const currentLink = syllabus.locator('[aria-current="page"]');
+    const videoLink = syllabus.getByRole("link", {
+      name: "Foundations, Video lesson",
+      exact: true,
+    });
+    const textLink = syllabus.getByRole("link", {
+      name: "Practice, Text lesson",
+      exact: true,
+    });
+
+    async function openDrawerWithKeyboard() {
+      await toggle.focus();
+      await page.keyboard.press("Enter");
+      await dialog.waitFor();
+    }
+
+    async function tabTo(link) {
+      for (let i = 0; i < 12; i++) {
+        await page.keyboard.press("Tab");
+        if (await link.evaluate(focus)) return;
+      }
+      assert.fail(`${width}px: syllabus link was not reachable with Tab`);
+    }
+
+    async function assertCurrent(path) {
+      assert.equal(await currentLink.count(), 1);
+      assert.equal(await currentLink.getAttribute("href"), path);
+    }
+
+    if (mobileLayout) {
+      await openDrawerWithKeyboard();
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+      await toggle.and(page.locator(":focus")).waitFor();
+      await page.keyboard.press("Enter");
+      await dialog.waitFor();
+    } else {
+      await toggle.focus();
+    }
+    await syllabus.waitFor();
+    const snapshot = await syllabus.ariaSnapshot();
+    assert.deepEqual(
+      [await videoLink.count(), await textLink.count()],
+      [1, 1],
+      `${width}px: expected title and lesson type in each accessible link name\n${snapshot}`,
+    );
+    assert.equal(await videoLink.getAttribute("href"), lesson);
+    assert.equal(await textLink.getAttribute("href"), next);
+    assert.match(await videoLink.innerText(), /Foundations$/);
+    assert.match(await textLink.innerText(), /Practice$/);
+    await assertCurrent(lesson);
+    await tabTo(videoLink);
+    await tabTo(textLink);
+    await page.keyboard.press("Enter");
+    await page.waitForURL(new URL(next, base).href);
+    if (mobileLayout) await dialog.waitFor({ state: "hidden" });
+    await page.getByRole("heading", { name: "Practice", level: 1 })
+      .and(page.locator(":focus")).waitFor();
+    if (mobileLayout) await openDrawerWithKeyboard();
+    await assertCurrent(next);
+    if (mobileLayout) {
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+    }
+    await page.goBack();
+    await page.waitForURL(new URL(lesson, base).href);
+    await page.getByRole("heading", { name: "Foundations", level: 1 }).waitFor();
+    await page.goForward();
+    await page.waitForURL(new URL(next, base).href);
+    await page.getByRole("heading", { name: "Practice", level: 1 }).waitFor();
+    console.log(`PASS neutral syllabus names, keyboard, current lesson and history at ${width}px`);
+  } finally {
+    await page.close();
+  }
+}
 
 async function checkBlockedVideo(width) {
   const page = await browser.newPage({ viewport: { width, height: 812 } });
@@ -83,11 +183,11 @@ async function checkBlockedVideo(width) {
     await nextLesson.focus();
     await page.keyboard.press("Enter");
     await page.waitForURL(new URL(next, base).href);
-    const textTitle = page.getByRole("heading", {
-      name: "Fixture text lesson",
+    const textHeading = page.getByRole("heading", {
+      name: textTitle,
       level: 1,
     });
-    await textTitle.waitFor();
+    await textHeading.waitFor();
     await page.waitForFunction(
       () => document.activeElement?.id === "lesson-title",
     );
@@ -110,6 +210,12 @@ async function checkBlockedVideo(width) {
 }
 
 try {
+  console.log(`Chromium ${browser.version()}`);
+  if (neutralTitles) {
+    const layouts = await Promise.allSettled([375, 1365].map(checkSyllabusLessonTypes));
+    const failures = layouts.filter((result) => result.status === "rejected");
+    if (failures.length) throw new AggregateError(failures.map((result) => result.reason));
+  }
   for (const width of [320, 375, 1365]) await checkBlockedVideo(width);
   const page = await browser.newPage({ viewport: { width: 375, height: 812 } });
   await page.route("**/*", (route) =>
@@ -118,7 +224,7 @@ try {
       : route.abort(),
   );
   await page.goto(new URL(lesson, base).href);
-  await page.getByRole("heading", { name: "Fixture video lesson", level: 1 }).waitFor();
+  await page.getByRole("heading", { name: videoTitle, level: 1 }).waitFor();
   const relationships = await page.getByRole("tab").evaluateAll((tabs) =>
     tabs.map((tab) => {
       const panel = document.getElementById(tab.getAttribute("aria-controls"));
@@ -158,7 +264,7 @@ try {
   await nextLesson.focus();
   await page.keyboard.press("Enter");
   await page.waitForURL(new URL(next, base).href);
-  await page.getByRole("heading", { name: "Fixture text lesson", level: 1 }).waitFor();
+  await page.getByRole("heading", { name: textTitle, level: 1 }).waitFor();
   await page.waitForFunction(() => document.activeElement?.id === "lesson-title");
   assert.equal(await resources.count(), 0);
   assert.equal(await overview.getAttribute("aria-selected"), "true");
@@ -168,7 +274,7 @@ try {
   assert.equal(await overview.getAttribute("aria-selected"), "true");
   await page.setViewportSize({ width: 375, height: 812 });
   await mobile.click();
-  await dialog.getByRole("link", { name: "Fixture text lesson" }).click();
+  await dialog.getByRole("link", { name: textTitle }).click();
   await page.waitForURL(new URL(next, base).href);
   await dialog.waitFor({ state: "hidden" });
   await page.waitForFunction(() => document.activeElement?.id === "lesson-title");
