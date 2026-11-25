@@ -8,7 +8,7 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, join, sep } from "node:path";
-import { markdownResourcePaths } from "../app/utils/render-markdown.ts";
+import { markdownResourcePaths, validateMarkdownMath } from "../app/utils/render-markdown.ts";
 import {
   validatePublicCatalogue,
   type PublicCatalogue,
@@ -49,6 +49,22 @@ function matchesResourceFormat(bytes: Buffer, type: string): boolean {
   }
 }
 
+/** Shared technical checks for final notes, including direct catalogue edits.
+ * Blank notes are allowed here for video lessons; text intake/schema require text.
+ * This is not an educator approval or a semantic mathematical assessment.
+ */
+export function checkFinalNoteSource(source: string, context: string): void {
+  if (source.length > 200_000)
+    throw new Error(context + ": Lesson notes exceed renderer limit");
+  if (source.includes("\0"))
+    throw new Error(context + ": NUL character in final notes");
+  if (/NOT EDUCATOR APPROVED|NOT EDUCATOR REVIEWED|EDITORIAL DRAFT|NOT YET EDUCATOR APPROVED|NOT APPROVED, NOT PUBLISHED/i.test(source))
+    throw new Error(context + ": draft/review warning remains in final notes");
+  const math = validateMarkdownMath(source);
+  if (math.errors.length)
+    throw new Error(context + ": invalid parsed math in final notes: " + math.errors.join("; "));
+}
+
 /** Validate actual build inputs; no runtime draft switch or filesystem URL lookup. */
 export function checkPublicContent(root = resolve(".")): PublicCatalogue {
   const catalogue = validatePublicCatalogue(
@@ -59,8 +75,7 @@ export function checkPublicContent(root = resolve(".")): PublicCatalogue {
   for (const course of catalogue.courses)
     for (const module of course.modules)
       for (const lesson of module.lessons) {
-        if (lesson.notesMarkdown.length > 200_000)
-          throw new Error("Lesson notes exceed renderer limit");
+        checkFinalNoteSource(lesson.notesMarkdown, course.slug + "/" + lesson.slug);
         notes.push(lesson.notesMarkdown);
         for (const resource of lesson.resources ?? []) {
           const path = join(root, "public", resource.url);

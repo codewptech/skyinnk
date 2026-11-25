@@ -103,3 +103,26 @@ test("external staging is read-only and rejects repository-local files and symli
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("final edited notes require rendered heading hierarchy and strictly valid parsed math", () => {
+  for (const [source, reason] of [
+    ["Page title\n==========\n\n## Notes\n\nTest", /rendered headings/],
+    ["### Too deep\n\n## Notes\n\nTest", /rendered headings/],
+    ["## Notes\n\n#### Skipped level\n\nTest", /rendered headings/],
+    ["## Notes\n\n$\\definitelyUnknownCommand{x}$", /invalid parsed math/],
+    ["## Notes\n\n$$\n\\definitelyUnknownCommand{x}\n$$", /invalid parsed math/],
+  ]) {
+    const raw = Buffer.from(source);
+    const packet = fixture();
+    lessons(packet).forEach(lesson => { lesson.notesSha256 = sha(raw); });
+    assert.throws(() => prepareTextCatalogue(packet, () => raw), reason);
+  }
+  const valid = Buffer.from([
+    "Notes", "-----", "", "### Example", "", "Valid math: $x^2$.", "",
+    "~~~text", "# Not a heading", "$\\definitelyUnknownCommand{x}$", "~~~", "",
+  ].join("\n"));
+  const packet = fixture();
+  lessons(packet).forEach(lesson => { lesson.notesSha256 = sha(valid); });
+  const prepared = prepareTextCatalogue(packet, () => valid);
+  for (const lesson of lessons(prepared)) assert.equal(lesson.notesMarkdown, valid.toString("utf8"));
+});
