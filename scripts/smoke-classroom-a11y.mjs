@@ -125,6 +125,95 @@ async function checkSyllabusLessonTypes(width) {
   }
 }
 
+// axe cannot decide contrast for non-text characters or the closed native
+// dialog's IDREF. Check actual browser relationships and computed solid colors
+// separately; this is not human screen-reader or physical-device certification.
+async function assertDrawerState(page, expectedOpen) {
+  await page.waitForFunction(expected => {
+    const toggle = document.querySelector(".mobile-toggle");
+    const id = toggle?.getAttribute("aria-controls");
+    const target = id && document.getElementById(id);
+    const titleId = target?.getAttribute("aria-labelledby");
+    return !!id && document.querySelectorAll("[id]").length > 0 &&
+      [...document.querySelectorAll("[id]")].filter(node => node.id === id).length === 1 &&
+      toggle.getAttribute("aria-haspopup") === "dialog" &&
+      toggle.getAttribute("aria-expanded") === String(expected) &&
+      target instanceof HTMLDialogElement && target.open === expected &&
+      target.matches(":modal") === expected &&
+      !!titleId && [...document.querySelectorAll("[id]")].filter(node => node.id === titleId).length === 1 &&
+      target.contains(document.getElementById(titleId)) &&
+      document.getElementById(titleId)?.textContent.trim() === "Course syllabus";
+  }, expectedOpen);
+}
+
+async function assertSymbolContrast(symbol, label) {
+  await symbol.waitFor();
+  const ratio = await symbol.evaluate(node => {
+    function rgb(value) {
+      const parts = /^rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)$/.exec(value);
+      if (!parts) throw Error("Expected computed RGB color: " + value);
+      return { channels: parts.slice(1, 4).map(Number), alpha: parts[4] === undefined ? 1 : Number(parts[4]) };
+    }
+    function luminance(color) {
+      const [r, g, b] = color.channels.map(channel => {
+        const v = channel / 255;
+        return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+    const foreground = rgb(getComputedStyle(node).color);
+    if (foreground.alpha !== 1) throw Error("Non-opaque symbol needs review");
+    let background;
+    for (let ancestor = node; ancestor; ancestor = ancestor.parentElement) {
+      const style = getComputedStyle(ancestor);
+      if (style.opacity !== "1" || style.backgroundImage !== "none")
+        throw Error("Non-solid symbol background needs review");
+      const color = rgb(style.backgroundColor);
+      if (color.alpha === 1) { background = color; break; }
+      if (color.alpha !== 0) throw Error("Translucent symbol background needs review");
+    }
+    if (!background) throw Error("No explicit opaque background for symbol");
+    const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+    return (values[0] + 0.05) / (values[1] + 0.05);
+  });
+  assert.ok(ratio >= 3, label + ": computed contrast " + ratio.toFixed(2) + ":1");
+  console.log("PASS computed symbol contrast " + label + ": " + ratio.toFixed(2) + ":1");
+}
+
+async function checkDialogAndSymbolEvidence(width) {
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  const mobile = width < 701;
+  try {
+    await page.route("**/*", route => new URL(route.request().url()).origin === base.origin ? route.continue() : route.abort());
+    await page.goto(new URL(lesson, base).href);
+    await page.getByRole("heading", { name: videoTitle, level: 1 }).waitFor();
+    const toggle = page.locator(mobile ? ".mobile-toggle" : ".desktop-toggle");
+    await assertSymbolContrast(toggle.locator("span[aria-hidden=true]"), width + "px syllabus toggle");
+    await assertSymbolContrast(page.locator(".play-symbol"), width + "px play symbol");
+    if (mobile) {
+      await assertDrawerState(page, false);
+      await toggle.click();
+      await assertDrawerState(page, true);
+    }
+    const panel = page.locator(mobile ? "#mobile-syllabus" : "#desktop-syllabus");
+    const current = panel.locator('a[aria-current="page"]');
+    const other = panel.locator('a:not([aria-current="page"])');
+    assert.equal(await current.count(), 1);
+    assert.equal(await other.count(), 1);
+    await assertSymbolContrast(current.locator(".lesson-kind"), width + "px current lesson symbol");
+    await assertSymbolContrast(other.locator(".lesson-kind"), width + "px other lesson symbol");
+    await other.hover();
+    await assertSymbolContrast(other.locator(".lesson-kind"), width + "px hovered lesson symbol");
+    if (mobile) {
+      await page.keyboard.press("Escape");
+      await assertDrawerState(page, false);
+      await toggle.and(page.locator(":focus")).waitFor();
+    }
+  } finally {
+    await page.close();
+  }
+}
+
 async function checkBlockedVideo(width) {
   const page = await browser.newPage({ viewport: { width, height: 812 } });
   try {
@@ -217,6 +306,7 @@ try {
     if (failures.length) throw new AggregateError(failures.map((result) => result.reason));
   }
   for (const width of [320, 375, 1365]) await checkBlockedVideo(width);
+  for (const width of [375, 1365]) await checkDialogAndSymbolEvidence(width);
   const page = await browser.newPage({ viewport: { width: 375, height: 812 } });
   await page.route("**/*", (route) =>
     new URL(route.request().url()).origin === base.origin
@@ -281,15 +371,19 @@ try {
 
   const mobile = page.getByRole("button", { name: "Course syllabus", exact: true });
   const dialog = page.getByRole("dialog");
+  await assertDrawerState(page, false);
   await mobile.click();
   await dialog.waitFor();
+  await assertDrawerState(page, true);
   await page.keyboard.press("Escape");
   await dialog.waitFor({ state: "hidden" });
+  await assertDrawerState(page, false);
   await page.waitForFunction(() => document.activeElement?.classList.contains("mobile-toggle"));
   await mobile.click();
   await dialog.waitFor();
   await page.setViewportSize({ width: 1365, height: 900 });
   await dialog.waitFor({ state: "hidden", timeout: 3000 });
+  await assertDrawerState(page, false);
   await page.waitForFunction(() => document.activeElement?.classList.contains("desktop-toggle"));
 
   const nextLesson = page.getByRole("link", { name: /next lesson/i });
@@ -306,9 +400,11 @@ try {
   assert.equal(await overview.getAttribute("aria-selected"), "true");
   await page.setViewportSize({ width: 375, height: 812 });
   await mobile.click();
+  await assertDrawerState(page, true);
   await dialog.getByRole("link", { name: textTitle }).click();
   await page.waitForURL(new URL(next, base).href);
   await dialog.waitFor({ state: "hidden" });
+  await assertDrawerState(page, false);
   await page.waitForFunction(() => document.activeElement?.id === "lesson-title");
   console.log("PASS classroom tab relationships, keyboard focus, mobile Escape, resize, and lesson history");
 } finally {
