@@ -21,7 +21,7 @@ test("preflight catches invalid math and missing MathML without claiming accurac
   assert.deepEqual(checkDraftRendering(candidate, draft("$x^2$")).issues, []);
   assert.match(checkDraftRendering(candidate, draft("$\\badcommand{x}$")).issues.join("|"), /KaTeX/);
   assert.match(checkDraftRendering(candidate, draft("No math")).issues.join("|"), /MathML/);
-  assert.match(checkDraftRendering(candidate, draft("$\\badcommand{x}$")).issues.join("|"), /KaTeX/);
+  assert.match(checkDraftRendering(candidate, draft("$$\\badcommand{x}$$")).issues.join("|"), /KaTeX/);
   assert.match(checkDraftRendering(candidate, draft("$" + "x".repeat(4001) + "$")).issues.join("|"), /KaTeX/);
   const code = checkDraftRendering(candidate, draft("$x^2$\n\n" + "\x60$\\badcommand{x}$\x60"));
   assert.deepEqual(code.issues, []);
