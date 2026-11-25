@@ -18,6 +18,8 @@ on:
       - scripts/smoke-course-discovery.mjs
       - scripts/smoke-classroom-a11y.mjs
       - scripts/smoke-public-api-contract.mjs
+      - scripts/smoke-released-catalogue.mjs
+      - scripts/released-catalogue-expectations.mjs
       - server/utils/public-catalogue-source.ts
       - server/utils/public-course-read.ts
       - nuxt.config.ts
@@ -39,6 +41,8 @@ on:
       - scripts/smoke-course-discovery.mjs
       - scripts/smoke-classroom-a11y.mjs
       - scripts/smoke-public-api-contract.mjs
+      - scripts/smoke-released-catalogue.mjs
+      - scripts/released-catalogue-expectations.mjs
       - server/utils/public-catalogue-source.ts
       - server/utils/public-course-read.ts
       - nuxt.config.ts
@@ -85,7 +89,7 @@ jobs:
           npx playwright install --with-deps chromium
           echo "CHROMIUM_PATH=$(node -e 'process.stdout.write(require("playwright").chromium.executablePath())')" >> "$GITHUB_ENV"
 
-      - name: Verify real empty-catalogue Nuxt browser navigation
+      - name: Verify checked-in release manifest and guest navigation
         shell: bash
         run: |
           set -euo pipefail
@@ -101,8 +105,11 @@ jobs:
             sleep 2
           done
           if [ "$ready" != 1 ]; then cat "$RUNNER_TEMP/skyinnk-empty/preview.log"; exit 1; fi
-          node scripts/smoke-course-discovery.mjs http://127.0.0.1:4318
-          node scripts/smoke-v1.mjs --base-url http://127.0.0.1:4318 --artifacts "$RUNNER_TEMP/skyinnk-empty"
+          node scripts/smoke-released-catalogue.mjs http://127.0.0.1:4318 content/catalogue.json
+          if node -e 'process.exit(JSON.parse(require("node:fs").readFileSync("content/catalogue.json")).courses.length === 0 ? 0 : 1)'; then
+            node scripts/smoke-course-discovery.mjs http://127.0.0.1:4318
+            node scripts/smoke-v1.mjs --base-url http://127.0.0.1:4318 --artifacts "$RUNNER_TEMP/skyinnk-empty"
+          fi
 
       - name: Verify fictional published lesson, classroom and HTTP resource bytes
         shell: bash
@@ -123,6 +130,9 @@ jobs:
           node scripts/smoke-course-discovery.mjs http://127.0.0.1:4319 "$artifacts/fixture-parameters.json"
           node scripts/smoke-classroom-a11y.mjs http://127.0.0.1:4319
           node scripts/smoke-public-api-contract.mjs --port 4319
+          fixture_root=$(sed -n 's/^FIXTURE_TEMP //p' "$artifacts/controller.log")
+          test -n "$fixture_root"
+          node scripts/smoke-released-catalogue.mjs http://127.0.0.1:4319 "$fixture_root/content/catalogue.json"
           node --input-type=module <<'EOF'
           import assert from 'node:assert/strict';
           import { createHash } from 'node:crypto';

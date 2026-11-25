@@ -8,12 +8,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { readReleaseExpectations } from "./released-catalogue-expectations.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 const axeJavaScript = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
-const [rawBase, mode] = process.argv.slice(2);
-assert.ok(rawBase && ["empty", "published"].includes(mode), "Usage: smoke-axe-public.mjs http://127.0.0.1:PORT empty|published");
+const [rawBase, mode, manifestPath] = process.argv.slice(2);
+assert.ok(rawBase && ["empty", "published", "actual"].includes(mode), "Usage: smoke-axe-public.mjs http://127.0.0.1:PORT empty|published|actual [manifest]");
 const base = new URL(rawBase);
 assert.equal(base.protocol, "http:");
 assert.equal(base.hostname, "127.0.0.1", "Never scan a remote site or real account");
@@ -30,6 +31,14 @@ if (mode === "published") {
     ["/courses/fixture-course/lessons/video-test", "Fictional video lesson"],
     ["/courses/fixture-course/lessons/text-test", "Fictional text lesson"],
   );
+}
+if (mode === "actual") {
+  assert.ok(manifestPath, "Actual mode requires the source manifest");
+  for (const course of await readReleaseExpectations(manifestPath)) {
+    routes.push([course.path, "Released course: " + course.title]);
+    for (const lesson of course.lessons)
+      routes.push([lesson.path, "Released lesson: " + lesson.title, lesson]);
+  }
 }
 let scans = 0;
 let violations = 0;
@@ -101,12 +110,26 @@ try {
           }));
         }
       }
-      for (const [route, label] of routes) {
+      for (const [route, label, lesson] of routes) {
         const response = await page.goto(new URL(route, base).href, { waitUntil: "networkidle" });
         assert.equal(response?.status(), 200, `${label} must be publicly available`);
         await page.getByRole("main").first().waitFor();
         await scan(label);
-        if (mode === "published" && route.endsWith("/video-test")) {
+        if (lesson) {
+          if (lesson.hasNotes) {
+            await page.getByRole("tab", { name: "Notes", exact: true }).click();
+            await scan(label + " Notes");
+          }
+          if (lesson.resources.length) {
+            await page.getByRole("tab", { name: "Resources", exact: true }).click();
+            await scan(label + " Resources");
+          }
+          if (width === 375) {
+            await page.getByRole("button", { name: "Course syllabus", exact: true }).click();
+            await page.locator("dialog[open]").waitFor();
+            await scan(label + " mobile syllabus");
+          }
+        } else if (mode === "published" && route.endsWith("/video-test")) {
           await page.getByRole("tab", { name: "Notes" }).click();
           await scan("Fictional lesson Notes panel");
           await page.getByRole("tab", { name: "Resources" }).click();

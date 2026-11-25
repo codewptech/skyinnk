@@ -6,10 +6,13 @@ on:
     branches:
       - development/v1-public-launch
     paths:
+      - app/app.vue
       - app/pages/**
       - app/components/**
       - app/utils/**
       - content/catalogue.json
+      - public/resources/**
+      - scripts/released-catalogue-expectations.mjs
       - shared/public-content.ts
       - scripts/validate-public-content.ts
       - nuxt.config.ts
@@ -22,10 +25,13 @@ on:
     branches:
       - development/v1-public-launch
     paths:
+      - app/app.vue
       - app/pages/**
       - app/components/**
       - app/utils/**
       - content/catalogue.json
+      - public/resources/**
+      - scripts/released-catalogue-expectations.mjs
       - shared/public-content.ts
       - scripts/validate-public-content.ts
       - nuxt.config.ts
@@ -75,7 +81,7 @@ jobs:
           npx playwright install --with-deps chromium
           echo "CHROMIUM_PATH=$(node -e 'process.stdout.write(require("playwright").chromium.executablePath())')" >> "$GITHUB_ENV"
 
-      - name: Audit real empty-catalogue Nuxt pages
+      - name: Audit checked-in release manifest and public pages
         shell: bash
         run: |
           set -euo pipefail
@@ -90,7 +96,7 @@ jobs:
             sleep 2
           done
           if [ "$ready" != 1 ]; then cat "$RUNNER_TEMP/axe-empty.log"; exit 1; fi
-          node scripts/smoke-axe-public.mjs http://127.0.0.1:4318 empty
+          node scripts/smoke-axe-public.mjs http://127.0.0.1:4318 actual content/catalogue.json
 
       - name: Audit fictional published course, lessons, panels and mobile dialog
         shell: bash
@@ -109,3 +115,6 @@ jobs:
           done
           if [ "$ready" != 1 ]; then cat "$artifacts/controller.log"; exit 1; fi
           node scripts/smoke-axe-public.mjs http://127.0.0.1:4319 published
+          fixture_root=$(sed -n 's/^FIXTURE_TEMP //p' "$artifacts/controller.log")
+          test -n "$fixture_root"
+          node scripts/smoke-axe-public.mjs http://127.0.0.1:4319 actual "$fixture_root/content/catalogue.json"
