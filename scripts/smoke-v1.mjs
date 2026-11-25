@@ -317,6 +317,11 @@ try {
       );
       passed("mobile syllabus opens, Escape closes and focus returns");
     }
+    if (fixture) {
+      const { verifyEducatorReviewBrowser } = await import("./verify-educator-review-browser.mjs");
+      evidence.educatorReview = await verifyEducatorReviewBrowser(browser);
+      passed("offline educator packet native math, blank decisions and A4 print smoke");
+    }
     assert.deepEqual(evidence.browserErrors, [], "Browser runtime errors");
     passed("no browser runtime errors");
     evidence.browserStatus = "passed";
