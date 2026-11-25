@@ -7,18 +7,44 @@ on:
       - development/v1-public-launch
     paths:
       - .github/workflows/v1-browser-acceptance.yml
+      - app/**
+      - content/catalogue.json
+      - public/resources/**
+      - shared/public-content.ts
+      - server/api/v1/public/**
+      - server/routes/sitemap.xml.get.ts
+      - scripts/validate-public-content.ts
+      - scripts/smoke-v1.mjs
+      - scripts/smoke-course-discovery.mjs
+      - scripts/smoke-classroom-a11y.mjs
+      - nuxt.config.ts
+      - package.json
+      - package-lock.json
   push:
     branches:
       - development/v1-public-launch
     paths:
       - .github/workflows/v1-browser-acceptance.yml
+      - app/**
+      - content/catalogue.json
+      - public/resources/**
+      - shared/public-content.ts
+      - server/api/v1/public/**
+      - server/routes/sitemap.xml.get.ts
+      - scripts/validate-public-content.ts
+      - scripts/smoke-v1.mjs
+      - scripts/smoke-course-discovery.mjs
+      - scripts/smoke-classroom-a11y.mjs
+      - nuxt.config.ts
+      - package.json
+      - package-lock.json
 
 permissions:
   contents: read
 
 jobs:
   integrated-browser:
-    if: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chat03/task-v1-runtime-browser-acceptance') }}
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     name: Real Chromium + isolated Nitro fixtures
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -34,7 +60,7 @@ jobs:
       NITRO_HOST: 127.0.0.1
       NITRO_PORT: "4318"
     steps:
-      - name: Checkout nonproduction PR merge commit
+      - name: Checkout nonproduction PR candidate or integrated development
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
