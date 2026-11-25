@@ -50,3 +50,24 @@ digest. The build checks the approved digest and a basic format signature, or
 valid UTF-8 for TXT. Educator and rights review still applies to the file itself.
 
 Run the content validator through the normal Nuxt build, run all tests, and verify actual public URLs/media/resources in browser preview before asking for release authorization. A code change is not a production publishing action.
+
+## Optional read-only first-release text intake
+
+For the initial 4–6 selected **text-only** lessons, the integrator can prepare a candidate schemaVersion 1 manifest directly from final approved Markdown files, avoiding manual copy/paste errors.
+
+Keep a separate staging directory **outside the repository**. Put the actual final teacher-approved Markdown files there and create `reviewed-intake.json`. Use the same course/module metadata and stable keys as the normal schema. The packet has exactly:
+
+- Root: `schemaVersion`, `courses`.
+- Course: `key`, `slug`, `title`, `summary`, `audience`, `subject`, `publication`, `modules`.
+- Module: `key`, `title`, `position`, `lessons`.
+- Lesson: `key`, `slug`, `title`, `position`, `overview`, `notesFile` (unique simple Markdown filename), `notesSha256` (exact lowercase SHA-256 of final approved bytes), `publication`.
+
+Supply the authentic publication record for each course and lesson yourself after actual educator and rights decisions. Hash the exact final file using `sha256sum` or PowerShell `Get-FileHash -Algorithm SHA256` (convert hex to lowercase). A hash binds the supplied reviewed version to the copied bytes; it does not prove who approved it. Do not hash an unfinished manuscript and call it approved.
+
+Run from the repository with Node 24 and installed locked dependencies:
+
+```bash
+node scripts/prepare-reviewed-text-catalogue.mjs "/external/staging/reviewed-intake.json"
+```
+
+The command prints a candidate manifest only after validation. It rejects missing approval fields, changed bytes, unsupported fields, unsafe or symlink filenames, invalid UTF-8, known draft warnings, invalid headings and local resource references. It copies approved notes verbatim and never writes files or creates names/timestamps. Do not redirect output into the actual catalogue: inspect and review the candidate, then use a separate authorized publication task on a feature branch. The helper cannot verify teacher identity, rights, curriculum, or authenticity of a supplied approval record. The normal build validator and real browser checks remain mandatory. Media/resource lessons use the existing separate reviewed intake process, not this helper.

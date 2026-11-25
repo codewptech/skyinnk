@@ -1,0 +1,105 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, symlinkSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { prepareTextCatalogue, prepareFromStaging } from "../scripts/prepare-reviewed-text-catalogue.mjs";
+
+const sha = bytes => createHash("sha256").update(bytes).digest("hex");
+const bytes = Buffer.from("## Fictional test notes\n\nOriginal synthetic content. $x^2$\n");
+function fixture(count = 4) {
+  // Synthetic test data only; never used for real publication.
+  const publication = { status: "published", visibility: "public", reviewedBy: "SYNTHETIC TEST REVIEWER", reviewedAt: "2026-11-25T10:00:00+05:30" };
+  return { schemaVersion: 1, courses: [{
+    key: "test-course", slug: "test-course", title: "Synthetic course", summary: "Test only",
+    audience: "Test", subject: "Test", publication: { ...publication },
+    modules: [{ key: "test-module", title: "Synthetic module", position: 0,
+      lessons: Array.from({ length: count }, (_, i) => ({
+        key: "lesson-" + i, slug: "lesson-" + i, title: "Test lesson " + i,
+        position: i, overview: "Synthetic practice", notesFile: "notes-" + i + ".md",
+        notesSha256: sha(bytes), publication: { ...publication },
+      })),
+    }],
+  }] };
+}
+const lessons = p => p.courses[0].modules[0].lessons;
+test("reviewed bytes are copied exactly, approvals preserved, staging fields omitted, source unchanged", () => {
+  const packet = fixture();
+  const original = structuredClone(packet);
+  const result = prepareTextCatalogue(packet, () => bytes);
+  assert.deepEqual(packet, original);
+  assert.deepEqual(result.courses[0].publication, packet.courses[0].publication);
+  assert.equal(lessons(result).length, 4);
+  for (const [i, lesson] of lessons(result).entries()) {
+    assert.equal(lesson.notesMarkdown, bytes.toString("utf8"));
+    assert.deepEqual(lesson.publication, lessons(packet)[i].publication);
+    assert.equal(lesson.kind, "text");
+    assert.ok(!("notesSha256" in lesson) && !("notesFile" in lesson) && !("resources" in lesson));
+  }
+  assert.equal(lessons(prepareTextCatalogue(fixture(6), () => bytes)).length, 6);
+});
+test("reject missing, placeholder and malformed approvals; never synthesize them", () => {
+  for (const mutate of [
+    p => { delete p.courses[0].publication; },
+    p => { delete lessons(p)[0].publication.reviewedBy; },
+    p => { lessons(p)[0].publication.reviewedBy = "pending"; },
+    p => { lessons(p)[0].publication.status = "draft"; },
+    p => { lessons(p)[0].publication.reviewedAt = "2026-11-25T10:00"; },
+    p => { lessons(p)[0].publication.reviewedAt = "2026-02-30T10:00Z"; },
+  ]) {
+    const packet = fixture();
+    mutate(packet);
+    assert.throws(() => prepareTextCatalogue(packet, () => bytes));
+  }
+});
+test("reject changed bytes, unsafe filenames, duplicate files, unsupported fields and invalid count", () => {
+  assert.throws(() => prepareTextCatalogue(fixture(), () => Buffer.from("changed")), /reviewed bytes/);
+  for (const mutate of [
+    p => { lessons(p)[0].notesFile = "../private.md"; },
+    p => { lessons(p)[0].notesFile = "C:\\private.md"; },
+    p => { lessons(p)[0].notesFile = "NOTES-1.md"; },
+    p => { lessons(p)[0].notesSha256 = ""; },
+    p => { lessons(p)[0].resources = []; },
+    p => { lessons(p)[0].slug = lessons(p)[1].slug; },
+  ]) {
+    const packet = fixture();
+    mutate(packet);
+    assert.throws(() => prepareTextCatalogue(packet, () => bytes));
+  }
+  for (const count of [3, 7]) assert.throws(() => prepareTextCatalogue(fixture(count), () => bytes), /4–6/);
+});
+test("reject editorial drafts, H1 notes, resource references and invalid UTF-8 even with matching hash", () => {
+  for (const source of [
+    Buffer.from("## Notes\n\n**NOT EDUCATOR APPROVED**"),
+    Buffer.from("# Page title\n## Notes\n\nTest"),
+    Buffer.from("## Notes\n\n![Test](/resources/public/test.png)"),
+    Buffer.from([0xff, 0xfe, 0xff]),
+  ]) {
+    const packet = fixture();
+    lessons(packet).forEach(lesson => { lesson.notesSha256 = sha(source); });
+    assert.throws(() => prepareTextCatalogue(packet, () => source));
+  }
+});
+test("external staging is read-only and rejects repository-local files and symlink inputs", () => {
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-intake-"));
+  try {
+    const repo = join(root, "repo"), stage = join(root, "stage");
+    mkdirSync(repo); mkdirSync(stage);
+    const path = join(stage, "reviewed-intake.json"), packet = fixture();
+    const raw = JSON.stringify(packet);
+    writeFileSync(path, raw);
+    for (const lesson of lessons(packet)) writeFileSync(join(stage, lesson.notesFile), bytes);
+    const before = readdirSync(stage);
+    assert.equal(lessons(prepareFromStaging(path, repo)).length, 4);
+    assert.deepEqual(readdirSync(stage), before);
+    assert.equal(readFileSync(path, "utf8"), raw);
+    assert.deepEqual(readFileSync(join(stage, "notes-0.md")), bytes);
+    assert.throws(() => prepareFromStaging(path, root), /outside the repository/);
+    rmSync(join(stage, "notes-0.md"));
+    symlinkSync(join(stage, "notes-1.md"), join(stage, "notes-0.md"));
+    assert.throws(() => prepareFromStaging(path, repo), /regular bounded file/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
