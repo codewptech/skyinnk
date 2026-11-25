@@ -12,7 +12,6 @@ import {
   mkdir,
   writeFile,
   mkdtemp,
-  cp,
   symlink,
   rm,
   readdir,
@@ -22,6 +21,7 @@ import { tmpdir } from "node:os";
 import { setTimeout as pause } from "node:timers/promises";
 import { createRequire } from "node:module";
 import { resolve, join } from "node:path";
+import { copyFixtureSource } from "./released-catalogue-expectations.mjs";
 
 const args = process.argv.slice(2);
 function option(name) {
@@ -455,12 +455,7 @@ async function runIsolatedFixture() {
     assert.equal(code, 0, `${command} failed; see ${join(artifacts, logName)}`);
   };
   try {
-    await cp(project, directory, {
-      recursive: true,
-      filter: (source) =>
-        !/\/(?:node_modules|\.git|\.nuxt|\.output)(?:\/|$)/.test(source) &&
-        !/(?:^|\/)\.env(?:\.|$)/.test(source),
-    });
+    await copyFixtureSource(project, directory);
     // Dependency bytes may be shared, but generated caches must stay in this copy.
     await mkdir(join(directory, "node_modules"));
     for (const dependency of await readdir(join(project, "node_modules"))) {
