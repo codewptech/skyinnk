@@ -107,7 +107,7 @@ const lessonCourse = {
   subject: course.subject,
 };
 const notesMarkdown =
-  "# Fixture notes\n\nFixture notes marker\n\n| Item | Value |\n| --- | --- |\n| Test | 2 |\n\n$x^2$\n\n<script>window.fixtureXss=true</script>\n\n[unsafe](javascript:alert(1))\n\n\n| A | B | C | D | E | F | G | H |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |\n";
+  "## Fixture notes\n\nFixture notes marker\n\n| Item | Value |\n| --- | --- |\n| Test | 2 |\n\n$x^2$\n\n<script>window.fixtureXss=true</script>\n\n[unsafe](javascript:alert(1))\n\n\n| A | B | C | D | E | F | G | H |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |\n";
 const resource = {
   key: "fixture-resource",
   title: "Fixture text resource",

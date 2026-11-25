@@ -357,7 +357,7 @@ async function runIsolatedFixture() {
   };
   const resourceBytes = "AUTOMATED TEST FIXTURE. Not educational content.\n";
   const notes =
-    "# Fixture notes\n\nFixture notes marker\n\n| Item | Value |\n| --- | --- |\n| Test | 2 |\n\n$x^2$\n\n<script>window.fixtureXss=true</script>\n\n[unsafe](javascript:alert(1))\n";
+    "## Fixture notes\n\nFixture notes marker\n\n| Item | Value |\n| --- | --- |\n| Test | 2 |\n\n$x^2$\n\n<script>window.fixtureXss=true</script>\n\n[unsafe](javascript:alert(1))\n";
   const wideTable = "\n\n| A | B | C | D | E | F | G | H |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |\n";
   const lesson = (key, slug, title, kind, position) => ({
     key,

@@ -49,7 +49,7 @@ reviewer approves those bytes. Review replacement files before recording a new
 digest. The build checks the approved digest and a basic format signature, or
 valid UTF-8 for TXT. Educator and rights review still applies to the file itself.
 
-Run the content validator through the normal Nuxt build, run all tests, and verify actual public URLs/media/resources in browser preview before asking for release authorization. The mandatory build checks final video and text notes for known draft/review warnings, NUL characters, renderer size limits and invalid parsed TeX, even when the optional text-intake helper is not used. These are technical checks, not proof of teacher approval; valid literal code and optional empty video notes remain supported. A code change is not a production publishing action.
+Run the content validator through the normal Nuxt build, run all tests, and verify actual public URLs/media/resources in browser preview before asking for release authorization. The mandatory build checks final video and text notes for known draft/review warnings, NUL characters, renderer size limits, invalid parsed TeX and invalid rendered heading hierarchy, even when the optional text-intake helper is not used. These are technical checks, not proof of teacher approval; valid literal code, heading-free prose and optional empty video notes remain supported. If headings are present, begin at H2 with no H1 or skipped level. A code change is not a production publishing action.
 
 ## Optional read-only first-release text intake
 
