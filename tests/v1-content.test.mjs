@@ -154,3 +154,39 @@ test("one reviewed resource can be reused across lessons but conflicting definit
   two.resources[0].title = "Conflicting worksheet";
   assert.throws(() => validatePublicCatalogue(value), /reused resource/);
 });
+
+test("mandatory catalogue build rejects unfinished or technically invalid notes on video and text lessons", () => {
+  const value = publicCatalogueFixture();
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-final-notes-"));
+  try {
+    mkdirSync(join(root, "content"));
+    const path = join(root, "content/catalogue.json");
+    const check = () => {
+      writeFileSync(path, JSON.stringify(value));
+      return checkPublicContent(root);
+    };
+    const video = value.courses[0].modules[0].lessons[0];
+    const text = value.courses[0].modules[1].lessons[0];
+    for (const lesson of [video, text]) {
+      const original = lesson.notesMarkdown;
+      for (const [source, reason] of [
+        ["## Notes\n\n**NOT EDUCATOR APPROVED**", /draft\/review warning/],
+        ["## Notes\n\nEDITORIAL DRAFT", /draft\/review warning/],
+        ["## Notes\n\nText\0here", /NUL character/],
+        ["## Notes\n\n$\\definitelyUnknownCommand{x}$", /invalid parsed math/],
+        ["## Notes\n\n$$\n\\definitelyUnknownCommand{x}\n$$", /invalid parsed math/],
+      ]) {
+        lesson.notesMarkdown = source;
+        assert.throws(check, error =>
+          reason.test(error.message) && error.message.includes("fixture-course/" + lesson.slug));
+      }
+      lesson.notesMarkdown = original;
+    }
+    video.notesMarkdown = "";
+    text.notesMarkdown = "## Notes\n\n$x^2$\n\n~~~text\n$\\definitelyUnknownCommand{x}$\n~~~";
+    assert.deepEqual(check(), value);
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).courses[0].modules[1].lessons[0].notesMarkdown, text.notesMarkdown);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
