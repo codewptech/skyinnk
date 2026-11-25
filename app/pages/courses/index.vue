@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { listPublicCourses } from "../../utils/public-catalogue";
+import { courseSyllabusLinkLabels } from "../../utils/course-link-labels";
 const courses = listPublicCourses();
+const courseLinkNames = courseSyllabusLinkLabels(courses);
 useHead({
   title: "Courses | Skyinnk",
   link: [{ rel: "canonical", href: "https://www.skyinnk.in/courses" }],
@@ -24,12 +26,12 @@ useHead({
     <h1>Explore courses</h1>
     <p>Published learning material is available without registration.</p>
     <div v-if="courses.length" class="grid">
-      <article v-for="course in courses" :key="course.key">
+      <article v-for="(course, courseIndex) in courses" :key="course.key">
         <h2>{{ course.title }}</h2>
         <p>{{ course.summary }}</p>
         <NuxtLink
           :to="`/courses/${course.slug}`"
-          :aria-label="`View syllabus: ${course.title}`"
+          :aria-label="courseLinkNames[courseIndex]"
         >
           View syllabus
         </NuxtLink>
