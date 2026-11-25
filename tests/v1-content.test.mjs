@@ -190,3 +190,48 @@ test("mandatory catalogue build rejects unfinished or technically invalid notes 
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("mandatory catalogue build enforces actual rendered heading hierarchy", () => {
+  const value = publicCatalogueFixture();
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-final-headings-"));
+  try {
+    mkdirSync(join(root, "content"));
+    const path = join(root, "content/catalogue.json");
+    const check = () => {
+      writeFileSync(path, JSON.stringify(value));
+      return checkPublicContent(root);
+    };
+    for (const module of value.courses[0].modules) {
+      const lesson = module.lessons[0];
+      const original = lesson.notesMarkdown;
+      for (const source of [
+        "# Duplicate page title\n\n## Notes",
+        "Duplicate page title\n====================\n\n## Notes",
+        "### First heading too deep\n\n## Notes",
+        "## Notes\n\n#### Skipped level",
+        "## Notes\n\n### Example\n\n# Another H1",
+      ]) {
+        lesson.notesMarkdown = source;
+        assert.throws(check, error =>
+          /rendered headings/.test(error.message) &&
+          error.message.includes("fixture-course/" + lesson.slug));
+      }
+      for (const source of [
+        "Heading-free prose remains valid.",
+        "## Notes\n\n### Example\n\n## Summary",
+        "Notes\n-----\n\n### Example",
+        "Heading-free code example:\n\n~~~markdown\n# Literal heading\n~~~",
+      ]) {
+        lesson.notesMarkdown = source;
+        assert.deepEqual(check(), value);
+      }
+      if (lesson.kind === "video") {
+        lesson.notesMarkdown = "";
+        assert.deepEqual(check(), value);
+      }
+      lesson.notesMarkdown = original;
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
