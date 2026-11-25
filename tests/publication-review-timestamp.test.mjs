@@ -69,3 +69,43 @@ test("valid leap days and ISO timezone offsets remain accepted with no publicati
   }
   assert.doesNotThrow(() => validatePublicCatalogue(publicCatalogueFixture()));
 });
+
+test("review timestamps require an explicit timezone at all publication levels", () => {
+  const missingZones = [
+    "2026-11-25T10:00",
+    "2026-11-25T10:00:00",
+    "2026-11-25T10:00:00.123",
+  ];
+  for (const timestamp of missingZones) {
+    assert.ok(Number.isFinite(Date.parse(timestamp)),
+      "native parser accepts this ambiguous local timestamp");
+    for (const level of ["course", "lesson", "resource"]) {
+      const value = publicCatalogueFixture();
+      const course = value.courses[0];
+      const lesson = course.modules[1].lessons[0];
+      const resource = {
+        key: "timezone-fixture-resource",
+        title: "Test worksheet",
+        url: "/resources/public/sample.txt",
+        type: "TXT",
+        sizeBytes: 4,
+        publication: { ...lesson.publication },
+      };
+      lesson.resources = [resource];
+      ({ course, lesson, resource })[level].publication.reviewedAt = timestamp;
+      assert.throws(() => validatePublicCatalogue(value), /ISO review timestamp/,
+        level + " must reject timezone-free metadata: " + timestamp);
+    }
+  }
+  for (const timestamp of [
+    "2026-11-25T10:00Z",
+    "2026-11-25T10:00:00.123Z",
+    "2026-11-25T10:00:00+05:30",
+    "2026-11-25T10:00:00+0530",
+    "2026-11-25T10:00:00-04:00",
+  ]) {
+    const value = publicCatalogueFixture();
+    value.courses[0].publication.reviewedAt = timestamp;
+    assert.doesNotThrow(() => validatePublicCatalogue(value));
+  }
+});

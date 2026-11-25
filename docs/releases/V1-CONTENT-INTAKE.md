@@ -39,7 +39,7 @@ For a changed file, inspect the final approved bytes again and secure fresh huma
 
 ## Release procedure
 
-The integrator transcribes approved content into `content/catalogue.json` using schemaVersion 1 and stable source keys. Course, lesson and resource publication objects require `status: published`, `visibility: public`, `reviewedBy` and ISO `reviewedAt`.
+The integrator transcribes approved content into `content/catalogue.json` using schemaVersion 1 and stable source keys. Course, lesson and resource publication objects require `status: published`, `visibility: public`, `reviewedBy` and ISO `reviewedAt` with an explicit timezone (for example, `2026-11-25T10:00:00+05:30` or the equivalent UTC timestamp `2026-11-25T04:30:00Z`). A local date/time without a timezone is ambiguous and rejected; record the actual approval instant, not the build host's timezone.
 
 These fields record a real human approval; automated tests must never invent that approval. Synthetic fixtures live only in tests or isolated temporary copies. Drafts stay outside the public catalogue and public assets.
 
