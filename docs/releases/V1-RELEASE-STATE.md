@@ -1,5 +1,26 @@
 # Skyinnk V1 — Canonical release state
 
+## Latest verified technical checkpoint — 25 November 2026
+
+**Development source baseline:** `4a2f845c1aa3d961389ca493aea76bd2b5ab14f1`; **production main:** `6bfc342e89a19b76570565854b643387d0139e90`, unchanged. Both refs re-fetched on 25 November before this documentation task. No open PRs at that checkpoint; #2, #58, #59 and #108 remain open. This describes the pre-documentation source, not any future commit or release.
+
+The ten-PR development batch #101, #91, #93, #96, #97, #99, #103, #105, #107 and #109 was integrated under the specific documented owner authorization for same-author technical COMMENT review plus CI; this is **not independent release-level assurance** and not a standing waiver. Final [Development CI 45563237254](https://github.com/codewptech/skyinnk/actions/runs/45563237254) and [routing 45563237261](https://github.com/codewptech/skyinnk/actions/runs/45563237261) job conclusions rechecked successfully. Recorded integration evidence reports 221 application tests, 30 governance tests and Prisma/types/Nuxt production build passing. Last user-facing change #105 has [hosted Chromium axe 45562574856](https://github.com/codewptech/skyinnk/actions/runs/45562574856) SUCCESS; manual assistive technology and contrast acceptance are not implied. Full batch detail: [V1 closeout](https://github.com/codewptech/skyinnk/issues/58#issuecomment-7155193729).
+
+| Area | Actual status |
+| --- | --- |
+| V1 application source | Ten-PR batch integrated; no outstanding source PR at observed baseline |
+| Publication | `content/catalogue.json` directly rechecked, zero approved courses |
+| Editorial intake | Five original Class 10 drafts in `docs/content-review/v1-class10/`; #108 open, genuine educator/rights approval missing |
+| Release-level assurance | Independent technical review, real physical device/screen reader/contrast, actual content/media and Auth0 tenant/session tests remain open |
+| Legal / operations | Verified operator, privacy/minors/consent, media rights, production readiness and separate owner release authorization outstanding |
+| Permanent SDC | #59 remains open, recorded 0/2 qualifying unattended cycles; routing success is not agent dispatch |
+| Production | Not authorized or performed; no live data or main changes |
+
+Owner's reported weekly allowance is 1%; temporary interactive HQ coverage of existing six role duties is not a replacement permanent SDC architecture, independent authenticated review, or proof of autonomous execution. No automatic worker, hosting, payment, deployment or publication authorization follows. All earlier snapshots below are retained as historical evidence; use the latest checkpoint and live GitHub for current state.
+
+---
+
+
 ## Latest verified technical acceptance — 21 November 2026
 
 **Last independently verifiable application/test baseline before this documentation-only change:** `3714ae1e8eeb9cde2d38f8a51c3763c49527861e`; [post-merge Development CI SUCCESS 44900429542](https://github.com/codewptech/skyinnk/actions/runs/44900429542). The current GitHub development ref and [global V1 milestone #58](https://github.com/codewptech/skyinnk/issues/58) remain authoritative for any later documentation-only commit. **Production `main`:** `6bfc342e89a19b76570565854b643387d0139e90`; no V1 production release or live Neon migration authorized/performed.
