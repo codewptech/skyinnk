@@ -10,18 +10,46 @@ on:
       - scripts/rehearse-v1-recovery.sh
       - scripts/check-release-authorization.mjs
       - tests/release-authorization.test.mjs
+      - Dockerfile
+      - .dockerignore
+      - server/api/v1/health.get.ts
+      - server/api/v1/ready.get.ts
+      - nuxt.config.ts
+      - prisma/**
+      - prisma.config.ts
+      - server/utils/prisma.ts
+      - package.json
+      - package-lock.json
+  push:
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/v1-recovery-rehearsal.yml
+      - scripts/rehearse-v1-recovery.sh
+      - scripts/check-release-authorization.mjs
+      - tests/release-authorization.test.mjs
+      - Dockerfile
+      - .dockerignore
+      - server/api/v1/health.get.ts
+      - server/api/v1/ready.get.ts
+      - nuxt.config.ts
+      - prisma/**
+      - prisma.config.ts
+      - server/utils/prisma.ts
+      - package.json
+      - package-lock.json
 
 permissions:
   contents: read
 
 jobs:
   rehearsal:
-    if: ${{ github.event.pull_request.number == 28 && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     name: Isolated Docker and PostgreSQL 18 recovery
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - name: Checkout exact PR candidate
+      - name: Checkout nonproduction PR candidate or integrated development
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
@@ -30,7 +58,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_EVENT_NAME" = pull_request
+          if [[ "$GITHUB_EVENT_NAME" != pull_request && "$GITHUB_EVENT_NAME" != push ]]; then exit 1; fi
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then test "$GITHUB_REF" = refs/heads/development/v1-public-launch; fi
           test "$GITHUB_REPOSITORY" = codewptech/skyinnk
           docker info >/dev/null
           test -S /var/run/docker.sock
