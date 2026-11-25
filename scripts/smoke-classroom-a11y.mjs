@@ -246,8 +246,10 @@ try {
   const smallTable = page.getByRole("region", { name: "Lesson notes table 1", exact: true });
   const wideTable = page.getByRole("region", { name: "Lesson notes table 2", exact: true });
   await wideTable.getByRole("table").waitFor();
-  assert.equal(await wideTable.getByRole("columnheader").count(), 8);
-  assert.equal(await wideTable.getByRole("cell").count(), 8);
+  const tableSnapshot = await wideTable.ariaSnapshot();
+  assert.equal(await wideTable.getByRole("columnheader").count(), 8, tableSnapshot);
+  assert.equal(await wideTable.getByRole("cell").count(), 8, tableSnapshot);
+  assert.equal(await wideTable.locator("thead th[scope=col]").count(), 8);
   await page.waitForFunction(() => {
     const targets = document.querySelectorAll(".notes-table-scroll");
     return targets.length === 2 && targets[0].tabIndex === -1 && targets[1].tabIndex === 0;

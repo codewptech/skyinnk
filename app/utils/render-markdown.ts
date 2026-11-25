@@ -86,6 +86,17 @@ markdown.renderer.rules.table_open = (tokens, index, options, environment, rende
 markdown.renderer.rules.table_close = (tokens, index, options, environment, renderer) =>
   renderTableClose(tokens, index, options, environment, renderer) + "</div>\n";
 
+// Markdown pipe-table headers always describe columns. Make that relationship
+// explicit rather than relying on browser inference for short numeric tables.
+const renderHeaderOpen =
+  markdown.renderer.rules.th_open ??
+  ((tokens, index, options, _environment, renderer) =>
+    renderer.renderToken(tokens, index, options));
+markdown.renderer.rules.th_open = (tokens, index, options, environment, renderer) => {
+  tokens[index]!.attrSet("scope", "col");
+  return renderHeaderOpen(tokens, index, options, environment, renderer);
+};
+
 
 const defaultLinkOpen =
   markdown.renderer.rules.link_open ??

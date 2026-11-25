@@ -145,7 +145,7 @@ test("tables retain native structure inside uniquely named keyboard scroll regio
   assert.match(result, /<div class="notes-table-scroll" role="region" aria-label="Lesson notes table 2" tabindex="-1"><table>/);
   assert.equal([...result.matchAll(/<\/table>\s*<\/div>/g)].length, 2);
   assert.equal([...result.matchAll(/<thead>/g)].length, 2);
-  assert.equal([...result.matchAll(/<th>/g)].length, 4);
+  assert.equal([...result.matchAll(/<th scope="col">/g)].length, 4);
   assert.equal([...result.matchAll(/<tbody>/g)].length, 2);
   assert.doesNotMatch(renderMarkdown("<div class=\"notes-table-scroll\" tabindex=\"0\">fake</div>"), /<div class="notes-table-scroll"/);
 });
