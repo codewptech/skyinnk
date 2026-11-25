@@ -7,7 +7,7 @@ import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { validatePublicCatalogue } from "../shared/public-content.ts";
-import { markdownResourcePaths, renderMarkdown } from "../app/utils/render-markdown.ts";
+import { markdownResourcePaths } from "../app/utils/render-markdown.ts";
 import { checkFinalNoteSource } from "./validate-public-content.ts";
 
 const MAX_NOTES_BYTES = 800_000;
@@ -68,13 +68,7 @@ export function prepareTextCatalogue(packet, readNotes) {
               fail("notes differ from reviewed bytes: " + lesson.notesFile);
             const notes = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
             if (!notes.trim()) fail("invalid or oversized notes");
-            checkFinalNoteSource(notes, "Reviewed text intake: " + lesson.notesFile);
-            // Validate actual rendered headings, not raw Markdown lines:
-            // Setext headings and fenced examples have different semantics.
-            const headings = [...renderMarkdown(notes).matchAll(/<h([1-6])(?:\s[^>]*)?>/g)].map(match => Number(match[1]));
-            if (headings[0] !== 2 || headings.includes(1) ||
-                headings.some((level, i) => i > 0 && level > headings[i - 1] + 1))
-              fail("notes require rendered headings starting at H2, no H1 or skipped heading level");
+            checkFinalNoteSource(notes, "Reviewed text intake: " + lesson.notesFile, true);
             if (markdownResourcePaths(notes).size)
               fail("text-only intake cannot introduce resource references");
             return {
