@@ -22,7 +22,7 @@ The Markdown lessons start at `##` beneath the webpage title, following `docs/re
 
 ## Independent curriculum-reference comparison
 
-The original draft topics have now been compared provisionally with the **official CBSE Class X 2026–27 curriculum**. This is not board approval. Read [the curriculum-alignment gap and reviewer decision register](./curriculum-alignment-2026-27.md) before a subject educator chooses what to keep, relabel or extend. The reference explicitly flags that **formal email is a supplementary skill rather than the specified CBSE formal-letter assessment; E-03 now provides a separate **unreviewed** formal-letter draft**, that the two mathematics drafts do not yet cover all graphical/quadratic-formula/discriminant outcomes, and that the reading activity is not a complete board-format unseen-passage assessment.
+The original draft topics have now been compared provisionally with the **official CBSE Class X 2026–27 curriculum**. This is not board approval. Read [the curriculum-alignment gap and reviewer decision register](./curriculum-alignment-2026-27.md) before a subject educator chooses what to keep, relabel or extend. The reference explicitly flags that **formal email is a supplementary skill rather than the specified CBSE formal-letter assessment**; E-03 now provides a separate **unreviewed** formal-letter draft, that the two mathematics drafts do not yet cover all graphical/quadratic-formula/discriminant outcomes, and that the reading activity is not a complete board-format unseen-passage assessment.
 
 ## Required independent educator and content-owner review
 
