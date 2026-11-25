@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { focusMainContent } from "../app/utils/focus-main-content.ts";
 import { runInNewContext } from "node:vm";
 import { parse, compileScript } from "@vue/compiler-sfc";
 import { createSSRApp, h, ref } from "vue";
@@ -25,7 +26,10 @@ function evaluate(source, filename, globals) {
     {
       module,
       exports: module.exports,
-      require: createRequire(import.meta.url),
+      require: (id) =>
+      id === "./utils/focus-main-content"
+        ? { focusMainContent }
+        : createRequire(import.meta.url)(id),
       ...globals,
     },
     { filename },
