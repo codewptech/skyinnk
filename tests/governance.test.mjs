@@ -327,3 +327,19 @@ test('SOFT accepts unfinished work and hard dependency cycles fail before CI pro
   const cycle = gate({ task: peaIssue(44, { integration: '#45' }), routes: { '/issues/45': dependency } });
   assert.match((await cycle.run()).join('|'), /Dependency cycle/);
 });
+
+
+test('checked-off DONE issue is a valid hard dependency only with trusted merge and push CI evidence', async () => {
+  const closed = peaIssue(45, { status: 'DONE', state: 'closed', state_reason: 'completed' });
+  closed.body = closed.body.replaceAll('- [ ]', '- [x]');
+  const upstream = mergedDependency(61, 45, claimBranch);
+  for (const dependencyKind of ['start', 'integration']) {
+    const task = peaIssue(44, { [dependencyKind]: '#45' });
+    const routes = { '/issues/45': closed, '/pulls/61': upstream };
+    assert.deepEqual(await gate({ task, oldPulls: [upstream], routes }).run(), []);
+    const failed = { ...pushRun, conclusion: 'failure' };
+    assert.match((await gate({ task, oldPulls: [upstream], routes: { ...routes, '/actions/runs/100': failed } }).run()).join('|'), /no verified development integration/);
+    const reopened = { ...closed, state: 'open' };
+    assert.match((await gate({ task, oldPulls: [upstream], routes: { ...routes, '/issues/45': reopened } }).run()).join('|'), /no verified development integration/);
+  }
+});

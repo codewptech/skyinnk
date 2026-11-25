@@ -285,3 +285,17 @@ test('malformed path metadata also blocks integration readiness despite passing 
   assert.equal(result.eligible, false);
   assert.match(result.reasons.join('|'), /Malformed affected path declaration/);
 });
+
+
+test('verified and done task packets remain valid after all acceptance boxes are checked', () => {
+  for (const state of ['VERIFIED', 'DONE']) {
+    const body = taskBody({ state, executor: 'fixture-run' }).replaceAll('- [ ]', '- [x]');
+    assert.deepEqual(validatePacket(parsePacket(body), { number: 99 }), []);
+    assert.deepEqual(validatePacket(parsePacket(body.replaceAll('- [x]', '- [X]')), { number: 99 }), []);
+    assert.match(validatePacket(parsePacket(body.replace(/^- \[x\].*$/gm, ''))).join('|'), /Missing executor, outcome or acceptance/);
+  }
+  const active = taskBody({ state: 'PR_OPEN', executor: 'fixture-run' }).replaceAll('- [ ]', '- [x]');
+  assert.match(validatePacket(parsePacket(active)).join('|'), /Missing executor, outcome or acceptance/);
+  // Historical terminal packets with open items retain their prior parsing behavior.
+  assert.deepEqual(validatePacket(parsePacket(taskBody({ state: 'DONE', executor: 'fixture-run' }))), []);
+});
