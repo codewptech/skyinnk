@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PublicModule } from "../../utils/public-catalogue";
+import { syllabusAccessibleNames } from "../../utils/syllabus-link-labels";
 
 const props = defineProps<{
   courseSlug: string;
@@ -10,6 +11,7 @@ const emit = defineEmits<{ navigate: [] }>();
 const orderedModules = computed(() =>
   [...props.modules].sort((a, b) => a.position - b.position),
 );
+const linkLabels = computed(() => syllabusAccessibleNames(props.modules));
 </script>
 
 <template>
@@ -29,7 +31,7 @@ const orderedModules = computed(() =>
         >
           <NuxtLink
             :to="`/courses/${courseSlug}/lessons/${item.slug}`"
-            :aria-label="`${item.title}, ${item.kind === 'video' ? 'Video lesson' : 'Text lesson'}`"
+            :aria-label="linkLabels.get(item.key)"
             :aria-current="item.key === lessonKey ? 'page' : undefined"
             @click="emit('navigate')"
           >
