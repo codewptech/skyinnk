@@ -137,3 +137,15 @@ test("image descriptions escape quotes and cannot inject attributes", () => {
   assert.doesNotMatch(rendered, /<script>|onerror=|onload=/);
   assert.match(rendered, /loading="lazy" decoding="async"/);
 });
+
+test("tables retain native structure inside uniquely named keyboard scroll regions", () => {
+  const source = "| A | B |\n| --- | --- |\n| 1 | 2 |\n\n| C | D |\n| --- | --- |\n| 3 | 4 |";
+  const result = renderMarkdown(source);
+  assert.match(result, /<div class="notes-table-scroll" role="region" aria-label="Lesson notes table 1" tabindex="-1"><table>/);
+  assert.match(result, /<div class="notes-table-scroll" role="region" aria-label="Lesson notes table 2" tabindex="-1"><table>/);
+  assert.equal([...result.matchAll(/<\/table>\s*<\/div>/g)].length, 2);
+  assert.equal([...result.matchAll(/<thead>/g)].length, 2);
+  assert.equal([...result.matchAll(/<th>/g)].length, 4);
+  assert.equal([...result.matchAll(/<tbody>/g)].length, 2);
+  assert.doesNotMatch(renderMarkdown("<div class=\"notes-table-scroll\" tabindex=\"0\">fake</div>"), /<div class="notes-table-scroll"/);
+});
