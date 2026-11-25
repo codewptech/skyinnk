@@ -176,7 +176,10 @@ if(p.lane==="Governance"&&p.workstream!=="Chat 01")errors.push("Governance requi
 if(!["P0","P1","P2","P3"].includes(p.priority))errors.push("Invalid priority");
 if(!["ordinary","shared-interface","sensitive-governance","release-gated"].includes(p.risk))errors.push("Invalid risk");
 if(!STATES.has(p.state))errors.push("Invalid execution state");
-if(!p.executor||!p.outcome||p.outcome.length<20||!p.acceptance.includes("- [ ]"))errors.push("Missing executor, outcome or acceptance");
+// Completed packets must remain readable as dependencies after their checklist is checked.
+const hasOpenAcceptance=p.acceptance.includes("- [ ]");
+const hasCompletedAcceptance=["VERIFIED","DONE"].includes(p.state)&&/^- \[[xX]\][ \t]+\S/m.test(p.acceptance);
+if(!p.executor||!p.outcome||p.outcome.length<20||(!hasOpenAcceptance&&!hasCompletedAcceptance))errors.push("Missing executor, outcome or acceptance");
 if(!p.depRaw||!p.external)errors.push("Missing dependencies or external approval");
 for(const type of ["START","INTEGRATION","SOFT"]){
  const matches=[...p.depRaw.matchAll(new RegExp("^\\s*-\\s*"+type+":\\s*(.*)$","gmi"))];
