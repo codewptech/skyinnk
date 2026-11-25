@@ -1,5 +1,39 @@
 # Skyinnk V1 — Canonical release state
 
+## Latest verified release checkpoint — 25 November 2026 (through PR #146)
+
+**Verified development source baseline:** `8b5e6ceb84bafa554b0ace86a7b127a56b2bd9ae`. **Production main:** `6bfc342e89a19b76570565854b643387d0139e90`, unchanged. This is the pre-documentation source baseline, not the future documentation commit. Actual postmerge [Development CI 45629176909](https://github.com/codewptech/skyinnk/actions/runs/45629176909), [SDC routing 45629177127](https://github.com/codewptech/skyinnk/actions/runs/45629177127), [Chromium 45629176931](https://github.com/codewptech/skyinnk/actions/runs/45629176931) and [WCAG audit 45629176971](https://github.com/codewptech/skyinnk/actions/runs/45629176971) all completed SUCCESS; actual job conclusions and packet log inspected.
+
+Exact development ancestry compared against prior recorded baseline `8011daa5f297e6e176c16fb50f1c9346a8ff240f`: five commits ahead, zero behind.
+
+| PR | Integrated change | Exact development commit |
+| --- | --- | --- |
+| #138 | Additive canonical release evidence refresh | `654b82f97927bf328c504db653f5a493732a9dc0` |
+| #140 | Actual rendered heading and parsed math validation for final reviewed text intake | `7816af713b78984200118807b4f33961e3fb7094` |
+| #142 | Mandatory build rejects known draft warnings, NUL, excessive length and invalid parsed math for text/video notes | `5ec5b0eb59a075ca764da0d21ecd0bba3bbee1fe` |
+| #144 | Real Chromium native dialog relationships and computed symbol contrast regression | `f289c6c0a9f9682edd716278b9da8d1ece36308a` |
+| #146 | Actual offline educator packet browser/print smoke | `8b5e6ceb84bafa554b0ace86a7b127a56b2bd9ae` |
+
+Tasks #137, #139, #141, #143 and #145 are DONE/closed following guarded merges and verified postmerge CI. Same-author technical COMMENT review under the temporary owner-directed HQ coverage is not independent release assurance.
+
+**Actual technical evidence:** [PR144 Chromium 45625795693](https://github.com/codewptech/skyinnk/actions/runs/45625795693) logged ten computed solid-color contrast checks at 375/1365px: toggle 11.69:1, play 9.69:1, current 7.79:1, other 10.02:1, hover 8.96:1 at both widths; native dialog relationships/states and existing keyboard smoke passed. Prior [axe log review](https://github.com/codewptech/skyinnk/issues/58#issuecomment-7163688623) recorded 49 scan output lines, zero reported violations, 9 ARIA and 21 contrast incomplete records; targeted browser tests strengthen evidence but do not certify real device, screen-reader or visual acceptance. Latest integrated Chromium packet log reproduced seven exact source hashes, 56 blank decision cells, 404/404 visible native MathML expressions, in-memory A4 PDF 237752 bytes, zero network requests. No page-by-page visual or physical-print inspection or educator approval implied.
+
+**Actual remaining gates at the source checkpoint (before this documentation task):**
+
+| Gate | Current state / next required evidence |
+| --- | --- |
+| Real educational publication (#108, #127) | Catalogue directly reread: schemaVersion 1, empty courses. Seven candidates unapproved. Actual named educator and rights owner decisions, final exact approved bytes, select 4–6 lessons and separate publication task. |
+| Real accessibility and content/media | Human screen reader, physical device, visual contrast, print/layout and real released-lesson/media acceptance still required. |
+| Real Auth0 | Approved existing dev tenant login/logout/session and authenticated disposable DB sync proof; no new tenant or paid service assumed. |
+| Legal/operations | Actual operator, privacy/minors/consent/rights and production operational readiness decisions remain open. |
+| Sensitive governance (#125 / PR126) | Held unmerged; prior candidate green at older base; scoped owner authorization or independent governance review required before integration, then current-base reconciliation and fresh CI. |
+| Permanent runtime (#59) | 0/2 qualifying unattended engineering cycles; interactive HQ and routing not autonomous dispatch proof. |
+| Production (#58) | Separate explicit owner authorization, release PR and rollback/monitoring checks required. No main merge, deployment, live DB migration or actual publication. |
+
+Open issues at source checkpoint: #2, #58, #59, #108, #125, #127; only PR126 open. Full technical handoff: [milestone evidence](https://github.com/codewptech/skyinnk/issues/58#issuecomment-7164590693), plus #145 postmerge closure. No new product scope, architecture, governance, dependency or approval changes in this documentation. Earlier snapshots retained verbatim below.
+
+---
+
 ## Latest verified technical checkpoint — 25 November 2026 (subsequent integration)
 
 **Verified source baseline:** `8011daa5f297e6e176c16fb50f1c9346a8ff240f` (PR #136 merged into nonproduction development). **Production main:** `6bfc342e89a19b76570565854b643387d0139e90`, unchanged. This is the pre-documentation baseline, not the SHA of this future documentation commit. [Exact development push CI 45608316853](https://github.com/codewptech/skyinnk/actions/runs/45608316853) and [routing 45608316898](https://github.com/codewptech/skyinnk/actions/runs/45608316898) completed SUCCESS. At the immediately preceding merge #134, [Development CI 45604827626](https://github.com/codewptech/skyinnk/actions/runs/45604827626), [routing 45604827594](https://github.com/codewptech/skyinnk/actions/runs/45604827594), [integrated browser 45604827604](https://github.com/codewptech/skyinnk/actions/runs/45604827604) and [WCAG audit 45604827562](https://github.com/codewptech/skyinnk/actions/runs/45604827562) all completed SUCCESS. Browser evidence is for #134, not a real released course or print/device acceptance.
