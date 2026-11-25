@@ -240,6 +240,38 @@ try {
   await page.keyboard.press("ArrowRight");
   assert.equal(await notes.evaluate(focus), true);
   await page.getByRole("tabpanel").getByText("Fixture notes marker").waitFor();
+
+  // The real lesson renderer must preserve table semantics and expose a
+  // keyboard scroll target only while a table is wider than the panel.
+  const smallTable = page.getByRole("region", { name: "Lesson notes table 1", exact: true });
+  const wideTable = page.getByRole("region", { name: "Lesson notes table 2", exact: true });
+  await wideTable.getByRole("table").waitFor();
+  const tableSnapshot = await wideTable.ariaSnapshot();
+  assert.equal(await wideTable.getByRole("columnheader").count(), 8, tableSnapshot);
+  assert.equal(await wideTable.getByRole("cell").count(), 8, tableSnapshot);
+  assert.equal(await wideTable.locator("thead th[scope=col]").count(), 8);
+  await page.waitForFunction(() => {
+    const targets = document.querySelectorAll(".notes-table-scroll");
+    return targets.length === 2 && targets[0].tabIndex === -1 && targets[1].tabIndex === 0;
+  });
+  // Reach the scroll container through the normal tab sequence.
+  await notes.focus();
+  for (let i = 0; i < 6 && !(await wideTable.evaluate(focus)); i++) await page.keyboard.press("Tab");
+  assert.equal(await wideTable.evaluate(focus), true, "Wide notes table must be keyboard reachable");
+  assert.equal(await wideTable.evaluate(node => node.matches(":focus-visible") && getComputedStyle(node).outlineStyle !== "none"), true);
+  await page.keyboard.press("ArrowRight");
+  await page.waitForFunction(() => document.querySelectorAll(".notes-table-scroll")[1].scrollLeft > 0);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
+  await page.setViewportSize({ width: 1365, height: 900 });
+  await page.waitForFunction(() => {
+    const targets = document.querySelectorAll(".notes-table-scroll");
+    return targets[0]?.tabIndex === -1 && targets[1]?.tabIndex === -1;
+  });
+  assert.equal(await smallTable.getByRole("table").count(), 1);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.waitForFunction(() => document.querySelectorAll(".notes-table-scroll")[1]?.tabIndex === 0);
+  await notes.focus();
+  console.log("PASS native notes tables, keyboard scrolling and resize-aware tab order");
   await page.keyboard.press("End");
   const resources = page.getByRole("tab", { name: "Resources" });
   assert.equal(await resources.evaluate(focus), true);
