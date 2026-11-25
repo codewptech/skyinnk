@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolve } from "node:path";
-import { renderMarkdown, markdownResourcePaths } from "../app/utils/render-markdown.ts";
+import { renderMarkdown, markdownResourcePaths, validateMarkdownMath } from "../app/utils/render-markdown.ts";
 
 export const candidates = Object.freeze([
   { id: "M-01", file: "math-01-pair-of-linear-equations.md", math: true },
@@ -33,6 +33,8 @@ export function checkDraftRendering(candidate, source) {
     issues.push("Learning outcomes or final review section missing");
   if (/<(?:script|iframe|object|embed)\b/i.test(html)) issues.push("Active element rendered");
   if (/\bclass="[^"]*\bkatex-error\b/i.test(html)) issues.push("KaTeX reported an expression error");
+  const syntax = validateMarkdownMath(source);
+  issues.push(...syntax.errors);
   const math = count(html, /<math\b/g);
   if (candidate.math && !math) issues.push("Mathematics manuscript has no rendered MathML");
   const tables = count(html, /<table>/g);
@@ -42,7 +44,7 @@ export function checkDraftRendering(candidate, source) {
   if (tables !== regions || headers !== scoped) issues.push("Native table wrapper or column scope missing");
   if (markdownResourcePaths(source).size || /<img\b/i.test(html))
     issues.push("Draft requires separate media/resource verification");
-  return { id: candidate.id, headings: headings.length, math, tables, headers, issues };
+  return { id: candidate.id, headings: headings.length, math, parsedMath: syntax.count, tables, headers, issues };
 }
 
 export function checkAllDrafts(root = fileURLToPath(new URL("../docs/content-review/v1-class10/", import.meta.url))) {
