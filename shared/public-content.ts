@@ -278,3 +278,51 @@ export function validatePublicCatalogue(value: unknown): PublicCatalogue {
   }
   return value as unknown as PublicCatalogue;
 }
+
+/** Learner-facing data; source approval evidence stays in the reviewed manifest. */
+export type LearnerResource = Omit<PublicResource, "publication" | "sha256">;
+export type LearnerLesson = Omit<PublicLesson, "publication" | "resources"> & {
+  resources?: LearnerResource[];
+};
+export type LearnerModule = Omit<PublicModule, "lessons"> & {
+  lessons: LearnerLesson[];
+};
+export type LearnerCourse = Omit<PublicCourse, "publication" | "modules"> & {
+  modules: LearnerModule[];
+};
+
+/** Validate first, then copy only explicitly learner-facing fields. */
+export function projectLearnerCourses(value: unknown): LearnerCourse[] {
+  return validatePublicCatalogue(value).courses.map((course) => ({
+    key: course.key,
+    slug: course.slug,
+    title: course.title,
+    summary: course.summary,
+    audience: course.audience,
+    subject: course.subject,
+    modules: course.modules.map((module) => ({
+      key: module.key,
+      title: module.title,
+      position: module.position,
+      lessons: module.lessons.map((lesson) => ({
+        key: lesson.key,
+        slug: lesson.slug,
+        title: lesson.title,
+        position: lesson.position,
+        kind: lesson.kind,
+        overview: lesson.overview,
+        notesMarkdown: lesson.notesMarkdown,
+        ...(lesson.video ? { video: { provider: lesson.video.provider, publicId: lesson.video.publicId } } : {}),
+        ...(lesson.resources ? {
+          resources: lesson.resources.map((resource) => ({
+            key: resource.key,
+            title: resource.title,
+            url: resource.url,
+            type: resource.type,
+            sizeBytes: resource.sizeBytes,
+          })),
+        } : {}),
+      })),
+    })),
+  }));
+}

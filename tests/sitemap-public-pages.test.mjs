@@ -36,10 +36,8 @@ function executeActualSitemap(courses) {
     module,
     exports: module.exports,
     require(specifier) {
-      if (specifier.endsWith("/app/utils/public-catalogue")) return {
-        listPublicCourses: () => courses,
-        orderedPublicLessons: (course) => course.modules
-          .flatMap((item) => item.lessons),
+      if (specifier.endsWith("/utils/public-catalogue-source.ts")) return {
+        listSourceCourses: () => courses,
       };
       return localRequire(specifier);
     },
