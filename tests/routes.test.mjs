@@ -117,6 +117,22 @@ test("public legal pages render semantic content, home navigation and canonical 
   }
 });
 
+test("V1 legal pages describe guest learning and conditional third-party services", async () => {
+  const privacy = await renderPage("privacy-policy");
+  const terms = await renderPage("terms-of-service");
+  for (const page of [privacy, terms]) {
+    assert.doesNotMatch(page.html, /coming-soon website/i);
+    assert.match(page.html, /course catalogue/i);
+    assert.match(page.html, /without (?:creating an account|registration)/i);
+  }
+  assert.match(privacy.html, /disabled by default/i);
+  assert.match(privacy.html, /When website analytics is enabled and the relevant tags are configured/i);
+  assert.match(privacy.html, /Optional lesson videos/i);
+  assert.match(privacy.html, /only when you choose to/i);
+  assert.match(privacy.html, /YouTube/);
+  assert.match(terms.html, /does not\s+guarantee enrollment, paid access/i);
+});
+
 test("analytics is opt-in, validates its public identifier and schedules only one credential-free startup", () => {
   const filename = "app/plugins/gtm.client.ts";
   const source = readFileSync(
