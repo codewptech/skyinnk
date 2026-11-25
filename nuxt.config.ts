@@ -1,5 +1,7 @@
 import { checkPublicContent } from "./scripts/validate-public-content";
-checkPublicContent();
+import { projectLearnerCourses } from "./shared/public-content";
+
+const learnerCourses = projectLearnerCourses(checkPublicContent());
 
 const immutableBuildAssets = new Set<string>();
 
@@ -9,6 +11,9 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ["@auth0/auth0-nuxt"],
   auth0: { ssrUser: false },
+  vite: {
+    define: { __SKYINNK_LEARNER_COURSES__: JSON.stringify(learnerCourses) },
+  },
   routeRules: {
     "/**": { cache: false },
     "/resources/public/**": { headers: { "x-content-type-options": "nosniff" } },

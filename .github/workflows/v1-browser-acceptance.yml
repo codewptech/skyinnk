@@ -17,6 +17,9 @@ on:
       - scripts/smoke-v1.mjs
       - scripts/smoke-course-discovery.mjs
       - scripts/smoke-classroom-a11y.mjs
+      - scripts/smoke-public-api-contract.mjs
+      - server/utils/public-catalogue-source.ts
+      - server/utils/public-course-read.ts
       - nuxt.config.ts
       - package.json
       - package-lock.json
@@ -35,6 +38,9 @@ on:
       - scripts/smoke-v1.mjs
       - scripts/smoke-course-discovery.mjs
       - scripts/smoke-classroom-a11y.mjs
+      - scripts/smoke-public-api-contract.mjs
+      - server/utils/public-catalogue-source.ts
+      - server/utils/public-course-read.ts
       - nuxt.config.ts
       - package.json
       - package-lock.json
@@ -116,6 +122,7 @@ jobs:
           if [ "$ready" != 1 ]; then cat "$artifacts/controller.log"; exit 1; fi
           node scripts/smoke-course-discovery.mjs http://127.0.0.1:4319 "$artifacts/fixture-parameters.json"
           node scripts/smoke-classroom-a11y.mjs http://127.0.0.1:4319
+          node scripts/smoke-public-api-contract.mjs --port 4319
           node --input-type=module <<'EOF'
           import assert from 'node:assert/strict';
           import { createHash } from 'node:crypto';

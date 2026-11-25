@@ -111,6 +111,7 @@ try {
     );
     for (const [index, path] of paths.entries()) {
       const { html } = await response(path);
+      if (fixture.reviewerMarker) assert.ok(!html.includes(fixture.reviewerMarker), "Reviewer evidence in rendered HTML");
       const heading = html
         .match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)?.[1]
         ?.replace(/<[^>]*>/g, "")
@@ -346,7 +347,7 @@ async function runIsolatedFixture() {
   const testReview = {
     status: "published",
     visibility: "public",
-    reviewedBy: "AUTOMATED TEST FIXTURE ONLY",
+    reviewedBy: "SKYINNK_TEST_REVIEWER_METADATA_ONLY_7D4A",
     reviewedAt: "2026-11-11T00:00:00.000Z",
   };
   const resourceBytes = "AUTOMATED TEST FIXTURE. Not educational content.\n";
@@ -505,9 +506,26 @@ async function runIsolatedFixture() {
         lessonTitles,
         notesMarker: "Fixture notes marker",
         resourcePath: "/resources/public/fixture.txt",
+        reviewerMarker: testReview.reviewedBy,
       }),
     );
     await run("npm", ["run", "build"], "fixture-build.log");
+    // Inspect actual generated public assets for a unique source-only marker.
+    const reviewBytes = Buffer.from(testReview.reviewedBy);
+    async function checkAssets(folder) {
+      let checked = 0;
+      for (const entry of await readdir(folder, { withFileTypes: true })) {
+        const path = join(folder, entry.name);
+        if (entry.isDirectory()) checked += await checkAssets(path);
+        else if (entry.isFile()) {
+          assert.ok(!(await readFile(path)).includes(reviewBytes), "Reviewer evidence in public build asset: " + entry.name);
+          checked++;
+        }
+      }
+      return checked;
+    }
+    assert.ok((await checkAssets(join(directory, ".output/public"))) > 0, "No browser build assets scanned");
+    console.log("PASS reviewer source marker absent from actual public build assets");
     server = spawn(process.execPath, [".output/server/index.mjs"], {
       cwd: directory,
       env,
