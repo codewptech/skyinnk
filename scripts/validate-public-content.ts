@@ -8,7 +8,7 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, join, sep } from "node:path";
-import { markdownResourcePaths, validateMarkdownMath } from "../app/utils/render-markdown.ts";
+import { markdownResourcePaths, renderMarkdown, validateMarkdownMath } from "../app/utils/render-markdown.ts";
 import {
   validatePublicCatalogue,
   type PublicCatalogue,
@@ -49,11 +49,26 @@ function matchesResourceFormat(bytes: Buffer, type: string): boolean {
   }
 }
 
+/** Actual rendered headings, not raw Markdown markers in literal code.
+ * Direct notes may be heading-free; first-release text intake requires H2.
+ */
+export function checkNoteHeadingHierarchy(
+  source: string, context: string, requireHeadings = false,
+): void {
+  const headings = [...renderMarkdown(source).matchAll(/<h([1-6])(?:\s[^>]*)?>/g)]
+    .map(match => Number(match[1]));
+  if ((requireHeadings || headings.length > 0) &&
+      (headings[0] !== 2 || headings.includes(1) ||
+       headings.some((level, i) => i > 0 && level > headings[i - 1]! + 1))) {
+    throw new Error(context + ": notes require rendered headings starting at H2, no H1 or skipped heading level");
+  }
+}
+
 /** Shared technical checks for final notes, including direct catalogue edits.
  * Blank notes are allowed here for video lessons; text intake/schema require text.
  * This is not an educator approval or a semantic mathematical assessment.
  */
-export function checkFinalNoteSource(source: string, context: string): void {
+export function checkFinalNoteSource(source: string, context: string, requireHeadings = false): void {
   if (source.length > 200_000)
     throw new Error(context + ": Lesson notes exceed renderer limit");
   if (source.includes("\0"))
@@ -63,6 +78,7 @@ export function checkFinalNoteSource(source: string, context: string): void {
   const math = validateMarkdownMath(source);
   if (math.errors.length)
     throw new Error(context + ": invalid parsed math in final notes: " + math.errors.join("; "));
+  checkNoteHeadingHierarchy(source, context, requireHeadings);
 }
 
 /** Validate actual build inputs; no runtime draft switch or filesystem URL lookup. */
