@@ -1,5 +1,33 @@
 # Skyinnk V1 — Canonical release state
 
+## Verified engineering closeout and external acceptance handoff — 25 November 2026
+
+**Verified source baseline:** `e7184461168c15fa36436acfe35f5e1647cefaca`; production main `6bfc342e89a19b76570565854b643387d0139e90`, unchanged. This is the source baseline before this documentation update. Zero open PRs and five open issues (#2, #58, #59, #108, #127) at that checkpoint. Catalogue reread directly at this revision: schemaVersion 1, empty courses.
+
+Two subsequent integrations since the previous source checkpoint `8b5e6ceb84bafa554b0ace86a7b127a56b2bd9ae` were verified in actual development ancestry:
+
+| PR | Integrated commit | Postmerge evidence |
+| --- | --- | --- |
+| #148, canonical evidence reconciliation | `068c03535a10812bde99744695940d90aef63878` | [CI 45633671793](https://github.com/codewptech/skyinnk/actions/runs/45633671793), [routing 45633671758](https://github.com/codewptech/skyinnk/actions/runs/45633671758) SUCCESS; #147 closed |
+| #126, completed acceptance packet dependency parsing | `e7184461168c15fa36436acfe35f5e1647cefaca` | [CI 45638030507](https://github.com/codewptech/skyinnk/actions/runs/45638030507), [routing 45638030404](https://github.com/codewptech/skyinnk/actions/runs/45638030404) SUCCESS; #125 DONE/closed, all four criteria checked |
+
+The owner specifically authorized PR126 for non-production development integration. Exact reconciled four-file candidate `26c8cbf6e38f8dce45aa8bde5c8bdbf6d78fda87` passed [candidate CI 45637486579](https://github.com/codewptech/skyinnk/actions/runs/45637486579) and [routing 45637486245](https://github.com/codewptech/skyinnk/actions/runs/45637486245); advisory COMMENT6059794601 is not independent assurance. Actual postmerge logs pass the fully checked terminal-packet test and the hard dependency test requiring trusted merge and push CI evidence. The previous sensitive-governance hold below is historical and superseded; no general governance waiver, production permission or unattended activation.
+
+### Outstanding acceptance receipts (not additional assumed implementation)
+
+| Gate | Concrete evidence required before acceptance |
+| --- | --- |
+| Educator and rights, #108/#127 | [Five pinned drafts](https://github.com/codewptech/skyinnk/issues/108#issuecomment-7165247254) and [two additional mathematics drafts](https://github.com/codewptech/skyinnk/issues/127#issuecomment-7165248239). Use [educator packet exporter](../content-review/v1-class10/EDUCATOR-REVIEW-EXPORT.md); real qualified reviewer selects 4–6 lessons, verifies scope/answers/rights and records actual decision, reviewer identity/role, timezone timestamp and final SHA-256. Follow [content intake](V1-CONTENT-INTAKE.md) on a separate publication task; no synthetic approval. |
+| Existing Auth0 development app | Record exact source SHA, approved non-production origin, test browser and disposable PG18 instance; verify actual Universal Login callback, reload/session persistence, successful authenticated POST /api/v1/auth/sync and stable subject row, logout and rejection without a session. Record only redacted outcomes, never credentials, cookies or personal profile data. Existing [sync runbook](../auth0-user-sync.md); prior owner login/logout observation is not complete acceptance. No new tenant or live database. |
+| Human accessibility and content/media | Record actual device/OS/browser/screen reader, keyboard and touch navigation, focus/dialog/lesson transitions, notes tables and math, readable print and genuine selected lesson/media behavior; attach redacted results and correction list. Automated browser/axe/print generation below is not this evidence. |
+| Legal and operations | Actual operator/controller identity, working privacy contact, applicable age/minors/consent requirements, verified rights, retention/deletion and provider/analytics/consent behavior, monitored ingress/readiness and rollback plan. [Legal review](../analytics-and-legal.md), [recovery proposal and rehearsal](V1-RELEASE-SAFETY.md); responsible owner/reviewer must approve real facts. Do not use production for a test without authorization. |
+| Permanent SDC, #59 | Genuine original-role trigger/assignment ACK, authorized source write/test/PR from an unattended run, independent review, guarded integration and next eligible task pickup; 0/2 qualifying full cycles recorded. Interactive HQ, routing and prior read-only Work event receipts are not substitutes. No automatic activation or new paid service inferred. |
+| Global release, #58 | Actual accepted content and all applicable external evidence; independent release assurance; exact release candidate and explicit owner production authorization. No main merge, deployment or live DB migration performed. |
+
+No further demonstrated routine product-source defect was established in this closeout. Prefer obtaining genuine external receipts or addressing a concrete new finding to creating speculative changes or repeated status-only PRs. [Milestone evidence](https://github.com/codewptech/skyinnk/issues/58#issuecomment-7166055700). Earlier source checkpoints retained verbatim below.
+
+---
+
 ## Latest verified release checkpoint — 25 November 2026 (through PR #146)
 
 **Verified development source baseline:** `8b5e6ceb84bafa554b0ace86a7b127a56b2bd9ae`. **Production main:** `6bfc342e89a19b76570565854b643387d0139e90`, unchanged. This is the pre-documentation source baseline, not the future documentation commit. Actual postmerge [Development CI 45629176909](https://github.com/codewptech/skyinnk/actions/runs/45629176909), [SDC routing 45629177127](https://github.com/codewptech/skyinnk/actions/runs/45629177127), [Chromium 45629176931](https://github.com/codewptech/skyinnk/actions/runs/45629176931) and [WCAG audit 45629176971](https://github.com/codewptech/skyinnk/actions/runs/45629176971) all completed SUCCESS; actual job conclusions and packet log inspected.
