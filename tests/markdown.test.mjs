@@ -95,3 +95,45 @@ test("untrusted TeX cannot create links/images or leak macros between expression
   assert.doesNotMatch(renderMarkdown("$\\skyinnkSecret$"), /secret-macro/);
   assert.match(renderMarkdown("x".repeat(200_001)), /too long to display/);
 });
+
+test("reviewed image alt text reads inline emphasis and code without Markdown punctuation", () => {
+  const html = renderMarkdown(
+    '![**Triangle** and `x < y` & **angle**](/resources/public/triangle.png "Diagram")',
+  );
+  assert.match(html, /<img src="\/resources\/public\/triangle\.png"/);
+  assert.match(html, /alt="Triangle and x &lt; y &amp; angle"/);
+  assert.doesNotMatch(html, /\*\*Triangle\*\*/);
+  assert.match(html, /title="Diagram" loading="lazy" decoding="async"/);
+});
+
+test("unavailable images display escaped readable alt without fetching disallowed types", () => {
+  for (const path of [
+    "/resources/public/example.gif",
+    "/resources/public/example.avif",
+    "/resources/public/example.svg",
+    "https://tracker.invalid/pixel.png",
+  ]) {
+    assert.equal(isSafeMarkdownImage(path), false);
+    const html = renderMarkdown("![**Area** and `x < y`](" + path + ")");
+    assert.doesNotMatch(html, /<img\b/);
+    assert.match(html, /<span class="image-unavailable">Area and x &lt; y<\/span>/);
+  }
+  for (const path of [
+    "/resources/public/picture.png",
+    "/resources/public/picture.jpg",
+    "/resources/public/picture.jpeg",
+    "/resources/public/picture.webp",
+  ]) {
+    assert.equal(isSafeMarkdownImage(path), true);
+    assert.match(renderMarkdown("![Image](" + path + ")"), /<img\b/);
+  }
+});
+
+test("image descriptions escape quotes and cannot inject attributes", () => {
+  const rendered = renderMarkdown(
+    '![A "diagram" & <script>bad</script>](/resources/public/picture.webp)',
+  );
+  assert.match(rendered, /alt="A &quot;diagram&quot; &amp; /);
+  assert.doesNotMatch(rendered, /<script>|onerror=|onload=/);
+  assert.match(rendered, /loading="lazy" decoding="async"/);
+});

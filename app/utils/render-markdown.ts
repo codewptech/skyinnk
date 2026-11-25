@@ -37,7 +37,7 @@ export function isSafeMarkdownImage(value: string): boolean {
     return false;
   }
   return (
-    /^\/resources\/public\/[a-zA-Z0-9_./-]+\.(?:png|jpe?g|webp|gif|avif)$/i.test(
+    /^\/resources\/public\/[a-zA-Z0-9_./-]+\.(?:png|jpe?g|webp)$/i.test(
       decoded,
     ) && !decoded.split("/").some((part) => part === "." || part === "..")
   );
@@ -83,10 +83,29 @@ markdown.renderer.rules.link_open = (
   return defaultLinkOpen(tokens, index, options, environment, renderer);
 };
 
+type InlineToken = NonNullable<ReturnType<typeof markdown.parse>[number]["children"]>[number];
+
+/** Strip inline syntax from image descriptions, including formatted and code text. */
+function plainImageLabel(tokens: readonly InlineToken[]): string {
+  let result = "";
+  for (const token of tokens) {
+    if (token.type === "text" || token.type === "code_inline" || token.type === "math_inline") {
+      result += token.content;
+    } else if (token.type === "softbreak" || token.type === "hardbreak") {
+      result += " ";
+    } else if (token.children?.length) {
+      result += plainImageLabel(token.children);
+    }
+  }
+  return result;
+}
+
 markdown.renderer.rules.image = (tokens, index) => {
   const token = tokens[index]!;
   const source = String(token.attrGet("src") ?? "");
-  const alt = markdown.utils.escapeHtml(token.content);
+  // Only text/code and line-break meaning should reach an accessible name.
+  // Escape it once for the HTML attribute; reject raw HTML and remote images.
+  const alt = markdown.utils.escapeHtml(plainImageLabel(token.children ?? []));
   if (!isSafeMarkdownImage(source))
     return `<span class="image-unavailable">${alt}</span>`;
   const title = String(token.attrGet("title") ?? "");
