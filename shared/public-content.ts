@@ -72,7 +72,8 @@ function text(value: unknown, context: string) {
 /** Date.parse normalizes invalid dates (for example February 30) into another day. */
 function validReviewTimestamp(value: unknown): boolean {
   if (typeof value !== "string") return false;
-  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(value);
+  // A review must identify an unambiguous instant, not the build host's local time.
+  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:[Zz]|[+-]\d{2}:?\d{2})$/.exec(value);
   if (!parts || !Number.isFinite(Date.parse(value))) return false;
   const year = Number(parts[1]);
   const month = Number(parts[2]);
