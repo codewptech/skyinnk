@@ -1,14 +1,40 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import "katex/dist/katex.min.css";
 import { renderMarkdown } from "../utils/render-markdown";
 
 const props = defineProps<{ source: string }>();
 const html = computed(() => renderMarkdown(props.source));
+const root = ref<HTMLElement>();
+let observer: ResizeObserver | undefined;
+
+function updateScrollTargets() {
+  for (const target of root.value?.querySelectorAll<HTMLElement>(".notes-table-scroll") ?? []) {
+    // Hidden tab panels have zero width. Observe again when they become visible.
+    target.tabIndex = target.clientWidth > 0 && target.scrollWidth > target.clientWidth + 1 ? 0 : -1;
+  }
+}
+function observeTables() {
+  if (!observer || !root.value) return;
+  observer.disconnect();
+  observer.observe(root.value);
+  for (const target of root.value.querySelectorAll<HTMLElement>(".notes-table-scroll")) {
+    observer.observe(target);
+    const table = target.querySelector("table");
+    if (table) observer.observe(table);
+  }
+  updateScrollTargets();
+}
+onMounted(() => {
+  observer = new ResizeObserver(updateScrollTargets);
+  observeTables();
+});
+watch(html, observeTables, { flush: "post" });
+onBeforeUnmount(() => observer?.disconnect());
 </script>
 
 <template>
-  <div class="markdown-notes" v-html="html" />
+  <div ref="root" class="markdown-notes" v-html="html" />
 </template>
 
 <style scoped>
@@ -53,15 +79,23 @@ const html = computed(() => renderMarkdown(props.source));
 .markdown-notes :deep(pre code) {
   padding: 0;
 }
-.markdown-notes :deep(table) {
-  display: block;
+.markdown-notes :deep(.notes-table-scroll) {
   max-width: 100%;
   overflow-x: auto;
+  margin-block: 1rem;
+}
+.markdown-notes :deep(.notes-table-scroll:focus-visible) {
+  outline: 2px solid #164b96;
+  outline-offset: -2px;
+}
+.markdown-notes :deep(table) {
+  width: 100%;
   border-collapse: collapse;
 }
 .markdown-notes :deep(th),
 .markdown-notes :deep(td) {
   border: 1px solid #cad5e4;
+  min-width: 5rem;
   padding: 0.5rem 0.8rem;
   text-align: left;
 }

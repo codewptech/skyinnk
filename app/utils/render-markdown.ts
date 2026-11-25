@@ -43,13 +43,14 @@ export function isSafeMarkdownImage(value: string): boolean {
   );
 }
 
-function renderMath(source: string, displayMode: boolean): string {
+function renderMath(source: string, displayMode: boolean, throwOnError = false): string {
   if (source.length > MAX_MATH_LENGTH) {
+    if (throwOnError) throw new Error("Math expression exceeds renderer length limit");
     return `<code>${markdown.utils.escapeHtml(source)}</code>`;
   }
   return katex.renderToString(source, {
     displayMode,
-    throwOnError: false,
+    throwOnError,
     trust: false,
     strict: "ignore",
     maxExpand: 1_000,
@@ -67,6 +68,36 @@ const markdown = new MarkdownIt({
   maxNesting: 30,
 });
 markdown.validateLink = isSafeMarkdownLink;
+
+// Keep the actual table element and its native accessibility semantics.
+// Only our renderer creates these attributes; source HTML remains disabled.
+const renderTableOpen =
+  markdown.renderer.rules.table_open ??
+  ((tokens, index, options, _environment, renderer) =>
+    renderer.renderToken(tokens, index, options));
+const renderTableClose =
+  markdown.renderer.rules.table_close ??
+  ((tokens, index, options, _environment, renderer) =>
+    renderer.renderToken(tokens, index, options));
+markdown.renderer.rules.table_open = (tokens, index, options, environment, renderer) => {
+  const number = tokens.slice(0, index + 1).filter(token => token.type === "table_open").length;
+  return `<div class="notes-table-scroll" role="region" aria-label="Lesson notes table ${number}" tabindex="-1">` +
+    renderTableOpen(tokens, index, options, environment, renderer);
+};
+markdown.renderer.rules.table_close = (tokens, index, options, environment, renderer) =>
+  renderTableClose(tokens, index, options, environment, renderer) + "</div>\n";
+
+// Markdown pipe-table headers always describe columns. Make that relationship
+// explicit rather than relying on browser inference for short numeric tables.
+const renderHeaderOpen =
+  markdown.renderer.rules.th_open ??
+  ((tokens, index, options, _environment, renderer) =>
+    renderer.renderToken(tokens, index, options));
+markdown.renderer.rules.th_open = (tokens, index, options, environment, renderer) => {
+  tokens[index]!.attrSet("scope", "col");
+  return renderHeaderOpen(tokens, index, options, environment, renderer);
+};
+
 
 const defaultLinkOpen =
   markdown.renderer.rules.link_open ??
@@ -221,4 +252,28 @@ export function markdownResourcePaths(source: string): Set<string> {
   };
   walk(markdown.parse(source, {}));
   return paths;
+}
+
+/** Editorial preflight: validate the same parsed math tokens with strict error
+ * reporting, without changing the learner renderer's graceful fallback. */
+export function validateMarkdownMath(source: string): { count: number; errors: string[] } {
+  if (source.length > MAX_SOURCE_LENGTH)
+    return { count: 0, errors: ["Notes exceed renderer length limit"] };
+  let count = 0;
+  const errors: string[] = [];
+  const walk = (tokens: ReturnType<typeof markdown.parse>) => {
+    for (const token of tokens) {
+      if (["math_inline", "math_display", "math_block"].includes(token.type)) {
+        count++;
+        try {
+          renderMath(token.content, token.type !== "math_inline", true);
+        } catch {
+          errors.push(`KaTeX expression ${count} rejected or exceeds renderer limits`);
+        }
+      }
+      if (token.children) walk(token.children);
+    }
+  };
+  walk(markdown.parse(source, {}));
+  return { count, errors };
 }
