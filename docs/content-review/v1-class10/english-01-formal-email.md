@@ -1,6 +1,6 @@
 ## Learning outcomes
 
-> **Editorial scope note — NOT EDUCATOR APPROVED:** This original draft teaches **formal email** as a general communication skill. The CBSE Class X English Language & Literature 2026–27 writing assessment specifies a **formal letter**, not an email. A qualified educator must decide whether to retain this as supplementary communication teaching or separately author and approve a formal-letter lesson. This email example is **not** a CBSE board-exam formal-letter model.
+> **Editorial scope note — NOT EDUCATOR APPROVED:** This original draft teaches **formal email** as a general communication skill. The CBSE Class X English Language & Literature 2026–27 writing assessment specifies a **formal letter**, not an email. A qualified educator must decide whether to retain this as supplementary communication teaching. A separate original formal-letter draft (E-03) is already available for educator review, but it is not approved. This email example is **not** a CBSE board-exam formal-letter model.
 
 After this lesson, you should be able to:
 
@@ -46,7 +46,7 @@ Dear Activities Coordinator,
 
 I am writing on behalf of our Class 10 reading club to request permission to hold a 40-minute reading session in the library hall next Thursday after school.
 
-We expect around twenty students to participate. The session will include short readings from original student writing and a brief discussion. We will bring our materials, arrange the chairs with staff guidance and leave the hall tidy afterwards.
+We expect around twenty students to participate. The session will include short readings from original student writing and a brief discussion. We will bring our materials, arrange the chairs with staff guidance and leave the hall tidy afterwards. We will keep the discussion quiet so that other library users can continue reading without disturbance.
 
 Please let us know whether the hall is available at that time or whether another slot would be more suitable.
 
@@ -104,12 +104,12 @@ Notice the missing purpose, vague timing, demanding tone and absent detail about
 
 ## Practice: write independently
 
-1. Write a formal email of approximately **100–120 words** requesting permission to organise a class reading session. Include a clear subject, audience, approximate number of participants, planned activity and a polite request for confirmation. Treat every detail as part of a fictional exercise.
+1. Write a formal email of approximately **100–120 words** (main message, excluding subject, greeting and closing) requesting permission to organise a class reading session. Include a clear subject, audience, approximate number of participants, planned activity and a polite request for confirmation. Treat every detail as part of a fictional exercise.
 2. Rewrite this sentence in a respectful, clear way: “We have to use the auditorium tomorrow, so arrange it.”
 3. Choose the more useful subject line and explain why:
    - (a) “Important”
    - (b) “Request for Permission to Hold a Reading Session”
-4. Your assignment may be delayed because of an unexpected family commitment. Draft a **70–90 word** email asking your teacher whether a short extension is possible. Explain the situation briefly, propose a realistic new date and ask respectfully; do not presume the extension is approved.
+4. Your assignment may be delayed because of an unexpected family commitment. Draft a **70–90-word** email asking your teacher whether a short extension is possible. Explain the situation briefly, propose a realistic new date and ask respectfully; do not presume the extension is approved.
 5. Read your email aloud. Remove two unnecessary words or repeated ideas without losing an important fact.
 
 ## Sample responses and self-check
