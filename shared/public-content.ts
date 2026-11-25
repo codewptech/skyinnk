@@ -69,6 +69,25 @@ function text(value: unknown, context: string) {
     `${context} is required`,
   );
 }
+/** Date.parse normalizes invalid dates (for example February 30) into another day. */
+function validReviewTimestamp(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(value);
+  if (!parts || !Number.isFinite(Date.parse(value))) return false;
+  const year = Number(parts[1]);
+  const month = Number(parts[2]);
+  const day = Number(parts[3]);
+  // Date.parse also permits 24:00:00, silently rolling into the next day.
+  const hour = Number(parts[4]);
+  const minute = Number(parts[5]);
+  const second = parts[6] === undefined ? 0 : Number(parts[6]);
+  if (hour > 23 || minute > 59 || second > 59) return false;
+  if (month < 1 || month > 12) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day >= 1 && day <= days[month - 1]!;
+}
+
 function publication(value: unknown, context: string) {
   record(
     value,
@@ -81,9 +100,7 @@ function publication(value: unknown, context: string) {
   );
   text(value.reviewedBy, `${context}.reviewedBy`);
   ensure(
-    typeof value.reviewedAt === "string" &&
-      /^\d{4}-\d\d-\d\dT/.test(value.reviewedAt) &&
-      Number.isFinite(Date.parse(value.reviewedAt)),
+    validReviewTimestamp(value.reviewedAt),
     `${context} needs an ISO review timestamp`,
   );
 }
