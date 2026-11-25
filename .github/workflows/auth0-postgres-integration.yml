@@ -8,18 +8,31 @@ on:
     paths:
       - .github/workflows/auth0-postgres-integration.yml
       - tests/auth0-postgres.integration.mjs
+      - server/utils/auth0-user.ts
+      - prisma/**
+      - prisma.config.ts
+      - server/utils/prisma.ts
+      - package.json
+      - package-lock.json
   push:
     branches:
       - development/v1-public-launch
     paths:
       - .github/workflows/auth0-postgres-integration.yml
+      - tests/auth0-postgres.integration.mjs
+      - server/utils/auth0-user.ts
+      - prisma/**
+      - prisma.config.ts
+      - server/utils/prisma.ts
+      - package.json
+      - package-lock.json
 
 permissions:
   contents: read
 
 jobs:
   disposable-pg:
-    if: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'chat03/task-auth0-postgres-concurrency') }}
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
     name: Real concurrent Auth0 sync on disposable PostgreSQL 18
     runs-on: ubuntu-24.04
     timeout-minutes: 15
