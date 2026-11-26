@@ -222,12 +222,14 @@ export function validatePublicCatalogue(value: unknown): PublicCatalogue {
         }
         if (lesson.resources !== undefined) {
           ensure(Array.isArray(lesson.resources), "resources must be an array");
+          const lessonResourceKeys = new Set<string>();
           for (const resource of lesson.resources) {
             record(
               resource,
               ["key", "title", "url", "type", "sizeBytes", "sha256", "publication"],
               "resource",
             );
+            unique(resource.key, lessonResourceKeys, "lesson resource key");
             text(resource.title, "resource.title");
             ensure(
               typeof resource.url === "string" && publicPath.test(resource.url),
