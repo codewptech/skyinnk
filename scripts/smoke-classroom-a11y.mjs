@@ -298,8 +298,41 @@ async function checkBlockedVideo(width) {
   }
 }
 
+async function checkResourceTouchTargets(width) {
+  const page = await browser.newPage({ viewport: { width, height: 900 }, hasTouch: width <= 375 });
+  try {
+    await page.route("**/*", route => new URL(route.request().url()).origin === base.origin ? route.continue() : route.abort());
+    await page.goto(new URL(lesson, base).href);
+    const resources = page.getByRole("tab", { name: "Resources" });
+    await resources.click();
+    const panel = page.getByRole("tabpanel");
+    const preview = panel.getByRole("link", { name: /^Preview.*Fixture text resource.*opens in a new tab/i });
+    const download = panel.getByRole("link", { name: /^Download.*Fixture text resource/i });
+    for (const [label, link] of [["Preview", preview], ["Download", download]]) {
+      await link.waitFor();
+      const bounds = await link.boundingBox();
+      assert.ok(bounds && bounds.width >= 44 && bounds.height >= 44,
+        `${width}px: ${label} target must be at least 44x44 CSS px; observed ${JSON.stringify(bounds)}`);
+      assert.equal(await link.getAttribute("href"), "/resources/public/fixture.txt");
+    }
+    assert.equal(await preview.getAttribute("target"), "_blank");
+    assert.equal(await download.getAttribute("download"), "");
+    await resources.focus();
+    for (const link of [preview, download]) {
+      for (let step = 0; step < 5 && !(await link.evaluate(focus)); step++) await page.keyboard.press("Tab");
+      assert.equal(await link.evaluate(focus), true);
+      assert.equal(await link.evaluate(node => node.matches(":focus-visible") && getComputedStyle(node).outlineStyle !== "none"), true);
+    }
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
+    console.log(`PASS resource touch targets, destinations, keyboard focus and reflow at ${width}px`);
+  } finally {
+    await page.close();
+  }
+}
+
 try {
   console.log(`Chromium ${browser.version()}`);
+  for (const width of [320, 375, 1365]) await checkResourceTouchTargets(width);
   if (neutralTitles) {
     const layouts = await Promise.allSettled([375, 1365].map(checkSyllabusLessonTypes));
     const failures = layouts.filter((result) => result.status === "rejected");
