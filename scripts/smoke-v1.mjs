@@ -367,7 +367,7 @@ async function runIsolatedFixture() {
     position,
     overview:
       "Automated interface test fixture, never a reviewed educational lesson.",
-    notesMarkdown: notes + wideTable + "\n\n$x=1$\n\n$" + Array.from({ length: 12 }, (_, i) => "x_{" + i + "}").join("+") + "$\n\n```text\nshort\n```\n\n```text\n" + "1234567890".repeat(8) + "\n```\n",
+    notesMarkdown: notes + wideTable + "\n\n$$x=1$$\n\n$$" + Array.from({ length: 12 }, (_, i) => "x_{" + i + "}").join("+") + "$$\n\n```text\nshort\n```\n\n```text\n" + "1234567890".repeat(8) + "\n```\n",
     publication: testReview,
   });
   const video = {
