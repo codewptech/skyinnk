@@ -1,4 +1,4 @@
-import { uniqueAccessibleNames } from "./unique-accessible-names";
+import { uniqueAccessibleNames } from "./unique-accessible-names.ts";
 import type { PublicCourse } from "../../shared/public-content";
 
 /** Preserve ordinary labels; disambiguate equal titles in displayed course order. */
