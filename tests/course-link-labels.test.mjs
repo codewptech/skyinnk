@@ -7,6 +7,7 @@ import { parse, compileScript } from "@vue/compiler-sfc";
 import { createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import ts from "typescript";
+import { uniqueAccessibleNames } from "../app/utils/unique-accessible-names.ts";
 import { courseSyllabusLinkLabels } from "../app/utils/course-link-labels.ts";
 
 test("course link names remain concise unless displayed course titles collide", () => {
@@ -113,4 +114,12 @@ test("catalogue final names cannot collide with literal suffix-shaped titles", a
   const actual = [...html.matchAll(/aria-label="([^"]+)"/g)].map(match => match[1]);
   assert.deepEqual(actual, labels);
   for (const course of courses) assert.ok(html.includes('href="/courses/' + course.slug + '"'));
+});
+
+test("final-name fallback reserves literal suffixes and handles repeated collisions", () => {
+  const input = ["Name", " name ", "Name (link 2)", "NAME", "name (link 3)", "Independent"];
+  const result = uniqueAccessibleNames(input);
+  assert.deepEqual(result, ["Name", "name (link 4)", "Name (link 2)", "NAME (link 5)", "name (link 3)", "Independent"]);
+  assert.deepEqual(uniqueAccessibleNames(result), result);
+  assert.deepEqual(uniqueAccessibleNames([]), []);
 });
