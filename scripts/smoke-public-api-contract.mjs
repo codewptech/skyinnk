@@ -115,14 +115,23 @@ const resource = {
   type: "TXT",
   sizeBytes: Buffer.byteLength(resourceText),
 };
+const imageResource = {
+  key: "fixture-image",
+  title: "Fixture notes diagram",
+  url: "/resources/public/fixture.png",
+  type: "PNG",
+  sizeBytes: 73,
+};
 assert.deepEqual(await json(`${coursePath}/lessons/${video.slug}`), {
   course: lessonCourse,
   module: firstModule,
   lesson: {
     ...video,
-    notesMarkdown,
+    notesMarkdown: notesMarkdown +
+      "\n![Diagram of $$x^2$$ with [linked text](/resources/public/description-only.txt)](/resources/public/fixture.png)\n\n" +
+      "[Invalid fixture destination](https://example.invalid%3Ftext)\n",
     video: { provider: "youtube", publicId: "abcdefghijk" },
-    resources: [resource],
+    resources: [resource, imageResource],
   },
 });
 assert.deepEqual(await json(`${coursePath}/lessons/${text.slug}`), {
@@ -166,6 +175,8 @@ for (const [path, title] of [
 }
 const asset = await request(resource.url, 200, "text/plain");
 assert.equal(await asset.text(), resourceText);
+const image = await request(imageResource.url, 200, "image/png");
+assert.equal((await image.arrayBuffer()).byteLength, imageResource.sizeBytes);
 console.log(
   "PASS API slugs match rendered pages and the public resource in the same production build",
 );
