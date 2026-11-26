@@ -210,6 +210,20 @@ async function verifiedDevelopmentMerge(pr, baseSha, api) {
   return ancestry?.status === 'ahead' && ancestry.merge_base_commit?.sha === merge;
 }
 
+function competingClaimErrors(issue, packet, issues) {
+  const errors = [];
+  const claimed = new Set([...packet.owned, ...packet.shared]);
+  for (const other of issues) {
+    if (!isPeaIssue(other) || other.number === issue.number) continue;
+    const claim = parsePacket(other.body);
+    if (!CLAIM_STATES.has(claim.state) || (claim.state === 'BLOCKED' && !declaredExecutor(claim))) continue;
+    if (claim.branch === packet.branch || [...claim.owned, ...claim.shared].some(path => claimed.has(path))) {
+      errors.push('PEA-2 task claim conflicts with issue #' + other.number + '.');
+    }
+  }
+  return errors;
+}
+
 export async function validatePeaPull({ issue, pr, files, openPulls = [], api, collect }) {
   if (!isPeaIssue(issue)) return [];
   const packet = parsePacket(issue.body);
@@ -256,14 +270,7 @@ export async function validatePeaPull({ issue, pr, files, openPulls = [], api, c
     if (!verified) errors.push((packet.start.includes(number) ? 'START' : 'INTEGRATION') + ' dependency #' + number + ' has no verified development integration.');
   }
 
-  for (const other of await collect('/issues?state=open')) {
-    if (!isPeaIssue(other) || other.number === issue.number) continue;
-    const claim = parsePacket(other.body);
-    if (!CLAIM_STATES.has(claim.state) || (claim.state === 'BLOCKED' && !declaredExecutor(claim))) continue;
-    if (claim.branch === packet.branch || [...claim.owned, ...claim.shared].some(path => claimed.has(path))) {
-      errors.push('PEA-2 task claim conflicts with issue #' + other.number + '.');
-    }
-  }
+  errors.push(...competingClaimErrors(issue, packet, await collect('/issues?state=open')));
   for (const other of openPulls) {
     if (other.number !== pr.number && other.base === DEV_BRANCH && other.files.some(path => claimed.has(path))) {
       errors.push('PEA-2 task claim overlaps open PR #' + other.number + '.');
@@ -301,6 +308,14 @@ async function enforceFromEvent() {
     }
     throw new Error('GitHub API list pagination limit exceeded.');
   };
+  const errors = await validateFromGithubEvent(eventPull, api, collect);
+  for (const error of errors) console.error('::error::' + error.replace(/\r?\n/g, ' '));
+  if (errors.length) throw new Error(errors.length + ' governance violation(s); see https://github.com/' + repository + '/issues/2.');
+  console.log('PR #' + eventPull.number + ' passed workstream, task-ownership, shared-file and overlap checks.');
+}
+
+// Dependency injection allows the same production gate to be exercised with ordered GitHub snapshots.
+export async function validateFromGithubEvent(eventPull, api, collect) {
   const pullPath = '/pulls/' + eventPull.number;
   const basePath = '/git/ref/heads/' + DEV_BRANCH;
   const [pr, others, baseRef] = await Promise.all([api(pullPath), collect('/pulls?state=open'), api(basePath)]);
@@ -338,10 +353,11 @@ async function enforceFromEvent() {
         latestIssue.updated_at !== issue.updated_at) {
       errors.push('PR or task metadata changed during validation. Re-run Development CI.');
     }
+    if (!errors.length && isPeaIssue(latestIssue)) {
+      errors.push(...competingClaimErrors(latestIssue, parsePacket(latestIssue.body), await collect('/issues?state=open')));
+    }
   }
-  for (const error of errors) console.error('::error::' + error.replace(/\r?\n/g, ' '));
-  if (errors.length) throw new Error(errors.length + ' governance violation(s); see https://github.com/' + repository + '/issues/2.');
-  console.log('PR #' + pr.number + ' passed workstream, task-ownership, shared-file and overlap checks.');
+  return errors;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

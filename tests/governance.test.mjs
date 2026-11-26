@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roleForBranch, taskIssueNumber, reservedPaths, isSharedPath, changedPaths, assertEventRevision,
-  assertDevelopmentRef, assertOpenPullSnapshot, readPullFiles, validatePolicy, validatePeaPull } from '../scripts/verify-pr-governance.mjs';
+  assertDevelopmentRef, assertOpenPullSnapshot, readPullFiles, validatePolicy, validatePeaPull, validateFromGithubEvent } from '../scripts/verify-pr-governance.mjs';
 
 const tick = String.fromCharCode(96);
 const issue = (role, branch, paths = []) => ({
@@ -342,4 +342,50 @@ test('checked-off DONE issue is a valid hard dependency only with trusted merge 
     const reopened = { ...closed, state: 'open' };
     assert.match((await gate({ task, oldPulls: [upstream], routes: { ...routes, '/issues/45': reopened } }).run()).join('|'), /no verified development integration/);
   }
+});
+
+async function fullGateWithLateClaim(other) {
+  const task = peaIssue(44);
+  const pr = {
+    number: 80, state: 'open', draft: false, changed_files: 1, body: 'Task issue: #44',
+    head: { ref: claimBranch, sha: 'f'.repeat(40), repo },
+    base: { ref: dev, sha: currentBase, repo },
+  };
+  const baseRef = { ref: 'refs/heads/' + dev, object: { type: 'commit', sha: currentBase } };
+  const gets = {
+    '/pulls/80': pr, ['/git/ref/heads/' + dev]: baseRef, '/issues/44': task,
+  };
+  let issueScans = 0;
+  const api = async path => {
+    assert.ok(Object.hasOwn(gets, path), 'Unexpected GitHub read ' + path);
+    return gets[path];
+  };
+  const collect = async path => {
+    if (path === '/pulls?state=open') return [pr];
+    if (path === '/pulls/80/files') return [{ filename: lesson, status: 'modified' }];
+    if (path === '/issues?state=open') {
+      issueScans++;
+      return issueScans === 1 || !other ? [task] : [task, other];
+    }
+    assert.fail('Unexpected GitHub list ' + path);
+  };
+  const errors = await validateFromGithubEvent(pr, api, collect);
+  return { errors, issueScans };
+}
+
+test('full governance gate rejects a newly active issue-only overlapping path or branch before success', async () => {
+  const latePath = peaIssue(45, { branch: 'work/task-late-other', status: 'CLAIMED' });
+  const lateBranch = peaIssue(45, { status: 'BUILDING', owned: '- `app/disjoint.vue`' });
+  for (const other of [latePath, lateBranch]) {
+    const result = await fullGateWithLateClaim(other);
+    assert.match(result.errors.join('|'), /PEA-2 task claim conflicts with issue #45/);
+    assert.equal(result.issueScans, 2);
+  }
+});
+
+test('full governance gate still accepts a late disjoint issue-only claim', async () => {
+  const disjoint = peaIssue(45, {
+    branch: 'work/task-disjoint', status: 'CLAIMED', owned: '- `app/disjoint.vue`',
+  });
+  assert.deepEqual((await fullGateWithLateClaim(disjoint)).errors, []);
 });
