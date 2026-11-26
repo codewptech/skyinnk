@@ -210,6 +210,20 @@ async function verifiedDevelopmentMerge(pr, baseSha, api) {
   return ancestry?.status === 'ahead' && ancestry.merge_base_commit?.sha === merge;
 }
 
+function competingClaimErrors(issue, packet, issues) {
+  const errors = [];
+  const claimed = new Set([...packet.owned, ...packet.shared]);
+  for (const other of issues) {
+    if (!isPeaIssue(other) || other.number === issue.number) continue;
+    const claim = parsePacket(other.body);
+    if (!CLAIM_STATES.has(claim.state) || (claim.state === 'BLOCKED' && !declaredExecutor(claim))) continue;
+    if (claim.branch === packet.branch || [...claim.owned, ...claim.shared].some(path => claimed.has(path))) {
+      errors.push('PEA-2 task claim conflicts with issue #' + other.number + '.');
+    }
+  }
+  return errors;
+}
+
 export async function validatePeaPull({ issue, pr, files, openPulls = [], api, collect }) {
   if (!isPeaIssue(issue)) return [];
   const packet = parsePacket(issue.body);
@@ -256,14 +270,7 @@ export async function validatePeaPull({ issue, pr, files, openPulls = [], api, c
     if (!verified) errors.push((packet.start.includes(number) ? 'START' : 'INTEGRATION') + ' dependency #' + number + ' has no verified development integration.');
   }
 
-  for (const other of await collect('/issues?state=open')) {
-    if (!isPeaIssue(other) || other.number === issue.number) continue;
-    const claim = parsePacket(other.body);
-    if (!CLAIM_STATES.has(claim.state) || (claim.state === 'BLOCKED' && !declaredExecutor(claim))) continue;
-    if (claim.branch === packet.branch || [...claim.owned, ...claim.shared].some(path => claimed.has(path))) {
-      errors.push('PEA-2 task claim conflicts with issue #' + other.number + '.');
-    }
-  }
+  errors.push(...competingClaimErrors(issue, packet, await collect('/issues?state=open')));
   for (const other of openPulls) {
     if (other.number !== pr.number && other.base === DEV_BRANCH && other.files.some(path => claimed.has(path))) {
       errors.push('PEA-2 task claim overlaps open PR #' + other.number + '.');
@@ -345,6 +352,9 @@ export async function validateFromGithubEvent(eventPull, api, collect) {
         latestIssue.number !== issue.number || latestIssue.state !== issue.state || latestIssue.body !== issue.body ||
         latestIssue.updated_at !== issue.updated_at) {
       errors.push('PR or task metadata changed during validation. Re-run Development CI.');
+    }
+    if (!errors.length && isPeaIssue(latestIssue)) {
+      errors.push(...competingClaimErrors(latestIssue, parsePacket(latestIssue.body), await collect('/issues?state=open')));
     }
   }
   return errors;
