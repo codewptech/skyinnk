@@ -235,3 +235,37 @@ test("mandatory catalogue build enforces actual rendered heading hierarchy", () 
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("publication checks canonical absolute resource links alongside relative ones", () => {
+  const value = publicCatalogueFixture();
+  const lesson = value.courses[0].modules[1].lessons[0];
+  lesson.resources = [{
+    key: "fixture-resource", title: "Reviewed worksheet",
+    url: "/resources/public/fixture.txt", type: "TXT", sizeBytes: 4,
+    sha256: createHash("sha256").update("test").digest("hex"),
+    publication: { ...lesson.publication },
+  }];
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-canonical-resource-"));
+  try {
+    mkdirSync(join(root, "content"));
+    mkdirSync(join(root, "public/resources/public"), { recursive: true });
+    writeFileSync(join(root, "public/resources/public/fixture.txt"), "test");
+    const check = (notes) => {
+      lesson.notesMarkdown = notes;
+      writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
+      return checkPublicContent(root);
+    };
+    for (const notes of [
+      "[Reviewed](https://www.skyinnk.in/resources/public/%66ixture.txt#section)",
+      "[Reviewed](/resources/public/fixture.txt)",
+      "[External](https://example.invalid/resources/public/missing.txt)",
+    ]) assert.doesNotThrow(() => check(notes));
+    for (const notes of [
+      "[Missing](https://www.skyinnk.in/resources/public/missing.txt)",
+      "[Missing](https://WWW.SKYINNK.IN:443/resources/public/%6dissing.txt#section)",
+      "[Missing](/resources/public/missing.txt)",
+    ]) assert.throws(() => check(notes), /unreviewed resource: .*missing\.txt/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
