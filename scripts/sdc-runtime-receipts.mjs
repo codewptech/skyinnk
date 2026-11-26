@@ -32,7 +32,10 @@ const sha = x => typeof x === 'string' && SHA.test(x);
 const instant = (value, label) => {
   need(typeof value === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(value), `${label}: UTC ISO timestamp required`);
   const ms = Date.parse(value);
-  need(Number.isFinite(ms), `${label}: invalid timestamp`);
+  // Date.parse normalizes impossible calendar dates and 24:00 rollover.
+  // Compare the actual UTC components without restricting fractional precision.
+  need(Number.isFinite(ms) && new Date(ms).toISOString().slice(0, 19) === value.slice(0, 19),
+    `${label}: invalid timestamp`);
   return ms;
 };
 
