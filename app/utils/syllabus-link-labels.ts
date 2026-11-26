@@ -1,4 +1,4 @@
-import { uniqueAccessibleNames } from "./unique-accessible-names";
+import { uniqueAccessibleNames } from "./unique-accessible-names.ts";
 import type { PublicModule } from "./public-catalogue";
 
 // Public lesson titles need not be unique. Keep the short, familiar accessible
