@@ -632,6 +632,19 @@ h1 {
   font-size: 0.85rem;
   color: #20563b;
 }
+.resource-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.35rem;
+}
+.resource-actions a:hover {
+  background: #e8f3ed;
+}
 .syllabus-drawer {
   position: fixed;
   inset: 0 auto 0 0;
