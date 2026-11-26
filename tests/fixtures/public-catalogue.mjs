@@ -3,7 +3,7 @@ export function publicCatalogueFixture() {
   const publication = {
     status: "published",
     visibility: "public",
-    reviewedBy: "TEST FIXTURE ONLY",
+    reviewedBy: "SKYINNK_SYNTHETIC_TEST_REVIEWER_ONLY",
     reviewedAt: "2026-11-11T00:00:00.000Z",
   };
   const lesson = (key, slug, position) => ({
