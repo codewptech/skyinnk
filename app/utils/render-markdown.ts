@@ -13,8 +13,12 @@ export function isSafeMarkdownLink(value: string): boolean {
     return false;
   }
   if (/[\u0000-\u0020\u007f\\]/.test(decoded)) return false;
-  if (decoded.startsWith("#")) return true;
-  if (decoded.startsWith("/") && !decoded.startsWith("//")) return true;
+  if (value.startsWith("#")) return true;
+  if (value.startsWith("/") && !decoded.startsWith("//")) return true;
+  // A standalone URL parser accepts https:/path and https:path, but browsers
+  // can resolve those relative to the current HTTPS document. Only explicit
+  // authority syntax has the same meaning at validation and navigation time.
+  if (!/^https:\/\/[^/]/i.test(value) || !/^https:\/\/[^/]/i.test(decoded)) return false;
   try {
     const url = new URL(decoded);
     return (
