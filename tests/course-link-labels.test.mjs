@@ -98,3 +98,19 @@ test("course names that differ only in casing or whitespace are disambiguated", 
     "View syllabus: Biology",
   ]);
 });
+
+test("catalogue final names cannot collide with literal suffix-shaped titles", async () => {
+  const titles = ["Science", "Science", " science (course 1 of 2) ", "Science (course 2 of 2)", "Art"];
+  const courses = titles.map((title, index) => ({ title, key: "course-" + index, slug: "course-" + index, summary: "Fixture" }));
+  const labels = courseSyllabusLinkLabels(courses);
+  const normalize = value => value.trim().replace(/\s+/gu, " ").toLowerCase();
+  assert.equal(new Set(labels.map(normalize)).size, courses.length);
+  assert.equal(labels[4], "View syllabus: Art");
+  assert.deepEqual(courseSyllabusLinkLabels(courses), labels);
+  for (const [index, title] of titles.entries())
+    assert.ok(normalize(labels[index]).startsWith(normalize("View syllabus: " + title)));
+  const { html } = await renderActualCatalogue(courses);
+  const actual = [...html.matchAll(/aria-label="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(actual, labels);
+  for (const course of courses) assert.ok(html.includes('href="/courses/' + course.slug + '"'));
+});
