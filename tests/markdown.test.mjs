@@ -149,3 +149,18 @@ test("tables retain native structure inside uniquely named keyboard scroll regio
   assert.equal([...result.matchAll(/<tbody>/g)].length, 2);
   assert.doesNotMatch(renderMarkdown("<div class=\"notes-table-scroll\" tabindex=\"0\">fake</div>"), /<div class="notes-table-scroll"/);
 });
+
+
+test("explicit HTTPS link policy rejects ambiguous URL forms interpreted differently with a browser base", () => {
+  const base = "https://www.skyinnk.in/courses/fixture/lessons/example";
+  const ambiguous = "https:/resources/public/missing.txt";
+  assert.equal(new URL(ambiguous, base).href, "https://www.skyinnk.in/resources/public/missing.txt");
+  for (const value of [ambiguous, "https:resources/public/missing.txt", "https:///example.invalid/path", "https%3A%2F%2Fexample.invalid", "%23section", "%2Fresources/public/missing.txt"]) {
+    assert.equal(isSafeMarkdownLink(value), false, value);
+    assert.doesNotMatch(renderMarkdown("[Read](" + value + ")"), /<a\b/, value);
+  }
+  for (const value of ["https://example.invalid/path", "HTTPS://example.invalid/path", "/resources/public/%66ile.txt", "#section"]) {
+    assert.equal(isSafeMarkdownLink(value), true, value);
+    assert.match(renderMarkdown("[Read](" + value + ")"), /<a\b/, value);
+  }
+});
