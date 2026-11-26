@@ -301,6 +301,14 @@ async function enforceFromEvent() {
     }
     throw new Error('GitHub API list pagination limit exceeded.');
   };
+  const errors = await validateFromGithubEvent(eventPull, api, collect);
+  for (const error of errors) console.error('::error::' + error.replace(/\r?\n/g, ' '));
+  if (errors.length) throw new Error(errors.length + ' governance violation(s); see https://github.com/' + repository + '/issues/2.');
+  console.log('PR #' + eventPull.number + ' passed workstream, task-ownership, shared-file and overlap checks.');
+}
+
+// Dependency injection allows the same production gate to be exercised with ordered GitHub snapshots.
+export async function validateFromGithubEvent(eventPull, api, collect) {
   const pullPath = '/pulls/' + eventPull.number;
   const basePath = '/git/ref/heads/' + DEV_BRANCH;
   const [pr, others, baseRef] = await Promise.all([api(pullPath), collect('/pulls?state=open'), api(basePath)]);
@@ -339,9 +347,7 @@ async function enforceFromEvent() {
       errors.push('PR or task metadata changed during validation. Re-run Development CI.');
     }
   }
-  for (const error of errors) console.error('::error::' + error.replace(/\r?\n/g, ' '));
-  if (errors.length) throw new Error(errors.length + ' governance violation(s); see https://github.com/' + repository + '/issues/2.');
-  console.log('PR #' + pr.number + ' passed workstream, task-ownership, shared-file and overlap checks.');
+  return errors;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
