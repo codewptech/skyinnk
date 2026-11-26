@@ -7,6 +7,7 @@ import { parse, compileScript } from "@vue/compiler-sfc";
 import { createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import ts from "typescript";
+import { uniqueAccessibleNames } from "../app/utils/unique-accessible-names.ts";
 import { courseSyllabusLinkLabels } from "../app/utils/course-link-labels.ts";
 
 test("course link names remain concise unless displayed course titles collide", () => {
@@ -97,4 +98,28 @@ test("course names that differ only in casing or whitespace are disambiguated", 
     "View syllabus: physics 101 (course 2 of 2)",
     "View syllabus: Biology",
   ]);
+});
+
+test("catalogue final names cannot collide with literal suffix-shaped titles", async () => {
+  const titles = ["Science", "Science", " science (course 1 of 2) ", "Science (course 2 of 2)", "Art"];
+  const courses = titles.map((title, index) => ({ title, key: "course-" + index, slug: "course-" + index, summary: "Fixture" }));
+  const labels = courseSyllabusLinkLabels(courses);
+  const normalize = value => value.trim().replace(/\s+/gu, " ").toLowerCase();
+  assert.equal(new Set(labels.map(normalize)).size, courses.length);
+  assert.equal(labels[4], "View syllabus: Art");
+  assert.deepEqual(courseSyllabusLinkLabels(courses), labels);
+  for (const [index, title] of titles.entries())
+    assert.ok(normalize(labels[index]).startsWith(normalize("View syllabus: " + title)));
+  const { html } = await renderActualCatalogue(courses);
+  const actual = [...html.matchAll(/aria-label="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual(actual, labels);
+  for (const course of courses) assert.ok(html.includes('href="/courses/' + course.slug + '"'));
+});
+
+test("final-name fallback reserves literal suffixes and handles repeated collisions", () => {
+  const input = ["Name", " name ", "Name (link 2)", "NAME", "name (link 3)", "Independent"];
+  const result = uniqueAccessibleNames(input);
+  assert.deepEqual(result, ["Name", "name (link 4)", "Name (link 2)", "NAME (link 5)", "name (link 3)", "Independent"]);
+  assert.deepEqual(uniqueAccessibleNames(result), result);
+  assert.deepEqual(uniqueAccessibleNames([]), []);
 });

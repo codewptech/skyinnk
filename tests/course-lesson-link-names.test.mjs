@@ -7,6 +7,7 @@ import { parse, compileScript } from "@vue/compiler-sfc";
 import { createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import ts from "typescript";
+import { uniqueAccessibleNames } from "../app/utils/unique-accessible-names.ts";
 
 const fixtureCourse = {
   key: "fixture-course",
@@ -63,6 +64,7 @@ async function renderCourse(slug, selectedCourse = fixtureCourse) {
       module: mod,
       exports: mod.exports,
       require(id) {
+        if (id.endsWith("/unique-accessible-names")) return { uniqueAccessibleNames };
         if (id.endsWith("/public-catalogue"))
           return {
             findPublicCourse: (requested) =>
@@ -133,4 +135,18 @@ test("real rendered course page separates visually identical lesson names with c
   for (const slug of ["first", "second", "third"]) {
     assert.ok(html.includes('href="/courses/fixture-course/lessons/' + slug + '"'));
   }
+});
+
+test("actual course page resolves collisions between literal and generated lesson link names", async () => {
+  const fixture = structuredClone(fixtureCourse);
+  fixture.modules[1].lessons.push({ key: "literal", slug: "literal", position: 9, title: " introduction, same module title (module 1, lesson 1) " });
+  const { html } = await renderCourse(fixture.slug, fixture);
+  const normalize = value => value.trim().replace(/\s+/gu, " ").toLowerCase();
+  const links = [...html.matchAll(/<a\b([^>]*)>([^<]*)<\/a>/g)].filter(match => match[1].includes("/lessons/"));
+  const names = links.map(match => match[1].match(/aria-label="([^"]+)"/)?.[1] ?? match[2]);
+  assert.equal(names.length, 5);
+  assert.equal(new Set(names.map(normalize)).size, 5);
+  assert.ok(names.includes("Practice"));
+  for (const slug of ["first", "second", "third", "literal", "unique"])
+    assert.ok(html.includes('href="/courses/fixture-course/lessons/' + slug + '"'));
 });

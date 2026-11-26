@@ -1,3 +1,4 @@
+import { uniqueAccessibleNames } from "./unique-accessible-names.ts";
 import type { PublicModule } from "./public-catalogue";
 
 // Public lesson titles need not be unique. Keep the short, familiar accessible
@@ -36,5 +37,6 @@ export function syllabusAccessibleNames(
         : baseName;
     names.set(lesson.key, name);
   }
-  return names;
+  const unique = uniqueAccessibleNames([...names.values()]);
+  return new Map([...names.keys()].map((key, index) => [key, unique[index]!]));
 }

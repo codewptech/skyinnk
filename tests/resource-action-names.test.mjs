@@ -113,3 +113,14 @@ test("resource links with visually equivalent spacing and case receive distinct 
     "Summary",
   ]);
 });
+
+test("resource final names cannot collide with literal suffix-shaped titles", () => {
+  const resources = ["Worksheet", "Worksheet", " worksheet (resource 1 of 2) ", "Worksheet (resource 2 of 2)", "Reference"].map(title => ({ title }));
+  const labels = resourceActionNames(resources);
+  const normalize = value => value.trim().replace(/\s+/gu, " ").toLowerCase();
+  assert.equal(new Set(labels.map(normalize)).size, resources.length);
+  assert.equal(labels[4], "Reference");
+  assert.deepEqual(resourceActionNames(resources), labels);
+  for (const [index, resource] of resources.entries())
+    assert.ok(normalize(labels[index]).startsWith(normalize(resource.title)));
+});

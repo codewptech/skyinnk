@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { uniqueAccessibleNames } from "../../../utils/unique-accessible-names";
 import { findPublicCourse } from "../../../utils/public-catalogue";
 const route = useRoute();
 definePageMeta({ key: (route) => String(route.params.courseSlug) });
@@ -29,6 +30,17 @@ function accessibleLessonName(
   if ((lessonTitleCounts.get(lessonTitleIdentity(title)) ?? 0) < 2) return undefined;
   return `${title.trim().replace(/\s+/gu, " ")}, ${moduleTitle} (module ${moduleIndex + 1}, lesson ${lessonIndex + 1})`;
 }
+const orderedEntries = orderedModules.flatMap((module, moduleIndex) =>
+  [...module.lessons].sort((a, b) => a.position - b.position).map((lesson, lessonIndex) => ({
+    lesson,
+    name: accessibleLessonName(lesson.title, module.title, moduleIndex, lessonIndex) ?? lesson.title,
+  })),
+);
+const finalNames = uniqueAccessibleNames(orderedEntries.map(entry => entry.name));
+const lessonNames = new Map(orderedEntries.map(({ lesson }, index) => [
+  lesson.key,
+  finalNames[index] === lesson.title ? undefined : finalNames[index],
+]));
 useHead({
   title: `${course.title} | Skyinnk`,
   link: [
@@ -50,20 +62,20 @@ useHead({
     <p>For: {{ course.audience }}</p>
     <p>Public lessons · No account required</p>
     <section
-      v-for="(module, moduleIndex) in orderedModules"
+      v-for="module in orderedModules"
       :key="module.key"
     >
       <h2>{{ module.title }}</h2>
       <ol>
         <li
-          v-for="(lesson, lessonIndex) in [...module.lessons].sort(
+          v-for="lesson in [...module.lessons].sort(
             (a, b) => a.position - b.position,
           )"
           :key="lesson.key"
         >
           <NuxtLink
             :to="`/courses/${course.slug}/lessons/${lesson.slug}`"
-            :aria-label="accessibleLessonName(lesson.title, module.title, moduleIndex, lessonIndex)"
+            :aria-label="lessonNames.get(lesson.key)"
           >{{
             lesson.title
           }}</NuxtLink>

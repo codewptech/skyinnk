@@ -188,3 +188,20 @@ test("visually equivalent syllabus names receive distinct positions, while diffe
   assert.equal(labels.get("c"), "INTRODUCTION, Video lesson");
   assert.equal(new Set(labels.values()).size, 3);
 });
+
+test("syllabus final names cannot collide with literal module-position-shaped titles", () => {
+  const modules = [{ key: "unit", title: "Unit", position: 0, lessons: [
+    lesson("a", "Introduction", "text", 0),
+    lesson("b", "Introduction", "text", 1),
+    lesson("c", " introduction, unit (module 1, lesson 1) ", "text", 2),
+    lesson("d", "Introduction, Unit (module 1, lesson 2)", "text", 3),
+    lesson("e", "Practice", "video", 4),
+  ] }];
+  const labels = syllabusAccessibleNames(modules);
+  const normalize = value => value.trim().replace(/\s+/gu, " ").toLowerCase();
+  assert.equal(new Set([...labels.values()].map(normalize)).size, 5);
+  assert.equal(labels.get("e"), "Practice, Video lesson");
+  assert.deepEqual([...syllabusAccessibleNames(modules)], [...labels]);
+  for (const item of modules[0].lessons)
+    assert.ok(normalize(labels.get(item.key)).startsWith(normalize(item.title)));
+});
