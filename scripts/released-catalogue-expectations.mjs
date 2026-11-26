@@ -11,12 +11,34 @@ const counts = values => {
   return result;
 };
 
+/** Resolve final collisions independently of the application's label helper.
+ * All first-pass names are reserved, including suffix-shaped literal titles. */
+function finalizeLinkNames(items) {
+  const occupied = new Set(items.map(item => identity(item.linkName)));
+  const occurrences = new Set();
+  for (const item of items) {
+    const key = identity(item.linkName);
+    if (!occurrences.has(key)) {
+      occurrences.add(key);
+      continue;
+    }
+    let ordinal = 2;
+    let name;
+    do {
+      name = item.linkName + " (link " + ordinal++ + ")";
+    } while (occupied.has(identity(name)));
+    occupied.add(identity(name));
+    item.linkName = name;
+  }
+  return items;
+}
+
 /** Independent test expectations from the reviewed source, not from a live API. */
 export function releaseExpectations(value) {
   const { courses } = validatePublicCatalogue(value);
   const courseCounts = counts(courses.map(course => identity(course.title)));
   const seen = new Map();
-  return courses.map(course => {
+  return finalizeLinkNames(courses.map(course => {
     const coursePath = "/courses/" + course.slug;
     const key = identity(course.title);
     const ordinal = (seen.get(key) ?? 0) + 1;
@@ -40,9 +62,9 @@ export function releaseExpectations(value) {
         (courseCounts.get(key) > 1 ? " (course " + ordinal + " of " + courseCounts.get(key) + ")" : ""),
       summary: { key: course.key, slug: course.slug, title: course.title, summary: course.summary,
         audience: course.audience, subject: course.subject, moduleCount: modules.length, lessonCount: lessons.length },
-      lessons,
+      lessons: finalizeLinkNames(lessons),
     };
-  });
+  }));
 }
 
 export async function readReleaseExpectations(path) {
