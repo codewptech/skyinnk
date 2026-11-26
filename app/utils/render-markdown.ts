@@ -236,12 +236,15 @@ export function renderMarkdown(source: string): string {
 /** Resolve the local resource requests that the rendered notes can produce. */
 export function markdownResourcePaths(source: string): Set<string> {
   const paths = new Set<string>();
-  const base = "https://publication.invalid";
+  // Use the canonical public origin so absolute same-site links are subject to
+  // the same reviewed-resource allowlist as relative links.
+  const base = "https://www.skyinnk.in";
   const walk = (tokens: ReturnType<typeof markdown.parse>) => {
     for (const token of tokens) {
       const image = token.type === "image";
       const value = token.attrGet(image ? "src" : "href");
-      if (typeof value === "string" && value.startsWith("/") &&
+      if (typeof value === "string" &&
+          (value.startsWith("/") || /^https:\/\//i.test(value)) &&
           (image ? isSafeMarkdownImage(value) : isSafeMarkdownLink(value))) {
         const url = new URL(value, base);
         const path = decodeURIComponent(url.pathname);
