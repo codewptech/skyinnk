@@ -269,3 +269,24 @@ test("publication checks canonical absolute resource links alongside relative on
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+
+test("direct publication rejects known placeholder reviewer names at every publication level", () => {
+  for (const level of ["course", "lesson", "resource"]) {
+    for (const name of ["pending", " UNAPPROVED ", "Unknown", "TBD", "placeholder", "Test Fixture Only"]) {
+      const value = publicCatalogueFixture();
+      const course = value.courses[0], lesson = course.modules[0].lessons[0];
+      const resource = {
+        key: "review-fixture", title: "Reviewed resource",
+        url: "/resources/public/review.txt", type: "TXT", sizeBytes: 4,
+        publication: { ...lesson.publication },
+      };
+      lesson.resources = [resource];
+      ({ course, lesson, resource })[level].publication.reviewedBy = name;
+      assert.throws(() => validatePublicCatalogue(value), /reviewer/i, level + ": " + name);
+    }
+  }
+  const value = publicCatalogueFixture();
+  value.courses[0].publication.reviewedBy = "Fictional Reviewer";
+  assert.doesNotThrow(() => validatePublicCatalogue(value));
+});
