@@ -7,6 +7,7 @@ import { parse, compileScript } from "@vue/compiler-sfc";
 import { createSSRApp, h } from "vue";
 import { renderToString } from "vue/server-renderer";
 import ts from "typescript";
+import { uniqueAccessibleNames } from "../app/utils/unique-accessible-names.ts";
 
 const fixtureCourse = {
   key: "fixture-course",
@@ -63,6 +64,7 @@ async function renderCourse(slug, selectedCourse = fixtureCourse) {
       module: mod,
       exports: mod.exports,
       require(id) {
+        if (id.endsWith("/unique-accessible-names")) return { uniqueAccessibleNames };
         if (id.endsWith("/public-catalogue"))
           return {
             findPublicCourse: (requested) =>
