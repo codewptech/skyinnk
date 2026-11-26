@@ -223,3 +223,26 @@ test('reject same candidate GitHub Actions run reference as postmerge push CI',(
   fails(x=>{x.events[8].postmergeCi.reference=x.events[5].ci.reference;},/candidate CI run ID or reference replayed as post-merge CI/));
 test('reject changing the reviewed candidate CI run at integration',()=>
   fails(x=>{x.events[6].ci.runId='different-candidate-ci';},/reviewed candidate CI run identity\/reference changed/));
+
+test('reject impossible UTC calendar days in receipt events', () => {
+  for (const at of ['2026-02-29T00:01:00Z', '2026-02-30T00:01:00Z', '2026-04-31T00:01:00Z', '2026-11-21T24:00:00Z']) {
+    const x = fixture(); x.events = x.events.slice(0, 1);
+    x.events[0].at = at;
+    x.observedAt = new Date(Date.parse(at) + 60_000).toISOString();
+    assert.throws(() => verify(x), /ASSIGNED.at: invalid timestamp/);
+  }
+});
+
+test('reject impossible UTC observation timestamps', () => {
+  const x = fixture(); x.events = x.events.slice(0, 1);
+  x.events[0].at = '2026-03-01T00:00:00Z';
+  x.observedAt = '2026-02-29T00:01:00Z';
+  assert.throws(() => verify(x), /observedAt: invalid timestamp/);
+});
+
+test('preserve real leap dates and supported UTC fractions', () => {
+  const x = fixture(); x.events = x.events.slice(0, 1);
+  x.events[0].at = '2024-02-29T00:00:00.123456Z';
+  x.observedAt = '2024-02-29T00:01:00.1Z';
+  assert.equal(verify(x).state, 'ASSIGNED');
+});
