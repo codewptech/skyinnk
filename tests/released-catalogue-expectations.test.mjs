@@ -55,3 +55,39 @@ test("isolated source copy cannot inherit existing reviewed resources or environ
     await rm(root, { recursive: true, force: true });
   }
 });
+
+
+test("release oracle predicts final collision-safe names for literal suffix-shaped titles", () => {
+  const source = publicCatalogueFixture();
+  const first = source.courses[0];
+  first.title = "Practice";
+  for (const module of first.modules) module.lessons[0].title = "Introduction";
+  const template = structuredClone(first.modules[0].lessons[0]);
+  first.modules[1].lessons.push(
+    { ...template, key: "literal", slug: "literal", position: 1, title: "Introduction, First module (module 1, lesson 1)" },
+    { ...template, key: "reserved", slug: "reserved", position: 2, title: "Introduction, First module (module 1, lesson 1) (link 2)" },
+  );
+  for (const [i, title] of ["Practice", "Practice (course 1 of 2)", "Practice (course 1 of 2) (link 2)"].entries()) {
+    const course = structuredClone(first);
+    course.key = course.slug = "course-" + i;
+    course.title = title;
+    course.modules.forEach((module, mi) => {
+      module.key = "module-" + i + "-" + mi;
+      module.lessons.forEach((lesson, li) => { lesson.key = "lesson-" + i + "-" + mi + "-" + li; });
+    });
+    source.courses.push(course);
+  }
+  const expected = releaseExpectations(source);
+  assert.deepEqual(expected.map(course => course.linkName), [
+    "View syllabus: Practice (course 1 of 2)",
+    "View syllabus: Practice (course 2 of 2)",
+    "View syllabus: Practice (course 1 of 2) (link 3)",
+    "View syllabus: Practice (course 1 of 2) (link 2)",
+  ]);
+  assert.deepEqual(expected[0].lessons.map(lesson => lesson.linkName), [
+    "Introduction, First module (module 1, lesson 1)",
+    "Introduction, Second module (module 2, lesson 1)",
+    "Introduction, First module (module 1, lesson 1) (link 3)",
+    "Introduction, First module (module 1, lesson 1) (link 2)",
+  ]);
+});
