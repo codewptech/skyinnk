@@ -1,4 +1,4 @@
-import { uniqueAccessibleNames } from "./unique-accessible-names";
+import { uniqueAccessibleNames } from "./unique-accessible-names.ts";
 import type { PublicResource } from "../../shared/public-content";
 
 /** Disambiguate only repeated resource titles, in the existing display order. */
