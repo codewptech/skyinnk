@@ -101,6 +101,11 @@ function publication(value: unknown, context: string) {
   );
   text(value.reviewedBy, `${context}.reviewedBy`);
   ensure(
+    typeof value.reviewedBy === "string" &&
+      !/^(?:pending|unapproved|unknown|tbd|placeholder|test fixture only)$/i.test(value.reviewedBy.trim()),
+    `${context} needs a nonplaceholder reviewer identity`,
+  );
+  ensure(
     validReviewTimestamp(value.reviewedAt),
     `${context} needs an ISO review timestamp`,
   );
