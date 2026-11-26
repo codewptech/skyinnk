@@ -8,28 +8,49 @@ const html = computed(() => renderMarkdown(props.source));
 const root = ref<HTMLElement>();
 let observer: ResizeObserver | undefined;
 
+const scrollSelectors = [
+  [".notes-table-scroll", "Lesson notes table"],
+  [".katex-display", "Lesson notes equation"],
+  ["pre", "Lesson notes code block"],
+] as const;
+
 function updateScrollTargets() {
-  for (const target of root.value?.querySelectorAll<HTMLElement>(".notes-table-scroll") ?? []) {
-    // Hidden tab panels have zero width. Observe again when they become visible.
-    target.tabIndex = target.clientWidth > 0 && target.scrollWidth > target.clientWidth + 1 ? 0 : -1;
+  for (const [selector, label] of scrollSelectors) {
+    const targets = root.value?.querySelectorAll<HTMLElement>(selector) ?? [];
+    Array.from(targets).forEach((target, index) => {
+      // Hidden tab panels have zero width. Fitting content needs no extra tab stop.
+      const overflowing = target.clientWidth > 0 && target.scrollWidth > target.clientWidth + 1;
+      target.tabIndex = overflowing ? 0 : -1;
+      if (selector !== ".notes-table-scroll") {
+        if (overflowing) {
+          target.setAttribute("role", "region");
+          target.setAttribute("aria-label", label + " " + (index + 1));
+        } else {
+          target.removeAttribute("role");
+          target.removeAttribute("aria-label");
+        }
+      }
+    });
   }
 }
-function observeTables() {
+function observeScrollTargets() {
   if (!observer || !root.value) return;
   observer.disconnect();
   observer.observe(root.value);
-  for (const target of root.value.querySelectorAll<HTMLElement>(".notes-table-scroll")) {
-    observer.observe(target);
-    const table = target.querySelector("table");
-    if (table) observer.observe(table);
+  for (const [selector] of scrollSelectors) {
+    for (const target of root.value.querySelectorAll<HTMLElement>(selector)) {
+      observer.observe(target);
+      const content = target.firstElementChild;
+      if (content) observer.observe(content);
+    }
   }
   updateScrollTargets();
 }
 onMounted(() => {
   observer = new ResizeObserver(updateScrollTargets);
-  observeTables();
+  observeScrollTargets();
 });
-watch(html, observeTables, { flush: "post" });
+watch(html, observeScrollTargets, { flush: "post" });
 onBeforeUnmount(() => observer?.disconnect());
 </script>
 
@@ -84,7 +105,9 @@ onBeforeUnmount(() => observer?.disconnect());
   overflow-x: auto;
   margin-block: 1rem;
 }
-.markdown-notes :deep(.notes-table-scroll:focus-visible) {
+.markdown-notes :deep(.notes-table-scroll:focus-visible),
+.markdown-notes :deep(.katex-display:focus-visible),
+.markdown-notes :deep(pre:focus-visible) {
   outline: 2px solid #164b96;
   outline-offset: -2px;
 }
@@ -113,6 +136,15 @@ onBeforeUnmount(() => observer?.disconnect());
   overflow-y: hidden;
   padding-block: 0.5rem;
   max-width: 100%;
+}
+.markdown-notes :deep(.katex-display > .katex) {
+  /* Keep the beginning of wide centered equations inside the scrollable area. */
+  width: max-content;
+  min-width: 100%;
+}
+.markdown-notes :deep(pre > code) {
+  display: inline-block;
+  min-width: max-content;
 }
 .markdown-notes :deep(.katex) {
   font-size: 1.1em;
