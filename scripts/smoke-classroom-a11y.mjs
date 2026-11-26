@@ -394,7 +394,29 @@ try {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.waitForFunction(() => document.querySelectorAll(".notes-table-scroll")[1]?.tabIndex === 0);
   await notes.focus();
-  console.log("PASS native notes tables, keyboard scrolling and resize-aware tab order");
+  for (const [selector, label] of [[".katex-display", "Lesson notes equation"], ["pre", "Lesson notes code block"]]) {
+    const targets = page.locator(".markdown-notes " + selector);
+    assert.equal(await targets.count(), 2);
+    const small = targets.nth(0), wide = targets.nth(1);
+    assert.equal(await small.evaluate(node => node.scrollWidth <= node.clientWidth + 1), true);
+    assert.equal(await wide.evaluate(node => node.scrollWidth > node.clientWidth + 1), true);
+    assert.equal(await small.getAttribute("tabindex"), "-1");
+    assert.equal(await wide.getAttribute("tabindex"), "0");
+    assert.equal(await wide.getAttribute("aria-label"), label + " 2");
+    await notes.focus();
+    for (let i = 0; i < 12 && !(await wide.evaluate(focus)); i++) await page.keyboard.press("Tab");
+    assert.equal(await wide.evaluate(focus), true);
+    assert.equal(await wide.evaluate(node => node.matches(":focus-visible") && getComputedStyle(node).outlineStyle !== "none"), true);
+    await wide.evaluate(node => { node.scrollLeft = 0; });
+    await page.keyboard.press("ArrowRight");
+    await page.waitForFunction(selector => document.querySelectorAll(".markdown-notes " + selector)[1].scrollLeft > 0, selector);
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await page.waitForFunction(selector => document.querySelectorAll(".markdown-notes " + selector)[1].tabIndex === -1, selector);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.waitForFunction(selector => document.querySelectorAll(".markdown-notes " + selector)[1].tabIndex === 0, selector);
+  }
+  await notes.focus();
+  console.log("PASS native notes tables, math and code keyboard scrolling and resize-aware tab order");
   await page.keyboard.press("End");
   const resources = page.getByRole("tab", { name: "Resources" });
   assert.equal(await resources.evaluate(focus), true);
