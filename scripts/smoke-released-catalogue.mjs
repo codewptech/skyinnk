@@ -91,7 +91,7 @@ try {
       return route.abort();
     });
     try {
-      await view(page, "/", "Free lessons for curious school learners.");
+      await view(page, "/", "Understand more. Learn at your pace.");
       await activate(page.getByRole("link", { name: "Explore free lessons", exact: true }), page, mobile);
       await page.waitForURL(url("/courses"));
       await page.getByRole("heading", { name: "Explore courses", exact: true }).waitFor();

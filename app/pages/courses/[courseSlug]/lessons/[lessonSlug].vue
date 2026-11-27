@@ -184,6 +184,7 @@ useHead(() => ({
 
 <template>
   <main id="main-content" class="classroom-page">
+    <header class="learning-nav"><NuxtLink class="learning-brand" to="/"><span class="brand-mark" aria-hidden="true">S</span>Skyinnk</NuxtLink><span class="studio-label">Learning studio</span></header>
     <nav class="classroom-breadcrumbs" aria-label="Breadcrumb">
       <NuxtLink to="/courses">Courses</NuxtLink
       ><span aria-hidden="true">/</span>
@@ -212,9 +213,7 @@ useHead(() => ({
       >
         <span aria-hidden="true">☰</span> Course syllabus
       </button>
-      <span class="lesson-number"
-        >Lesson {{ index + 1 }} of {{ ordered.length }}</span
-      >
+      <span class="lesson-number">Lesson {{ index + 1 }} of {{ ordered.length }}</span>
     </div>
     <div
       class="classroom-workspace"
@@ -275,7 +274,7 @@ useHead(() => ({
           </div>
         </div>
         <div class="lesson-heading">
-          <span class="eyebrow">{{ course.subject }} · PUBLIC LESSON</span>
+          <span class="eyebrow">{{ course.subject }} · {{ lesson.kind === "video" ? "VIDEO LESSON" : "READING LESSON" }}</span>
           <h1 id="lesson-title" ref="lessonHeading" tabindex="-1">{{ lesson.title }}</h1>
           <p>Free to learn. No account required.</p>
         </div>
@@ -402,7 +401,7 @@ useHead(() => ({
 
 <style scoped>
 .classroom-page {
-  width: min(100% - 3rem, 1320px);
+  width: min(100% - 3rem, 1440px);
   margin: 0 auto;
   padding: 1.5rem 0 4rem;
 }
@@ -412,7 +411,7 @@ useHead(() => ({
   flex-wrap: wrap;
   gap: 0.6rem;
   font-size: 0.85rem;
-  color: #526475;
+  color: var(--muted);
   margin-bottom: 1.3rem;
 }
 .classroom-breadcrumbs a {
@@ -438,22 +437,26 @@ button {
   gap: 0.6rem;
   min-height: 44px;
   padding: 0.55rem 0.85rem;
-  border: 1px solid #d6e0e7;
+  border: 1px solid var(--line);
   background: white;
   border-radius: 0.6rem;
   font-size: 0.9rem;
-  color: #233d38;
+  color: var(--ink);
 }
 .mobile-toggle {
   display: none;
 }
 .lesson-number {
-  font-size: 0.85rem;
-  color: #60716f;
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--soft);
+  border-radius: 2rem;
+  padding: .4rem .8rem;
 }
 .classroom-workspace {
   display: grid;
-  grid-template-columns: 275px minmax(0, 1fr);
+  grid-template-columns: 290px minmax(0, 1fr);
   align-items: start;
   gap: 1.5rem;
 }
@@ -465,21 +468,22 @@ button {
   top: 1rem;
   max-height: calc(100svh - 2rem);
   overflow-y: auto;
-  border: 1px solid #e0e7e7;
+  border: 1px solid var(--line);
   background: white;
   border-radius: 1rem;
-  padding: 1.3rem 0.85rem;
+  padding: 1.25rem 1rem;
+  box-shadow: var(--shadow);
 }
 .syllabus-heading {
   padding: 0 0.5rem 1rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid #edf0f0;
+  border-bottom: 1px solid var(--line);
 }
 .eyebrow {
   font-size: 0.68rem;
   font-weight: 750;
   letter-spacing: 0.1em;
-  color: #39715d;
+  color: var(--brand);
 }
 .syllabus-heading h2 {
   font-size: 1.1rem;
@@ -488,18 +492,19 @@ button {
 }
 .syllabus-heading p {
   font-size: 0.8rem;
-  color: #60716f;
+  color: var(--muted);
   margin: 0;
 }
 .lesson-workspace {
   min-width: 0;
   overflow: hidden;
   background: white;
-  border: 1px solid #e0e7e7;
-  border-radius: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 .video-player {
-  background: #112a26;
+  background: #262447;
 }
 .video-screen {
   aspect-ratio: 16 / 9;
@@ -519,17 +524,17 @@ button {
   align-items: center;
   padding: 1.3rem;
   box-sizing: border-box;
-  color: #f0f8f3;
+  color: #ffffff;
   text-align: center;
 }
 .play-symbol {
   font-size: 3rem;
   line-height: 1;
-  color: #b3d8b5;
+  color: #d8d5ff;
 }
 .load-video {
-  background: #eff7ed;
-  color: #173d2d;
+  background: #ffffff;
+  color: #373087;
   border: 0;
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
@@ -541,7 +546,7 @@ button {
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.5;
-  color: #d0dfd7;
+  color: #e1dfff;
 }
 .video-fallback {
   padding: 0.65rem 1rem;
@@ -549,31 +554,33 @@ button {
 }
 .video-fallback a {
   font-size: 0.875rem;
-  color: #e1efdf;
+  color: #e1dfff;
 }
 .video-fallback a:focus-visible {
-  outline-color: #e1efdf;
+  outline-color: #e1dfff;
 }
 .lesson-heading {
-  padding: 1.8rem 2rem 1.4rem;
+  padding: 2rem 2rem 1.35rem;
+  background: var(--surface);
 }
 h1 {
   margin: 0.5rem 0 0.7rem;
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  letter-spacing: -0.035em;
+  font-size: clamp(1.65rem, 3vw, 2.65rem);
+  letter-spacing: -.05em;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
 .lesson-heading p {
   font-size: 0.85rem;
-  color: #60716f;
+  color: var(--muted);
   margin: 0;
 }
 .lesson-tabs {
   display: flex;
-  border-bottom: 1px solid #e0e7e7;
-  padding: 0 2rem;
-  gap: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  padding: .35rem 2rem 0;
+  gap: .75rem;
+  background: #f8f8fd;
   overflow-x: auto;
 }
 .lesson-tabs button {
@@ -581,18 +588,20 @@ h1 {
   border: 0;
   border-bottom: 3px solid transparent;
   background: transparent;
-  padding: 0.95rem 0.1rem;
-  color: #62716c;
+  padding: .8rem .75rem;
+  color: var(--muted);
   font-weight: 600;
   min-height: 48px;
 }
 .lesson-tabs button[aria-selected="true"] {
-  border-bottom-color: #287151;
-  color: #17492f;
+  border-bottom-color: var(--brand);
+  color: var(--brand);
+  background: var(--soft);
+  border-radius: .65rem .65rem 0 0;
 }
 .lesson-panel {
   padding: 1.5rem 2rem 2rem;
-  min-height: 10rem;
+  min-height: 12rem;
 }
 .lesson-panel h2 {
   margin: 0 0 1rem;
@@ -601,7 +610,7 @@ h1 {
 }
 .overview-copy {
   line-height: 1.85;
-  color: #40584f;
+  color: var(--muted);
   white-space: pre-line;
   margin: 0;
 }
@@ -609,8 +618,9 @@ h1 {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  border-top: 1px solid #e0e7e7;
+  border-top: 1px solid var(--line);
   padding: 1.3rem 2rem;
+  background: #f8f8fd;
 }
 .lesson-navigation a {
   display: flex;
@@ -624,11 +634,11 @@ h1 {
   text-decoration: underline;
 }
 .lesson-navigation span {
-  color: #60716f;
+  color: var(--muted);
   font-size: 0.8rem;
 }
 .lesson-navigation strong {
-  color: #20563b;
+  color: var(--brand);
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -648,7 +658,7 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border: 1px solid #dce6df;
+  border: 1px solid var(--line);
   border-radius: 0.65rem;
 }
 .resource-list strong {
@@ -658,7 +668,7 @@ h1 {
 .resource-list span {
   display: block;
   margin-top: 0.3rem;
-  color: #63766c;
+  color: var(--muted);
   font-size: 0.75rem;
 }
 .resource-actions {
@@ -666,7 +676,7 @@ h1 {
   flex-wrap: wrap;
   gap: 0.7rem;
   font-size: 0.85rem;
-  color: #20563b;
+  color: var(--brand);
 }
 .resource-actions a {
   display: inline-flex;
@@ -679,7 +689,7 @@ h1 {
   border-radius: 0.35rem;
 }
 .resource-actions a:hover {
-  background: #e8f3ed;
+  background: var(--soft);
 }
 .syllabus-drawer {
   position: fixed;
@@ -693,10 +703,10 @@ h1 {
   padding: 1.3rem 1rem;
   box-sizing: border-box;
   background: #fff;
-  color: #233b2f;
+  color: var(--ink);
 }
 .syllabus-drawer::backdrop {
-  background: rgb(10 30 25 / 55%);
+  background: rgb(32 36 58 / 60%);
 }
 .drawer-header {
   display: flex;
@@ -709,7 +719,7 @@ h1 {
   margin: 0;
 }
 .drawer-close {
-  border: 1px solid #d7e2da;
+  border: 1px solid var(--line);
   background: white;
   border-radius: 0.5rem;
   min-width: 44px;
@@ -717,7 +727,7 @@ h1 {
   font-size: 1.5rem;
 }
 .drawer-course {
-  color: #60716f;
+  color: var(--muted);
   font-size: 0.85rem;
   margin-bottom: 1.5rem;
 }
@@ -735,7 +745,7 @@ h1 {
 button:focus-visible,
 a:focus-visible,
 .lesson-panel:focus-visible {
-  outline: 3px solid #327c5b;
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
 @media (min-width: 701px) and (max-width: 1000px) {
@@ -805,4 +815,15 @@ a:focus-visible,
     flex-direction: column;
   }
 }
+.studio-label { font-size: .85rem; font-weight: 650; color: var(--muted); }
+.syllabus-heading { background: var(--soft); border-radius: .75rem; padding: 1rem; }
+.syllabus-heading h2 { overflow-wrap: anywhere; }
+.classroom-breadcrumbs a { color: var(--brand); }
+.classroom-breadcrumbs { overflow-wrap: anywhere; }
+.video-placeholder { background: #262447; }
+.load-video:hover { background: #e4e1ff; }
+.resource-list li { background: #fafaff; min-width: 0; overflow-wrap: anywhere; }
+.lesson-navigation a { padding: .5rem .65rem; border-radius: .65rem; }
+.lesson-navigation a:hover { background: var(--soft); }
+@media (max-width: 700px) { .classroom-toolbar { gap: .5rem; } .lesson-number { padding: .35rem .55rem; } .lesson-tabs { gap: .3rem; } .lesson-tabs button { padding-inline: .6rem; } }
 </style>

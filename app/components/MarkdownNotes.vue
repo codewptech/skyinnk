@@ -60,7 +60,8 @@ onBeforeUnmount(() => observer?.disconnect());
 
 <style scoped>
 .markdown-notes {
-  line-height: 1.8;
+  font-size: 1.04rem;
+  line-height: 1.85;
   overflow-wrap: anywhere;
   min-width: 0;
 }
@@ -69,6 +70,7 @@ onBeforeUnmount(() => observer?.disconnect());
 .markdown-notes :deep(h3),
 .markdown-notes :deep(h4) {
   line-height: 1.3;
+  color: var(--ink);
   margin-block: 1.8em 0.65em;
 }
 .markdown-notes :deep(h1:first-child),
@@ -82,18 +84,18 @@ onBeforeUnmount(() => observer?.disconnect());
   border-radius: 0.6rem;
 }
 .markdown-notes :deep(a) {
-  color: #164b96;
+  color: var(--brand);
   text-decoration: underline;
 }
 .markdown-notes :deep(pre) {
   overflow-x: auto;
   padding: 1rem;
-  background: #eef2f7;
+  background: #f0eff9;
   border-radius: 0.6rem;
 }
 .markdown-notes :deep(code) {
   font-size: 0.9em;
-  background: #eef2f7;
+  background: #f0eff9;
   border-radius: 0.2rem;
   padding: 0.1em 0.25em;
 }
@@ -108,7 +110,7 @@ onBeforeUnmount(() => observer?.disconnect());
 .markdown-notes :deep(.notes-table-scroll:focus-visible),
 .markdown-notes :deep(.katex-display:focus-visible),
 .markdown-notes :deep(pre:focus-visible) {
-  outline: 2px solid #164b96;
+  outline: 2px solid var(--brand);
   outline-offset: -2px;
 }
 .markdown-notes :deep(table) {
@@ -117,19 +119,19 @@ onBeforeUnmount(() => observer?.disconnect());
 }
 .markdown-notes :deep(th),
 .markdown-notes :deep(td) {
-  border: 1px solid #cad5e4;
+  border: 1px solid #cdd0df;
   min-width: 5rem;
   padding: 0.5rem 0.8rem;
   text-align: left;
 }
 .markdown-notes :deep(th) {
-  background: #eef2f7;
+  background: #f0eff9;
 }
 .markdown-notes :deep(blockquote) {
-  border-left: 3px solid #94a3b8;
+  border-left: 3px solid #9189c7;
   margin-inline: 0;
   padding-inline: 1rem;
-  color: #475569;
+  color: var(--muted);
 }
 .markdown-notes :deep(.katex-display) {
   overflow-x: auto;
@@ -149,4 +151,7 @@ onBeforeUnmount(() => observer?.disconnect());
 .markdown-notes :deep(.katex) {
   font-size: 1.1em;
 }
+.markdown-notes :deep(blockquote) { background: #f7f6fc; border-radius: 0 .6rem .6rem 0; padding-block: .2rem; }
+.markdown-notes :deep(th) { color: var(--ink); font-weight: 700; }
+.markdown-notes :deep(tbody tr:nth-child(even)) { background: #fafaff; }
 </style>

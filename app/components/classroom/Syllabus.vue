@@ -47,46 +47,12 @@ const linkLabels = computed(() => syllabusAccessibleNames(props.modules));
 </template>
 
 <style scoped>
-.syllabus-module + .syllabus-module {
-  margin-top: 1.6rem;
-}
-h3 {
-  margin: 0 0 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #536275;
-  line-height: 1.5;
-}
-ol {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 0.3rem;
-}
-a {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-  padding: 0.8rem;
-  border-radius: 0.65rem;
-  text-decoration: none;
-  font-size: 0.94rem;
-  line-height: 1.5;
-  color: #34435a;
-  overflow-wrap: anywhere;
-}
-a:hover {
-  background: #edf3f9;
-}
-a[aria-current="page"] {
-  background: #e8f3ed;
-  color: #17543d;
-  font-weight: 650;
-  box-shadow: inset 3px 0 #27815b;
-}
-.lesson-kind {
-  flex: 0 0 1.15rem;
-  font-size: 1rem;
-}
+.syllabus-module + .syllabus-module { margin-top: 1.45rem; }
+h3 { margin: 0 0 .65rem; padding: 0 .55rem; font-size: .78rem; font-weight: 750; letter-spacing: .04em; color: var(--muted); line-height: 1.5; }
+ol { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
+a { display: flex; align-items: flex-start; gap: .7rem; padding: .7rem; min-height: 44px; border-radius: .7rem; border: 1px solid transparent; text-decoration: none; font-size: .94rem; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+a:hover { background: #f4f3fc; }
+a[aria-current="page"] { background: var(--soft); border-color: #c8c2ed; color: var(--brand); font-weight: 700; box-shadow: inset 3px 0 var(--brand); }
+.lesson-kind { flex: 0 0 1.7rem; height: 1.7rem; display: grid; place-items: center; background: #f2f2f8; color: var(--brand); border-radius: .45rem; font-size: 1rem; line-height: 1; }
+a[aria-current="page"] .lesson-kind { background: var(--brand); color: white; }
 </style>

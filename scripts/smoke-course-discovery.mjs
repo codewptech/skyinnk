@@ -161,7 +161,7 @@ try {
     page.on("pageerror", (error) => pageErrors.push(error.message));
     try {
       assert.equal((await page.goto(base.href)).status(), 200);
-      await expectPage(page, "/", "Free lessons for curious school learners.");
+      await expectPage(page, "/", "Understand more. Learn at your pace.");
       await activateLink(page, "Explore free lessons", mobile);
       await expectPage(page, "/courses", "Explore courses");
       if (width === 320) await exerciseOverflowControls(page);
@@ -230,7 +230,7 @@ ${observed.join("\n")}`);
         await expectPage(
           page,
           "/",
-          "Free lessons for curious school learners.",
+          "Understand more. Learn at your pace.",
         );
         await page.goBack();
         await expectPage(page, "/courses", "Explore courses");
@@ -242,6 +242,11 @@ ${observed.join("\n")}`);
         ).status(),
         404,
       );
+      await page.getByRole("heading", { level: 1, name: "This page isn\x27t available.", exact: true }).waitFor();
+      await expectNoHorizontalOverflow(page, "unpublished course error page");
+      const returnLink = page.getByRole("button", { name: "Explore courses", exact: true });
+      if (mobile) await returnLink.tap(); else await returnLink.click();
+      await expectPage(page, "/courses", "Explore courses");
       assert.deepEqual(pageErrors, []);
       console.log(
         `PASS ${courses.length ? `${courses.length}-course fictional` : "empty"} catalogue at ${width}px (${mobile ? "touch" : "keyboard"})`,
