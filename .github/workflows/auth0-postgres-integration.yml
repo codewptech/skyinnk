@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/auth0-postgres-integration.yml
       - tests/auth0-postgres.integration.mjs
+      - tests/academic-postgres.integration.mjs
       - server/utils/auth0-user.ts
       - prisma/**
       - prisma.config.ts
@@ -20,6 +21,7 @@ on:
     paths:
       - .github/workflows/auth0-postgres-integration.yml
       - tests/auth0-postgres.integration.mjs
+      - tests/academic-postgres.integration.mjs
       - server/utils/auth0-user.ts
       - prisma/**
       - prisma.config.ts
@@ -76,4 +78,10 @@ jobs:
           docker exec -i skyinnk-auth0-pg-fixture psql -X -v ON_ERROR_STOP=1 \
             -U fixture -d skyinnk_fixture \
             < prisma/migrations/20261104000000_create_auth0_user/migration.sql
+          # Rehearse an upgrade from the existing User-only database, preserving a sentinel identity.
+          docker exec skyinnk-auth0-pg-fixture psql -X -v ON_ERROR_STOP=1 \
+            -U fixture -d skyinnk_fixture -c "INSERT INTO \"User\" (\"id\",\"auth0Id\",\"name\") VALUES ('019abcd0-0000-7000-8000-000000000001','fixture|pre-academic-upgrade','Existing fictional identity')"
+          npx prisma migrate resolve --applied 20261104000000_create_auth0_user
+          npx prisma migrate deploy
           node --experimental-strip-types tests/auth0-postgres.integration.mjs
+          node --experimental-strip-types tests/academic-postgres.integration.mjs
