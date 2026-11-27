@@ -30,7 +30,7 @@ test("course link names remain concise unless displayed course titles collide", 
   );
 });
 
-async function renderActualCatalogue(courses, demoPreview = false) {
+async function renderActualCatalogue(courses, developmentCatalogue = false) {
   const filename = "app/pages/courses/index.vue";
   const { descriptor, errors } = parse(
     readFileSync(new URL("../" + filename, import.meta.url), "utf8"),
@@ -58,7 +58,7 @@ async function renderActualCatalogue(courses, demoPreview = false) {
       exports: mod.exports,
       require(id) {
         if (id.endsWith("/public-catalogue"))
-          return { useLearningCatalogue: async () => ({ data: { value: { enabled: demoPreview, courses } }, error: { value: null } }) };
+          return { useLearningCatalogue: async () => ({ data: { value: { enabled: developmentCatalogue, courses } }, error: { value: null } }) };
         if (id.endsWith("/course-link-labels"))
           return { courseSyllabusLinkLabels };
         return localRequire(id);
@@ -251,11 +251,20 @@ test("accessible course, syllabus and resource labels distinguish canonically eq
 });
 
 
-test("demo catalogue renders database preview labels rather than published claims", async () => {
-  const { html } = await renderActualCatalogue([{ key: "demo-sample", slug: "demo-sample", title: "[DEMO] Sample", summary: "Fictional" }], true);
-  assert.ok(html.includes("Development preview"));
-  assert.ok(html.includes("Demo course"));
-  assert.ok(html.includes('href="/courses/demo-sample"'));
+test("development catalogue renders ordinary database courses without demo or publication labels", async () => {
+  const { html } = await renderActualCatalogue([{ key: "ordinary-course", slug: "ordinary-course", title: "Ordinary course", summary: "Learning materials" }], true);
+  assert.ok(html.includes("Browse available courses and learning materials."));
+  assert.ok(html.includes(">Course<"));
+  assert.ok(html.includes('href="/courses/ordinary-course"'));
+  assert.ok(!html.includes("Development preview"));
+  assert.ok(!html.includes("Demo course"));
   assert.ok(!html.includes("Published learning material is available without registration."));
   assert.ok(!html.includes(">Public course<"));
+});
+
+test("development catalogue empty state does not claim publication", async () => {
+  const { html } = await renderActualCatalogue([], true);
+  assert.ok(html.includes("There are no courses to browse yet."));
+  assert.ok(!html.includes("There are no published courses to browse yet."));
+  assert.ok(!html.includes("View syllabus"));
 });
