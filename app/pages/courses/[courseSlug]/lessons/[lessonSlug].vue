@@ -2,6 +2,7 @@
 import {
   findPublicLesson,
   orderedPublicLessons,
+  useLearningCatalogue,
 } from "../../../../utils/public-catalogue";
 import ClassroomSyllabus from "../../../../components/classroom/Syllabus.vue";
 import { resourceActionNames } from "../../../../utils/resource-action-names";
@@ -9,10 +10,17 @@ import { resourceActionNames } from "../../../../utils/resource-action-names";
 // Keep the classroom shell mounted between lesson routes, including browser history.
 definePageMeta({ key: "public-classroom" });
 const route = useRoute();
+const { data: catalogue, error: catalogueError } = await useLearningCatalogue();
+if (catalogueError.value || !catalogue.value)
+  throw createError({ statusCode: 503, statusMessage: "Learning catalogue temporarily unavailable" });
+const courses = catalogue.value.courses;
+const demoPreview = catalogue.value.enabled;
+if (demoPreview) useHead({ meta: [{ name: "robots", content: "noindex, nofollow" }] });
 const match = computed(() =>
   findPublicLesson(
     String(route.params.courseSlug ?? ""),
     String(route.params.lessonSlug ?? ""),
+    courses,
   ),
 );
 if (!match.value)
@@ -142,6 +150,7 @@ onBeforeRouteUpdate((to) => {
     !findPublicLesson(
       String(to.params.courseSlug ?? ""),
       String(to.params.lessonSlug ?? ""),
+      courses,
     )
   ) {
     showError(
@@ -248,7 +257,7 @@ useHead(() => ({
           <span class="eyebrow">YOUR LEARNING PATH</span>
           <h2>{{ course.title }}</h2>
           <p>
-            {{ ordered.length }} public
+            {{ ordered.length }} {{ demoPreview ? "demo" : "public" }}
             {{ ordered.length === 1 ? "lesson" : "lessons" }}
           </p>
         </div>
@@ -291,6 +300,12 @@ useHead(() => ({
             >
           </div>
         </div>
+        <div v-else-if="demoPreview && lesson.kind === 'video'" class="video-player">
+          <div class="video-screen"><div class="video-placeholder">
+            <span class="play-symbol" aria-hidden="true">▷</span>
+            <p>Demo video placeholder — no video has been attached.</p>
+          </div></div>
+        </div>
         <div class="lesson-heading">
           <span class="eyebrow"
             >{{ course.subject }} ·
@@ -301,7 +316,7 @@ useHead(() => ({
           <h1 id="lesson-title" ref="lessonHeading" tabindex="-1">
             {{ lesson.title }}
           </h1>
-          <p>Free to learn. No account required.</p>
+          <p>{{ demoPreview ? "Development preview — not educator-reviewed." : "Free to learn. No account required." }}</p>
         </div>
         <div class="lesson-tabs" role="tablist" aria-label="Lesson content">
           <button

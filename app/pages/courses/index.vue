@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { listPublicCourses } from "../../utils/public-catalogue";
+import { useLearningCatalogue } from "../../utils/public-catalogue";
 import { courseSyllabusLinkLabels } from "../../utils/course-link-labels";
-const courses = listPublicCourses();
+const { data: catalogue, error: catalogueError } = await useLearningCatalogue();
+if (catalogueError.value || !catalogue.value)
+  throw createError({ statusCode: 503, statusMessage: "Learning catalogue temporarily unavailable" });
+const courses = catalogue.value.courses;
+const demoPreview = catalogue.value.enabled;
+if (demoPreview) useHead({ meta: [{ name: "robots", content: "noindex, nofollow" }] });
 const courseLinkNames = courseSyllabusLinkLabels(courses);
 useHead({
   title: "Courses | Skyinnk",
@@ -34,7 +39,8 @@ useHead({
     <section class="catalogue-heading" aria-labelledby="catalogue-title">
       <p class="section-kicker">Learning library</p>
       <h1 id="catalogue-title">Explore courses</h1>
-      <p>Published learning material is available without registration.</p>
+      <p v-if="demoPreview">Development preview — fictional, unreviewed data from PostgreSQL.</p>
+      <p v-else>Published learning material is available without registration.</p>
     </section>
     <div v-if="courses.length" class="grid">
       <article v-for="(course, courseIndex) in courses" :key="course.key">
@@ -42,7 +48,7 @@ useHead({
           <span>▤</span><span class="course-decoration">✳</span>
         </div>
         <div class="course-body">
-          <p class="section-kicker">Public course</p>
+          <p class="section-kicker">{{ demoPreview ? "Demo course" : "Public course" }}</p>
           <h2>{{ course.title }}</h2>
           <p>{{ course.summary }}</p>
           <NuxtLink

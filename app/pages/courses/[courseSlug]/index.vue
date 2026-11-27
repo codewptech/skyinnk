@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { uniqueAccessibleNames } from "../../../utils/unique-accessible-names";
-import { findPublicCourse } from "../../../utils/public-catalogue";
+import { findPublicCourse, useLearningCatalogue } from "../../../utils/public-catalogue";
 const route = useRoute();
 definePageMeta({ key: (route) => String(route.params.courseSlug) });
 const slug = String(route.params.courseSlug ?? "");
-const course = findPublicCourse(slug);
+const { data: catalogue, error: catalogueError } = await useLearningCatalogue();
+if (catalogueError.value || !catalogue.value)
+  throw createError({ statusCode: 503, statusMessage: "Learning catalogue temporarily unavailable" });
+const courses = catalogue.value.courses;
+const demoPreview = catalogue.value.enabled;
+if (demoPreview) useHead({ meta: [{ name: "robots", content: "noindex, nofollow" }] });
+const course = findPublicCourse(slug, courses);
 if (!course)
   throw createError({ statusCode: 404, statusMessage: "Course not published" });
 const orderedModules = [...course.modules].sort(
@@ -92,7 +98,7 @@ useHead({
           >{{ orderedEntries.length }}
           {{ orderedEntries.length === 1 ? "lesson" : "lessons" }}</strong
         ><span>For: {{ course.audience }}</span
-        ><span>Public lessons · No account required</span>
+        ><span>{{ demoPreview ? "Development preview · Not educator-reviewed" : "Public lessons · No account required" }}</span>
       </div>
     </div>
     <div class="outline-heading">
