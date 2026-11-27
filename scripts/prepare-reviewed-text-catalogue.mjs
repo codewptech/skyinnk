@@ -101,7 +101,16 @@ export function prepareFromStaging(packetPath, repositoryRoot) {
   if (basename(path) !== "reviewed-intake.json") fail("use reviewed-intake.json");
   const staging = realpathSync(dirname(path));
   if (inside(realpathSync(repositoryRoot), staging)) fail("stage approved inputs outside the repository");
-  const packet = JSON.parse(regularFile(join(staging, "reviewed-intake.json"), 256_000).toString("utf8"));
+  const packetBytes = regularFile(join(staging, "reviewed-intake.json"), 256_000);
+  let packetText;
+  try {
+    // Do not silently replace corrupt bytes in reviewer names or other metadata.
+    // Preserve the previous JSON parser's handling of a leading BOM.
+    packetText = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(packetBytes);
+  } catch {
+    fail("invalid UTF-8 in reviewed-intake.json");
+  }
+  const packet = JSON.parse(packetText);
   return prepareTextCatalogue(packet, name => regularFile(join(staging, name), MAX_NOTES_BYTES));
 }
 
