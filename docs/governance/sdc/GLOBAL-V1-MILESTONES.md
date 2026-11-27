@@ -3,6 +3,7 @@
 **State:** Canonical global V1 guest-learning milestone already exists as [GitHub Issue #58](https://github.com/codewptech/skyinnk/issues/58), ID **V1-58**. This document defines the index/ID rule, not a separate milestone database. Live GitHub issue/PR/commit evidence takes precedence over old snapshots. Do not invent completion, scope or version numbers.
 
 ## Baseline snapshot (2026-11-20; refresh from live GitHub before use)
+
 - Protected integration branch: `development/v1-public-launch`.
 - Verified integration HEAD at draft start: `f318ceb5f5144116c2b59a43298336438910de69` (refresh every session).
 - GitHub-native PEA-2 CI via merged PR #51, Issue #34 closed. This is a **governance technical milestone**, not proof the entire V1 app passed user acceptance.
@@ -11,6 +12,7 @@
 - No human review or production release approval implied.
 
 ## Template for EVERY global V1 milestone
+
 ```markdown
 Global milestone ID: V1-<canonical GitHub issue number; only SDC 03 creates/reuses the record>
 Title:
@@ -41,6 +43,7 @@ Next global milestone candidate:
 - A GitHub update does not awaken dormant Codex/Work. Near-continuous transitions require verified actual runtime execution; scheduled checks are fallback, not throughput clocks. [Issue #59](https://github.com/codewptech/skyinnk/issues/59) tracks real execution acceptance.
 
 ## Shared scheduling semantics
+
 - Milestone ID describes the **product outcome**, not frontend/backend or chat ownership.
 - Multiple global milestones may overlap in BUILDING/REVIEWING; each actual executor finishes its CURRENT work first and queues Reviewer corrections second.
 - A frozen revision may remain available to owner's flexible human review; feedback against older versions must be reconciled against latest code before writing a fix.

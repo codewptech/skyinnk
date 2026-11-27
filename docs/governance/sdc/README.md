@@ -3,12 +3,14 @@
 Status: **proposed for independent PR review / not yet integrated**. Supersedes experimental daily/hourly-as-throughput assumptions: the final target is **near-continuous event-driven work**, with native schedule only as an optional recovery fallback; full execution remains unverified until Issue #59 passes. This is a **chat-management operating layer**, not PEA-2 and not an amendment to approved V1 product scope.
 
 ## Documents
+
 - [Operating contract](OPERATING-CONTRACT.md) — six fresh chat identities, one global V1 roadmap, queue priorities, review modes and evidence standards.
 - [Six copy-ready bootstrap prompts](CHAT-BOOTSTRAP-PROMPTS.md) — use in six **new conversations**, not old chats.
 - [Global milestone registry](GLOBAL-V1-MILESTONES.md) — an initial factual inventory and the canonical record template.
 - [Legacy Review Box](REVIEW-BOX.md) — chat/PR triage and non-destructive cleanup rules.
 
 ## First-use order
+
 1. Do not delete historical conversations. Review Box them; preserve unique decisions and work.
 2. Review/merge this documentation PR through protected development, if acceptable. Until integration, its branch is an auditable proposal.
 3. Create six NEW named role sessions with designated modes: **01 ChatGPT Chat; 02/03 ChatGPT Work; 04/05/06 Codex.** Codex tasks/sessions need not appear as ordinary ChatGPT chats. Paste the corresponding standalone prompt and confirm usable GitHub access. If mode is unavailable, record MODE BLOCKED in Review Box; do not claim that agent is running.
