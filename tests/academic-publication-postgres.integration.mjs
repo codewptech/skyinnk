@@ -66,12 +66,14 @@ try {
  assert.equal(attempts.filter(x=>x.status==="rejected"&&x.reason.code==="STALE").length,1);
  const active=await prisma.courseRelease.findFirstOrThrow({where:{courseId:c.id,state:"ACTIVE"}});
  assert.equal(active.version,2); assert.equal(await prisma.courseRelease.count({where:{courseId:c.id,state:"ACTIVE"}}),1);
- assert.equal((await prisma.courseRelease.findUniqueOrThrow({where:{id:released.id}})).state,"SUPERSEDED");
+ const superseded=await prisma.courseRelease.findUniqueOrThrow({where:{id:released.id}});
+ assert.equal(superseded.state,"SUPERSEDED"); assert.equal(superseded.retiredById,reviewer.id);
  await rejects(()=>withdrawAcademicCourse(editor.id,c.id,active.id),"FORBIDDEN");
  await rejects(()=>withdrawAcademicCourse(reviewer.id,c.id,released.id),"STALE");
  await withdrawAcademicCourse(reviewer.id,c.id,active.id);
  assert.equal(await prisma.courseRelease.count({where:{courseId:c.id,state:"ACTIVE"}}),0);
- assert.equal((await prisma.courseRelease.findUniqueOrThrow({where:{id:active.id}})).state,"WITHDRAWN");
+ const withdrawn=await prisma.courseRelease.findUniqueOrThrow({where:{id:active.id}});
+ assert.equal(withdrawn.state,"WITHDRAWN"); assert.equal(withdrawn.retiredById,reviewer.id);
  // Revert to the exact pre-first-publication draft. With no active release,
  // its previous digest must NOT authorize republishing after withdrawal.
  await prisma.lesson.update({where:{id:l.id},data:{notesMarkdown:"## Example\nUpdated fictional notes."}});

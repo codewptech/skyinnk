@@ -47,7 +47,8 @@ model User {
   // Academic authoring permissions; existing User columns and identity unchanged.
   roles                UserRole[]
   courseAssignments    CourseEducator[]
-  reviewedReleases     CourseRelease[]
+  reviewedReleases     CourseRelease[] @relation("AcademicReviewedBy")
+  retiredReleases      CourseRelease[] @relation("AcademicRetiredBy")
 
   @@index([email])
 }
@@ -362,8 +363,10 @@ model CourseRelease {
   reviewedAt DateTime @default(now()) @db.Timestamptz(6)
   rightsConfirmed Boolean
   retiredAt DateTime? @db.Timestamptz(6)
+  retiredById String? @db.Uuid
   course Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  reviewer User @relation(fields: [reviewedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  reviewer User @relation("AcademicReviewedBy", fields: [reviewedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  retiredBy User? @relation("AcademicRetiredBy", fields: [retiredById], references: [id], onDelete: Restrict, onUpdate: Restrict)
   modules PublishedModule[]
   classifications PublishedClassification[]
   resources PublishedCourseResource[]
@@ -371,6 +374,7 @@ model CourseRelease {
   @@unique([courseId, version])
   @@index([state, slug])
   @@index([reviewedById])
+  @@index([retiredById])
 }
 
 model PublishedModule {

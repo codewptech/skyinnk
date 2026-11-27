@@ -17,15 +17,18 @@ CREATE TABLE "CourseRelease" (
  "reviewedAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
  "rightsConfirmed" BOOLEAN NOT NULL CHECK ("rightsConfirmed"),
  "retiredAt" TIMESTAMPTZ(6),
- CONSTRAINT "CourseRelease_state_check" CHECK (("state" IN ('STAGED','ACTIVE') AND "retiredAt" IS NULL) OR ("state" IN ('SUPERSEDED','WITHDRAWN') AND "retiredAt" IS NOT NULL AND "retiredAt" >= "reviewedAt"))
+ "retiredById" UUID,
+ CONSTRAINT "CourseRelease_state_check" CHECK (("state" IN ('STAGED','ACTIVE') AND "retiredAt" IS NULL AND "retiredById" IS NULL) OR ("state" IN ('SUPERSEDED','WITHDRAWN') AND "retiredAt" IS NOT NULL AND "retiredById" IS NOT NULL AND "retiredAt" >= "reviewedAt"))
 );
 CREATE UNIQUE INDEX "CourseRelease_id_courseId_key" ON "CourseRelease"("id", "courseId");
 CREATE UNIQUE INDEX "CourseRelease_courseId_version_key" ON "CourseRelease"("courseId", "version");
 CREATE INDEX "CourseRelease_state_slug_idx" ON "CourseRelease"("state", "slug");
 CREATE INDEX "CourseRelease_reviewedById_idx" ON "CourseRelease"("reviewedById");
+CREATE INDEX "CourseRelease_retiredById_idx" ON "CourseRelease"("retiredById");
 CREATE UNIQUE INDEX "CourseRelease_one_active" ON "CourseRelease"("courseId") WHERE "state" = 'ACTIVE';
 ALTER TABLE "CourseRelease" ADD CONSTRAINT "CourseRelease_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE "CourseRelease" ADD CONSTRAINT "CourseRelease_reviewedById_fkey" FOREIGN KEY ("reviewedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE "CourseRelease" ADD CONSTRAINT "CourseRelease_retiredById_fkey" FOREIGN KEY ("retiredById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 CREATE TABLE "PublishedModule" (
  "id" UUID NOT NULL DEFAULT uuidv7() PRIMARY KEY,
@@ -126,7 +129,7 @@ BEGIN
    IF NEW."state" <> 'STAGED' THEN RAISE EXCEPTION 'academic_release_requires_staging' USING ERRCODE = '23514'; END IF;
    RETURN NEW;
  END IF;
- IF (to_jsonb(NEW) - ARRAY['state','retiredAt']) IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['state','retiredAt']) THEN
+ IF (to_jsonb(NEW) - ARRAY['state','retiredAt','retiredById']) IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['state','retiredAt','retiredById']) THEN
    RAISE EXCEPTION 'academic_release_immutable' USING ERRCODE = '23514';
  END IF;
  IF OLD."state" = 'STAGED' AND NEW."state" = 'ACTIVE' THEN

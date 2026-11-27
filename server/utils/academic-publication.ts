@@ -59,6 +59,8 @@ async function snapshot(tx: Prisma.TransactionClient, courseId: string, root: st
   }
   classifications.sort(ordered);
   const active=await tx.courseRelease.findFirst({where:{courseId,state:"ACTIVE"},select:{id:true}});
+  // Bind the review to monotonic publication history as well as current active state.
+  const latestRelease=await tx.courseRelease.findFirst({where:{courseId},orderBy:{version:"desc"},select:{id:true,version:true,state:true}});
   const seenMedia=new Set<string>();
   let totalBytes=0,links=0;
   async function resource(r:ResourceDraft, position:number):Promise<ResourceSnapshot> {
@@ -94,7 +96,7 @@ async function snapshot(tx: Prisma.TransactionClient, courseId: string, root: st
     }
     modules.push({moduleId:m.id,sourceKey:m.sourceKey,title:m.title,position:m.position,lessons});
   }
-  const data={courseId,baseReleaseId:active?.id??null,sourceKey:c.sourceKey,slug:c.slug,title:c.title,summary:c.summary,audience:c.audience,subject:primary.subject.name,classifications,resources,modules};
+  const data={courseId,baseReleaseId:active?.id??null,latestRelease,sourceKey:c.sourceKey,slug:c.slug,title:c.title,summary:c.summary,audience:c.audience,subject:primary.subject.name,classifications,resources,modules};
   // Reuse the existing public contract for draft technical validation. These
   // markers are internal validation-only, NEVER persisted as approval or served.
   const validation={status:"published" as const,visibility:"public" as const,reviewedBy:"internal-validation-only",reviewedAt:"2000-01-01T00:00:00Z"};
@@ -141,7 +143,7 @@ export async function publishAcademicCourse(actorId:string,courseId:string,expec
         for(const r of resources) await tx.publishedLessonResource.create({data:{...r,releaseId:release.id,publishedLessonId:lesson.id}});
       }
     }
-    if(data.baseReleaseId) await tx.courseRelease.update({where:{id:data.baseReleaseId},data:{state:"SUPERSEDED",retiredAt:new Date()}});
+    if(data.baseReleaseId) await tx.courseRelease.update({where:{id:data.baseReleaseId},data:{state:"SUPERSEDED",retiredAt:new Date(),retiredById:actorId}});
     const activated=await tx.courseRelease.update({where:{id:release.id},data:{state:"ACTIVE"}});
     return {id:activated.id,version:activated.version,reviewedAt:activated.reviewedAt};
   });
@@ -152,7 +154,7 @@ export async function withdrawAcademicCourse(actorId:string,courseId:string,expe
     await lockCourse(tx,courseId);
     const active=await tx.courseRelease.findFirst({where:{courseId,state:"ACTIVE"},select:{id:true}});
     if(!active || active.id!==expectedReleaseId) throw new AcademicPublicationError("STALE","Active release changed");
-    await tx.courseRelease.update({where:{id:active.id},data:{state:"WITHDRAWN",retiredAt:new Date()}});
+    await tx.courseRelease.update({where:{id:active.id},data:{state:"WITHDRAWN",retiredAt:new Date(),retiredById:actorId}});
     return {withdrawn:true};
   });
 }
