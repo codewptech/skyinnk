@@ -47,6 +47,8 @@ model User {
   // Academic authoring permissions; existing User columns and identity unchanged.
   roles                UserRole[]
   courseAssignments    CourseEducator[]
+  reviewedReleases     CourseRelease[] @relation("AcademicReviewedBy")
+  retiredReleases      CourseRelease[] @relation("AcademicRetiredBy")
 
   @@index([email])
 }
@@ -144,6 +146,7 @@ model Course {
   modules               Module[]
   educators             CourseEducator[]
   resources             CourseResource[]
+  releases              CourseRelease[]
 }
 
 model MediaAsset {
@@ -173,6 +176,8 @@ model LearningResource {
   mediaAsset            MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   courses               CourseResource[]
   lessons               LessonResource[]
+  publishedCourseLinks  PublishedCourseResource[]
+  publishedLessonLinks  PublishedLessonResource[]
 
   @@index([mediaAssetId])
 }
@@ -188,6 +193,7 @@ model Module {
 
   course                Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   lessons               Lesson[]
+  publishedModules      PublishedModule[]
 
   @@unique([id, courseId])
   @@unique([courseId, position])
@@ -212,8 +218,10 @@ model Lesson {
   videoAsset            MediaAsset? @relation("LessonVideo", fields: [videoAssetId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   topics                LessonTopic[]
   resources             LessonResource[]
+  publishedLessons      PublishedLesson[]
 
   @@unique([courseId, slug])
+  @@unique([id, courseId])
   @@unique([moduleId, position])
   @@index([videoAssetId])
   @@index([moduleId, courseId])
@@ -336,4 +344,124 @@ model LessonResource {
   @@id([lessonId, resourceId])
   @@unique([lessonId, position])
   @@index([resourceId])
+}
+
+// Immutable approved release snapshot; STAGED exists only inside publication transaction.
+model CourseRelease {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  courseId String @db.Uuid
+  version Int
+  state String @default("STAGED")
+  sourceKey String
+  slug String
+  title String
+  summary String
+  audience String
+  subject String
+  contentDigest String
+  reviewedById String @db.Uuid
+  reviewedAt DateTime @default(now()) @db.Timestamptz(6)
+  rightsConfirmed Boolean
+  retiredAt DateTime? @db.Timestamptz(6)
+  retiredById String? @db.Uuid
+  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  reviewer User @relation("AcademicReviewedBy", fields: [reviewedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  retiredBy User? @relation("AcademicRetiredBy", fields: [retiredById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  modules PublishedModule[]
+  classifications PublishedClassification[]
+  resources PublishedCourseResource[]
+  @@unique([id, courseId])
+  @@unique([courseId, version])
+  @@index([state, slug])
+  @@index([reviewedById])
+  @@index([retiredById])
+}
+
+model PublishedModule {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  releaseId String @db.Uuid
+  courseId String @db.Uuid
+  moduleId String @db.Uuid
+  sourceKey String
+  title String
+  position Int
+  release CourseRelease @relation(fields: [releaseId, courseId], references: [id, courseId], onDelete: Restrict, onUpdate: Restrict)
+  module Module @relation(fields: [moduleId, courseId], references: [id, courseId], onDelete: Restrict, onUpdate: Restrict)
+  lessons PublishedLesson[]
+  @@unique([id, releaseId, courseId])
+  @@unique([releaseId, moduleId])
+  @@unique([releaseId, position])
+  @@index([moduleId, courseId])
+}
+
+model PublishedLesson {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  releaseId String @db.Uuid
+  courseId String @db.Uuid
+  publishedModuleId String @db.Uuid
+  lessonId String @db.Uuid
+  sourceKey String
+  slug String
+  title String
+  position Int
+  kind String
+  overview String
+  notesMarkdown String
+  videoPublicId String?
+  publishedModule PublishedModule @relation(fields: [publishedModuleId, releaseId, courseId], references: [id, releaseId, courseId], onDelete: Restrict, onUpdate: Restrict)
+  lesson Lesson @relation(fields: [lessonId, courseId], references: [id, courseId], onDelete: Restrict, onUpdate: Restrict)
+  resources PublishedLessonResource[]
+  @@unique([id, releaseId])
+  @@unique([releaseId, lessonId])
+  @@unique([releaseId, slug])
+  @@unique([publishedModuleId, position])
+  @@index([lessonId, courseId])
+}
+
+model PublishedClassification {
+  releaseId String @db.Uuid
+  kind String
+  key String
+  name String
+  isPrimary Boolean @default(false)
+  release CourseRelease @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@id([releaseId, kind, key])
+}
+
+model PublishedCourseResource {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  releaseId String @db.Uuid
+  resourceId String @db.Uuid
+  sourceKey String
+  title String
+  position Int
+  mimeType String
+  sizeBytes Int
+  sha256 String
+  release CourseRelease @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  resource LearningResource @relation(fields: [resourceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([releaseId, resourceId])
+  @@unique([releaseId, position])
+  @@index([resourceId])
+  @@index([sha256])
+}
+
+model PublishedLessonResource {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  releaseId String @db.Uuid
+  publishedLessonId String @db.Uuid
+  resourceId String @db.Uuid
+  sourceKey String
+  title String
+  position Int
+  mimeType String
+  sizeBytes Int
+  sha256 String
+  lesson PublishedLesson @relation(fields: [publishedLessonId, releaseId], references: [id, releaseId], onDelete: Restrict, onUpdate: Restrict)
+  resource LearningResource @relation(fields: [resourceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([publishedLessonId, resourceId])
+  @@unique([publishedLessonId, position])
+  @@index([resourceId])
+  @@index([releaseId])
+  @@index([sha256])
 }

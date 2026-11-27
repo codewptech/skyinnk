@@ -19,7 +19,7 @@ import {
   type PublicCatalogue,
 } from "../shared/public-content.ts";
 
-function matchesResourceFormat(bytes: Buffer, type: string): boolean {
+export function matchesResourceFormat(bytes: Buffer, type: string): boolean {
   switch (type) {
     case "PDF":
       return (
