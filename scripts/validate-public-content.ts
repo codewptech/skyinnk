@@ -7,6 +7,7 @@ import {
   lstatSync,
 } from "node:fs";
 import { createHash } from "node:crypto";
+import { parseUniqueJson } from "./parse-unique-json.ts";
 import { resolve, join, sep } from "node:path";
 import { markdownResourcePaths, renderMarkdown, validateMarkdownMath } from "../app/utils/render-markdown.ts";
 import {
@@ -92,7 +93,7 @@ export function checkPublicContent(root = resolve(".")): PublicCatalogue {
   } catch {
     throw new Error("Public content: invalid UTF-8 in content/catalogue.json");
   }
-  const catalogue = validatePublicCatalogue(JSON.parse(source));
+  const catalogue = validatePublicCatalogue(parseUniqueJson(source, "Public content: content/catalogue.json"));
   const resources = new Set<string>();
   const notes: string[] = [];
   for (const course of catalogue.courses)

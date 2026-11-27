@@ -3,6 +3,7 @@
  * Prints a candidate manifest; never writes files or grants approval.
  */
 import { createHash } from "node:crypto";
+import { parseUniqueJson } from "./parse-unique-json.ts";
 import { constants, lstatSync, openSync, fstatSync, readSync, closeSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -139,7 +140,7 @@ export function prepareFromStaging(packetPath, repositoryRoot) {
   } catch {
     fail("invalid UTF-8 in reviewed-intake.json");
   }
-  const packet = JSON.parse(packetText);
+  const packet = parseUniqueJson(packetText, "Reviewed text intake: reviewed-intake.json");
   return prepareTextCatalogue(packet, name => regularFile(join(staging, name), MAX_NOTES_BYTES));
 }
 
