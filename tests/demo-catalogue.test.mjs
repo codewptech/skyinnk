@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { demoPreviewEnabled, loadDemoPreview, readDemoCatalogue } from "../server/utils/demo-catalogue.ts";
+import { demoPreviewEnabled, demoPreviewAuthorized, demoProofHeader, markDemoIngress, loadDemoPreview, readDemoCatalogue } from "../server/utils/demo-catalogue.ts";
 
 test("demo preview requires development, opt-in, host and actual loopback transport", () => {
   const peer = "127.0.0.1";
@@ -20,20 +20,48 @@ test("demo preview requires development, opt-in, host and actual loopback transp
     assert.equal(demoPreviewEnabled(true, "1", "localhost", loopback, loopback), true);
 });
 
-test("denied preview never invokes the database loader", async () => {
+test("outer ingress strips forged proof and only marks actual loopback listener and request", () => {
+  const token = "a".repeat(64);
+  const request = (remoteAddress, localAddress, host = "localhost") => ({
+    headers: { host, [demoProofHeader]: "forged" },
+    rawHeaders: ["Host", host, "X-Skyinnk-Internal-Demo-Loopback", "forged"],
+    socket: { remoteAddress, localAddress },
+  });
+  for (const [listener, peer, local, host] of [
+    ["0.0.0.0", "127.0.0.1", "127.0.0.1", "localhost"],
+    ["127.0.0.1", "192.168.1.4", "127.0.0.1", "localhost"],
+    ["127.0.0.1", "127.0.0.1", undefined, "localhost"],
+    ["127.0.0.1", "127.0.0.1", "127.0.0.1", "external.invalid"],
+  ]) {
+    const req = request(peer, local, host);
+    markDemoIngress(req, listener, "1", token);
+    assert.equal(req.headers[demoProofHeader], undefined);
+    assert.equal(req.rawHeaders.length, 2);
+  }
+  const allowed = request("127.0.0.1", "127.0.0.1");
+  markDemoIngress(allowed, "127.0.0.1", "1", token);
+  assert.equal(allowed.headers[demoProofHeader], token);
+  assert.deepEqual(allowed.rawHeaders.slice(2), [demoProofHeader, token]);
+});
+
+test("denied worker preview never invokes database loader", async () => {
+  const token = "a".repeat(64);
   let calls = 0;
   const load = async () => { calls++; return []; };
-  for (const [dev, flag, host, peer, local] of [
-    [false, "1", "localhost", "127.0.0.1", "127.0.0.1"],
-    [true, undefined, "localhost", "127.0.0.1", "127.0.0.1"],
-    [true, "1", "skyinnk.in", "127.0.0.1", "127.0.0.1"],
-    [true, "1", "localhost", "192.168.1.5", "127.0.0.1"],
-    [true, "1", "localhost", undefined, undefined],
+  for (const [dev, flag, host, proof, secret] of [
+    [false, "1", "localhost", token, token],
+    [true, undefined, "localhost", token, token],
+    [true, "1", "skyinnk.in", token, token],
+    [true, "1", "localhost", "b".repeat(64), token],
+    [true, "1", "localhost", undefined, token],
+    [true, "1", "localhost", token, undefined],
+    [true, "1", "localhost", "forged", "forged"],
   ]) {
-    assert.deepEqual(await loadDemoPreview(dev, flag, host, peer, local, load), { enabled: false, courses: [] });
+    assert.equal(demoPreviewAuthorized(dev, flag, host, proof, secret), false);
+    assert.deepEqual(await loadDemoPreview(dev, flag, host, proof, secret, load), { enabled: false, courses: [] });
   }
   assert.equal(calls, 0);
-  assert.deepEqual(await loadDemoPreview(true, "1", "localhost", "127.0.0.1", "127.0.0.1", load), { enabled: true, courses: [] });
+  assert.deepEqual(await loadDemoPreview(true, "1", "localhost", token, token, load), { enabled: true, courses: [] });
   assert.equal(calls, 1);
 });
 

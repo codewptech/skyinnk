@@ -1,9 +1,19 @@
+import { randomBytes } from "node:crypto";
+import type { IncomingMessage } from "node:http";
+import { demoProofEnv, markDemoIngress } from "./server/utils/demo-catalogue";
 import { checkPublicContent } from "./scripts/validate-public-content";
 import { projectLearnerCourses } from "./shared/public-content";
 
 const learnerCourses = projectLearnerCourses(checkPublicContent());
 
 const immutableBuildAssets = new Set<string>();
+
+// Nuxt's outer listener sees the actual peer; Nitro dev workers may only see
+// Unix-socket/proxy transport. Keep the proof private to this dev process.
+const demoToken = process.env.NODE_ENV === "development" &&
+  process.env.SKYINNK_DEMO_PREVIEW === "1"
+  ? (process.env[demoProofEnv] ??= randomBytes(32).toString("hex"))
+  : undefined;
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -21,6 +31,14 @@ export default defineNuxtConfig({
     },
   },
   hooks: {
+    listen(server) {
+      if (!demoToken) return;
+      const address = server.address();
+      const host = address && typeof address === "object" ? address.address : undefined;
+      server.prependListener("request", (request: IncomingMessage) => {
+        markDemoIngress(request, host, process.env.SKYINNK_DEMO_PREVIEW, demoToken);
+      });
+    },
     "build:manifest"(manifest) {
       immutableBuildAssets.clear();
       for (const entry of Object.values(manifest)) {

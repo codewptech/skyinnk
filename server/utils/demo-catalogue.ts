@@ -1,10 +1,12 @@
+import { timingSafeEqual } from "node:crypto";
+import type { IncomingMessage } from "node:http";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import type { LearnerCourse } from "../../shared/public-content.ts";
 
 /** Demo preview is opt-in, never an approved release, and never a built-server feature. */
 export type DemoCataloguePreview = { enabled: boolean; courses: LearnerCourse[] };
 
-function isLoopback(address: string | undefined): boolean {
+export function isLoopback(address: string | undefined): boolean {
   return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
 }
 
@@ -20,16 +22,54 @@ export function demoPreviewEnabled(
     /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/i.test(host);
 }
 
-/** Never invoke the database loader until actual transport and opt-in checks pass. */
+export const demoProofHeader = "x-skyinnk-internal-demo-loopback";
+export const demoProofEnv = "SKYINNK_INTERNAL_DEMO_TOKEN";
+const tokenPattern = /^[a-f0-9]{64}$/;
+
+/** Runs on Nuxt's OUTER HTTP listener, before its worker proxy. Client-supplied
+ * proof is always removed, including duplicate raw headers. */
+export function markDemoIngress(
+  request: Pick<IncomingMessage, "headers" | "rawHeaders" | "socket">,
+  listenerAddress: string | undefined,
+  flag: string | undefined,
+  token: string,
+): void {
+  delete request.headers[demoProofHeader];
+  for (let index = request.rawHeaders.length - 2; index >= 0; index -= 2)
+    if (request.rawHeaders[index]?.toLowerCase() === demoProofHeader)
+      request.rawHeaders.splice(index, 2);
+  if (!isLoopback(listenerAddress) || !tokenPattern.test(token) ||
+      !demoPreviewEnabled(true, flag, request.headers.host ?? "",
+        request.socket.remoteAddress, request.socket.localAddress)) return;
+  request.headers[demoProofHeader] = token;
+  request.rawHeaders.push(demoProofHeader, token);
+}
+
+export function demoPreviewAuthorized(
+  dev: boolean,
+  flag: string | undefined,
+  host: string,
+  proof: string | undefined,
+  token: string | undefined,
+): boolean {
+  return dev === true && flag === "1" &&
+    /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/i.test(host) &&
+    typeof proof === "string" && tokenPattern.test(proof) &&
+    typeof token === "string" && tokenPattern.test(token) &&
+    timingSafeEqual(Buffer.from(proof), Buffer.from(token));
+}
+
+/** Only a proof injected by the actual loopback ingress can open the database.
+ * A worker's Unix socket or proxy-provided IP/Host alone is not authority. */
 export async function loadDemoPreview(
   dev: boolean,
   flag: string | undefined,
   host: string,
-  peer: string | undefined,
-  localAddress: string | undefined,
+  proof: string | undefined,
+  token: string | undefined,
   load: () => Promise<LearnerCourse[]>,
 ): Promise<DemoCataloguePreview> {
-  if (!demoPreviewEnabled(dev, flag, host, peer, localAddress))
+  if (!demoPreviewAuthorized(dev, flag, host, proof, token))
     return { enabled: false, courses: [] };
   return { enabled: true, courses: await load() };
 }
