@@ -3,7 +3,7 @@ import { readFile, cp } from "node:fs/promises";
 import { relative, sep } from "node:path";
 
 const normalize = value => value.trim().replace(/\s+/gu, " ");
-const identity = value => normalize(value).toLowerCase();
+const identity = value => normalize(value).normalize("NFC").toLowerCase().normalize("NFC");
 const order = (a, b) => a.position - b.position;
 const counts = values => {
   const result = new Map();
