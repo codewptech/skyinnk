@@ -15,7 +15,7 @@ import {
   type PublicCatalogue,
 } from "../shared/public-content.ts";
 
-function matchesResourceFormat(bytes: Buffer, type: string): boolean {
+export function matchesResourceFormat(bytes: Buffer, type: string): boolean {
   switch (type) {
     case "PDF":
       return /^%PDF-[12]\.\d(?:\r|\n)/.test(bytes.subarray(0, 10).toString("latin1")) &&

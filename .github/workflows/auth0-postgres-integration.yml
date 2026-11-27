@@ -9,6 +9,12 @@ on:
       - .github/workflows/auth0-postgres-integration.yml
       - tests/auth0-postgres.integration.mjs
       - tests/academic-postgres.integration.mjs
+      - tests/academic-publication-postgres.integration.mjs
+      - server/utils/academic-publication.ts
+      - server/utils/academic-private-media.ts
+      - scripts/validate-public-content.ts
+      - app/utils/render-markdown.ts
+      - shared/public-content.ts
       - server/utils/auth0-user.ts
       - prisma/**
       - prisma.config.ts
@@ -22,6 +28,12 @@ on:
       - .github/workflows/auth0-postgres-integration.yml
       - tests/auth0-postgres.integration.mjs
       - tests/academic-postgres.integration.mjs
+      - tests/academic-publication-postgres.integration.mjs
+      - server/utils/academic-publication.ts
+      - server/utils/academic-private-media.ts
+      - scripts/validate-public-content.ts
+      - app/utils/render-markdown.ts
+      - shared/public-content.ts
       - server/utils/auth0-user.ts
       - prisma/**
       - prisma.config.ts
@@ -85,3 +97,4 @@ jobs:
           npx prisma migrate deploy
           node --experimental-strip-types tests/auth0-postgres.integration.mjs
           node --experimental-strip-types tests/academic-postgres.integration.mjs
+          node --experimental-strip-types tests/academic-publication-postgres.integration.mjs
