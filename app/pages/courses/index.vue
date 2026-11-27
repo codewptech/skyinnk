@@ -22,7 +22,7 @@ useHead({
 </script>
 <template>
   <main id="main-content" class="catalogue">
-    <header class="learning-nav"><NuxtLink class="learning-brand" to="/"><span class="brand-mark" aria-hidden="true">S</span>Skyinnk</NuxtLink><NuxtLink to="/">Home</NuxtLink></header>
+    <header class="learning-nav"><NuxtLink class="learning-brand" to="/" aria-label="Skyinnk / Home"><span class="brand-mark" aria-hidden="true">S</span>Skyinnk</NuxtLink><span class="library-label">Public learning library</span></header>
     <section class="catalogue-heading" aria-labelledby="catalogue-title"><p class="section-kicker">Learning library</p><h1 id="catalogue-title">Explore courses</h1><p>Published learning material is available without registration.</p></section>
     <div v-if="courses.length" class="grid">
       <article v-for="(course, courseIndex) in courses" :key="course.key">
@@ -34,7 +34,7 @@ useHead({
           :aria-label="courseLinkNames[courseIndex]"
           class="course-link"
         >
-          View syllabus <span aria-hidden="true">→</span>
+          View syllabus
         </NuxtLink></div>
       </article>
     </div>
@@ -63,7 +63,9 @@ useHead({
 .course-body { display: flex; flex: 1; flex-direction: column; padding: 1.4rem; min-width: 0; }
 .course-body h2 { font-size: 1.4rem; margin: 0; }
 .course-body > p:not(.section-kicker) { color: var(--muted); margin: .7rem 0 1rem; }
-.course-link { color: var(--brand); font-weight: 700; display: flex; justify-content: space-between; gap: .6rem; padding: .8rem 0; min-height: 44px; border-top: 1px solid var(--line); margin-top: auto; }
+.course-link { position: relative; color: var(--brand); font-weight: 700; display: flex; align-items: center; padding: .8rem 1.5rem .8rem 0; min-height: 44px; border-top: 1px solid var(--line); margin-top: auto; }
+.course-link::after { content: ""; position: absolute; right: .35rem; top: calc(50% - .24rem); width: .48rem; height: .48rem; border-top: 2px solid currentColor; border-right: 2px solid currentColor; transform: rotate(45deg); }
+.library-label { font-size: .85rem; font-weight: 650; color: var(--muted); }
 .empty-state { margin: 2rem 0; border: 1px dashed #b9bbd0; border-radius: var(--radius); padding: clamp(1.5rem,6vw,4rem); background: var(--surface); text-align: center; }
 .empty-icon { display: grid; place-items: center; width: 4.5rem; height: 4.5rem; margin: 0 auto 1.25rem; background: var(--soft); color: var(--brand); border-radius: 1rem; font-size: 2.2rem; }
 .empty-state h2 { font-size: clamp(1.45rem,3vw,2.1rem); margin: 0 0 .65rem; }

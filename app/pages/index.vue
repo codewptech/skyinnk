@@ -45,7 +45,7 @@ useHead({
     <section class="hero" aria-labelledby="hero-heading">
       <div class="hero-copy">
         <p class="section-kicker">School learning · Open to everyone</p>
-        <h1 id="hero-heading">Understand more.<br />Learn at your pace.</h1>
+        <h1 id="hero-heading">Understand more. Learn at your pace.</h1>
         <p class="hero-intro">Explore clear explanations, useful notes and learning resources. Public lessons are free, with no registration required.</p>
         <NuxtLink class="action-primary" to="/courses">Explore free lessons <span aria-hidden="true">→</span></NuxtLink>
         <p class="hero-note"><span aria-hidden="true">✓</span> No account required for public lessons</p>
@@ -98,7 +98,7 @@ useHead({
 .profile img { border-radius: 50%; object-fit: cover; }
 .hero { display: grid; grid-template-columns: minmax(0,1.05fr) minmax(0,.95fr); align-items: center; gap: clamp(1.5rem,5vw,4rem); padding: clamp(2.3rem,6vw,4.7rem) 0; }
 .hero-copy { min-width: 0; }
-.hero h1 { font-size: clamp(2.65rem,5.5vw,5rem); font-weight: 760; line-height: 1.04; letter-spacing: -.065em; margin: .7rem 0 1.5rem; }
+.hero h1 { font-size: clamp(2.65rem,5.5vw,5rem); font-weight: 760; line-height: 1.04; letter-spacing: -.065em; text-wrap: balance; margin: .7rem 0 1.5rem; }
 .hero-intro { max-width: 36rem; font-size: clamp(1.03rem,1.6vw,1.24rem); line-height: 1.75; color: var(--muted); margin: 0 0 1.8rem; }
 .hero-note { color: var(--muted); font-size: .86rem; margin: .85rem 0 0; }
 .hero-note span { color: #236044; font-weight: 800; margin-right: .25rem; }
