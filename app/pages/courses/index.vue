@@ -39,7 +39,7 @@ useHead({
     <section class="catalogue-heading" aria-labelledby="catalogue-title">
       <p class="section-kicker">Learning library</p>
       <h1 id="catalogue-title">Explore courses</h1>
-      <p v-else>Published learning material is available without registration.</p>
+      <p>{{ developmentCatalogue ? "Browse available courses and learning materials." : "Published learning material is available without registration." }}</p>
     </section>
     <div v-if="courses.length" class="grid">
       <article v-for="(course, courseIndex) in courses" :key="course.key">
@@ -60,11 +60,12 @@ useHead({
         </div>
       </article>
     </div>
-    <section v-else class="empty-state" aria-label="No published courses">
+    <section v-else class="empty-state"  :aria-label="developmentCatalogue ? 'No courses' : 'No published courses'">
       <div class="empty-icon" aria-hidden="true">▤</div>
-      <p class="section-kicker">No published courses yet</p>
+      <p class="section-kicker">{{ developmentCatalogue ? "No courses yet" : "No published courses yet" }}</p>
       <h2>Lessons are being prepared</h2>
-      <p>
+      <p v-if="developmentCatalogue">There are no courses to browse yet.</p>
+      <p v-else>
         We will list courses here as soon as substantive, educator-reviewed
         lessons are published. There are no published courses to browse yet.
       </p>
