@@ -25,7 +25,7 @@ Examples:
 - $3x-8=0$ is **linear**, not quadratic, because it has no $x^2$ term.
 - $x^2=9$ is quadratic once written as $x^2-9=0$.
 
-A *root* of an equation is a value of $x$ that makes the equation true. Some quadratic equations have two distinct real roots; others have one repeated real root or no real roots.
+A _root_ of an equation is a value of $x$ that makes the equation true. Some quadratic equations have two distinct real roots; others have one repeated real root or no real roots.
 
 ## 2. The zero-product rule
 
@@ -41,7 +41,7 @@ $$(x-2)(x-3)=0.$$
 
 Either $x-2=0$ or $x-3=0$. Thus the roots are $x=2$ and $x=3$.
 
-**Important:** You can use this rule only after the equation has been written as a *product equal to zero*. Do not apply it to a product equal to 6 or to a sum of factors.
+**Important:** You can use this rule only after the equation has been written as a _product equal to zero_. Do not apply it to a product equal to 6 or to a sum of factors.
 
 ## 3. Factorise a quadratic with leading coefficient 1
 
@@ -166,7 +166,7 @@ The negative root remains a mathematically valid root of the equation; it simply
 
 Use the following checklist on any factorisation problem:
 
-1. Is the equation in the form *something = 0*?
+1. Is the equation in the form _something = 0_?
 2. When I multiply my factors back out, do I get the original quadratic?
 3. Did I use the zero-product rule to solve **every** factor?
 4. Do all proposed roots satisfy the original equation?

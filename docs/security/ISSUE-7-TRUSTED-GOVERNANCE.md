@@ -49,18 +49,18 @@ node --test tests/trusted-governance.test.mjs
 2. Provision a separately owned GitHub App and a secure, independently hosted instance. Keep its private key and webhook secret in a secret store, not the repository. Deploy the reviewed code from the approved commit/image and test signed webhook deliveries (no PR source execution).
 3. Confirm a real legitimate development PR shows `Skyinnk Trusted Governance` from the **new App**, with a successful check run on the latest PR HEAD. Confirm a test PR missing an issue claim returns failure; validate protected file, overlap and tampered PR-controlled policy attempts through temporary feature-branch PRs with no bypass. Do **not** merge those negative test PRs.
 4. **Only after verified App check runs**: go to `https://github.com/codewptech/skyinnk/settings/rules`, edit `Protect development - V1 Integration` and add an additional required check named **exactly** `Skyinnk Trusted Governance`, with **Source = the new dedicated App**. Keep the existing required `Development CI`; keep strict up-to-date policy, PR required, deletion/non-fast-forward blocks. This is an owner-only settings change.
-5. Use a separate *non-bypass* agent identity to confirm GitHub refuses to merge an invalid PR; use a valid PR to confirm the check is required, passes, and permits the ordinary reviewed process. Verify the new check's App source ID in the **live ruleset API**. Never test by exercising the `codewptech` emergency bypass.
+5. Use a separate _non-bypass_ agent identity to confirm GitHub refuses to merge an invalid PR; use a valid PR to confirm the check is required, passes, and permits the ordinary reviewed process. Verify the new check's App source ID in the **live ruleset API**. Never test by exercising the `codewptech` emergency bypass.
 6. Observe webhook delivery and check-run audits for reliable reruns on issue edits, PR edits/synchronizes, competing PR opens/closes; periodic scans cover development base pushes without a Push webhook. Keep the task open until external hosting, enforcement, identity segregation, and negative live outcomes are verified.
 
 **GitHub ruleset snapshots prior to activation:** `Protect development - V1 Integration` ID `27049500` and `Protect main - Production` ID `27046619`, both active. Development requires `Development CI` from GitHub Actions app integration ID `15368`; no trusted-App check yet. Both currently include `codewptech` user ID `118954375` with `bypass_mode=always`. These live settings are **not modified by this task**.
 
 ### Four mandatory rejection scenarios
 
-| Attempt | Trusted check outcome |
-| --- | --- |
-| Open PR without `Task issue: #N`, or issue closed/mismatched | `failure` |
-| Work changes `server/`, Auth0 middleware, release-state, governance, or trusted checker paths | `failure` |
-| Two open development PRs edit the same path | `failure` on each after reconciliation |
+| Attempt                                                                                           | Trusted check outcome                                                                                                                        |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Open PR without `Task issue: #N`, or issue closed/mismatched                                      | `failure`                                                                                                                                    |
+| Work changes `server/`, Auth0 middleware, release-state, governance, or trusted checker paths     | `failure`                                                                                                                                    |
+| Two open development PRs edit the same path                                                       | `failure` on each after reconciliation                                                                                                       |
 | PR edits `scripts/verify-pr-governance.mjs` or even PR-controlled workflow code to return success | Service still evaluates its own trusted policy; unauthorized change is rejected where role-disallowed; PR-supplied script is never executed. |
 
 A legitimate Chat 03 task with correctly claimed files is accepted. Draft legacy PR #1 retains **only** its exact historical metadata/path exemption. It cannot add new filenames, bypass ownership or overlap checks, nor target `main`.

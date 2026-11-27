@@ -23,10 +23,14 @@ const real = [
 ];
 
 test("public source validator rejects impossible review dates instead of Date.parse rollover", () => {
-  assert.ok(Number.isFinite(Date.parse("2026-12-31T24:00:00Z")),
-    "native parsing must reproduce the 24:00 rollover edge case");
-  assert.ok(Number.isFinite(Date.parse("2026-02-30T00:00:00Z")),
-    "the regression tests the real native date-rollover behavior");
+  assert.ok(
+    Number.isFinite(Date.parse("2026-12-31T24:00:00Z")),
+    "native parsing must reproduce the 24:00 rollover edge case",
+  );
+  assert.ok(
+    Number.isFinite(Date.parse("2026-02-30T00:00:00Z")),
+    "the regression tests the real native date-rollover behavior",
+  );
   for (const invalid of impossible) {
     const value = publicCatalogueFixture();
     value.courses[0].publication.reviewedAt = invalid;
@@ -46,14 +50,19 @@ test("the same calendar rule protects lesson and reviewed-resource publication m
 
   const valid = publicCatalogueFixture();
   const target = valid.courses[0].modules[1].lessons[0];
-  target.resources = [{
-    key: "date-fixture-resource",
-    title: "Approved source fixture",
-    url: "/resources/public/sample.txt",
-    type: "TXT",
-    sizeBytes: 4,
-    publication: { ...target.publication, reviewedAt: "2026-04-31T10:00:00Z" },
-  }];
+  target.resources = [
+    {
+      key: "date-fixture-resource",
+      title: "Approved source fixture",
+      url: "/resources/public/sample.txt",
+      type: "TXT",
+      sizeBytes: 4,
+      publication: {
+        ...target.publication,
+        reviewedAt: "2026-04-31T10:00:00Z",
+      },
+    },
+  ];
   assert.throws(() => validatePublicCatalogue(valid), /ISO review timestamp/);
 });
 
@@ -77,8 +86,10 @@ test("review timestamps require an explicit timezone at all publication levels",
     "2026-11-25T10:00:00.123",
   ];
   for (const timestamp of missingZones) {
-    assert.ok(Number.isFinite(Date.parse(timestamp)),
-      "native parser accepts this ambiguous local timestamp");
+    assert.ok(
+      Number.isFinite(Date.parse(timestamp)),
+      "native parser accepts this ambiguous local timestamp",
+    );
     for (const level of ["course", "lesson", "resource"]) {
       const value = publicCatalogueFixture();
       const course = value.courses[0];
@@ -93,8 +104,11 @@ test("review timestamps require an explicit timezone at all publication levels",
       };
       lesson.resources = [resource];
       ({ course, lesson, resource })[level].publication.reviewedAt = timestamp;
-      assert.throws(() => validatePublicCatalogue(value), /ISO review timestamp/,
-        level + " must reject timezone-free metadata: " + timestamp);
+      assert.throws(
+        () => validatePublicCatalogue(value),
+        /ISO review timestamp/,
+        level + " must reject timezone-free metadata: " + timestamp,
+      );
     }
   }
   for (const timestamp of [

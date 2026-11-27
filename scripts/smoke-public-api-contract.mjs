@@ -127,7 +127,8 @@ assert.deepEqual(await json(`${coursePath}/lessons/${video.slug}`), {
   module: firstModule,
   lesson: {
     ...video,
-    notesMarkdown: notesMarkdown +
+    notesMarkdown:
+      notesMarkdown +
       "\n![Diagram of $$x^2$$ with [linked text](/resources/public/description-only.txt)](/resources/public/fixture.png)\n\n" +
       "[Invalid fixture destination](https://example.invalid%3Ftext)\n",
     video: { provider: "youtube", publicId: "abcdefghijk" },

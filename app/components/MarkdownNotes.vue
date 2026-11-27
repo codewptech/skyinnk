@@ -19,7 +19,8 @@ function updateScrollTargets() {
     const targets = root.value?.querySelectorAll<HTMLElement>(selector) ?? [];
     Array.from(targets).forEach((target, index) => {
       // Hidden tab panels have zero width. Fitting content needs no extra tab stop.
-      const overflowing = target.clientWidth > 0 && target.scrollWidth > target.clientWidth + 1;
+      const overflowing =
+        target.clientWidth > 0 && target.scrollWidth > target.clientWidth + 1;
       target.tabIndex = overflowing ? 0 : -1;
       if (selector !== ".notes-table-scroll") {
         if (overflowing) {
@@ -151,7 +152,16 @@ onBeforeUnmount(() => observer?.disconnect());
 .markdown-notes :deep(.katex) {
   font-size: 1.1em;
 }
-.markdown-notes :deep(blockquote) { background: #f7f6fc; border-radius: 0 .6rem .6rem 0; padding-block: .2rem; }
-.markdown-notes :deep(th) { color: var(--ink); font-weight: 700; }
-.markdown-notes :deep(tbody tr:nth-child(even)) { background: #fafaff; }
+.markdown-notes :deep(blockquote) {
+  background: #f7f6fc;
+  border-radius: 0 0.6rem 0.6rem 0;
+  padding-block: 0.2rem;
+}
+.markdown-notes :deep(th) {
+  color: var(--ink);
+  font-weight: 700;
+}
+.markdown-notes :deep(tbody tr:nth-child(even)) {
+  background: #fafaff;
+}
 </style>

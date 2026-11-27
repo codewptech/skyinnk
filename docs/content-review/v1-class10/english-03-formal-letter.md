@@ -22,24 +22,24 @@ In a classroom exercise, use **fictional or placeholder addresses**. You do not 
 
 Read this **fictional prompt**:
 
-*Several streetlights near a community library in an imaginary town have stopped working. Students visit the library after school, and poorly lit roads make evening travel difficult. Write a formal letter to the municipal maintenance officer requesting an inspection and repairs.*
+_Several streetlights near a community library in an imaginary town have stopped working. Students visit the library after school, and poorly lit roads make evening travel difficult. Write a formal letter to the municipal maintenance officer requesting an inspection and repairs._
 
 Before writing, note:
 
-| Question | Plan for this letter |
-| --- | --- |
-| Who is writing? | A representative of students using the library |
-| Who can act? | The municipal maintenance officer |
-| What happened? | Streetlights near the library are not working |
-| Why does it matter? | Evening visitors need safer visibility |
-| What can reasonably be requested? | Inspection, repairs and an update |
-| What is **not** known? | The repair date and whether permission or funding is already granted |
+| Question                          | Plan for this letter                                                 |
+| --------------------------------- | -------------------------------------------------------------------- |
+| Who is writing?                   | A representative of students using the library                       |
+| Who can act?                      | The municipal maintenance officer                                    |
+| What happened?                    | Streetlights near the library are not working                        |
+| Why does it matter?               | Evening visitors need safer visibility                               |
+| What can reasonably be requested? | Inspection, repairs and an update                                    |
+| What is **not** known?            | The repair date and whether permission or funding is already granted |
 
 The letter should not claim the official has approved the request or promise that repairs will happen on a particular day.
 
 ## 3. Original model formal letter
 
-*Every location and situation below is fictional. Bracketed address fields are placeholders rather than real personal information. The main message contains approximately 100–120 words; exact word-count conventions for addresses and closings require teacher confirmation.*
+_Every location and situation below is fictional. Bracketed address fields are placeholders rather than real personal information. The main message contains approximately 100–120 words; exact word-count conventions for addresses and closings require teacher confirmation._
 
 **From:**  
 Student Reading Club Representative  
@@ -112,7 +112,7 @@ The improved version is clearer, respectful and does not falsely claim the munic
 
 **Task 1:** A strong response should state the problem without exaggeration, explain how litter affects the shared park, and request reasonable steps such as better disposal facilities, signs or a community clean-up. Different valid letters are possible; the review criteria below matter more than memorising one fixed answer.
 
-**Task 2:** Identify the club, event and proposed arrangements, then request confirmation of availability or another suitable time. If an exact time is unknown, do not invent a confirmed booking. The separate *formal-email* lesson demonstrates similar content, but your answer here must follow **letter** layout.
+**Task 2:** Identify the club, event and proposed arrangements, then request confirmation of availability or another suitable time. If an exact time is unknown, do not invent a confirmed booking. The separate _formal-email_ lesson demonstrates similar content, but your answer here must follow **letter** layout.
 
 **Task 3 — possible correction:** “Please let us know whether the streetlights can be inspected and when repair work might be scheduled.”
 

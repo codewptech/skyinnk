@@ -40,11 +40,11 @@ The symbol $\pm$ means evaluate once with plus and once with minus. If the squar
 
 Define $D=b^2-4ac$.
 
-| Condition | Number of distinct real roots | Interpretation |
-| --- | --- | --- |
-| $D>0$ | 2 | Two different real values |
-| $D=0$ | 1 | One repeated real root |
-| $D<0$ | 0 | No real roots |
+| Condition | Number of distinct real roots | Interpretation            |
+| --------- | ----------------------------- | ------------------------- |
+| $D>0$     | 2                             | Two different real values |
+| $D=0$     | 1                             | One repeated real root    |
+| $D<0$     | 0                             | No real roots             |
 
 A negative discriminant means no **real** roots; it does not mean that the equation is invalid. Complex numbers are outside this introductory lesson.
 

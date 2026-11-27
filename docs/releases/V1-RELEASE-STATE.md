@@ -6,23 +6,23 @@
 
 Two subsequent integrations since the previous source checkpoint `8b5e6ceb84bafa554b0ace86a7b127a56b2bd9ae` were verified in actual development ancestry:
 
-| PR | Integrated commit | Postmerge evidence |
-| --- | --- | --- |
-| #148, canonical evidence reconciliation | `068c03535a10812bde99744695940d90aef63878` | [CI 45633671793](https://github.com/codewptech/skyinnk/actions/runs/45633671793), [routing 45633671758](https://github.com/codewptech/skyinnk/actions/runs/45633671758) SUCCESS; #147 closed |
+| PR                                                   | Integrated commit                          | Postmerge evidence                                                                                                                                                                                                           |
+| ---------------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #148, canonical evidence reconciliation              | `068c03535a10812bde99744695940d90aef63878` | [CI 45633671793](https://github.com/codewptech/skyinnk/actions/runs/45633671793), [routing 45633671758](https://github.com/codewptech/skyinnk/actions/runs/45633671758) SUCCESS; #147 closed                                 |
 | #126, completed acceptance packet dependency parsing | `e7184461168c15fa36436acfe35f5e1647cefaca` | [CI 45638030507](https://github.com/codewptech/skyinnk/actions/runs/45638030507), [routing 45638030404](https://github.com/codewptech/skyinnk/actions/runs/45638030404) SUCCESS; #125 DONE/closed, all four criteria checked |
 
 The owner specifically authorized PR126 for non-production development integration. Exact reconciled four-file candidate `26c8cbf6e38f8dce45aa8bde5c8bdbf6d78fda87` passed [candidate CI 45637486579](https://github.com/codewptech/skyinnk/actions/runs/45637486579) and [routing 45637486245](https://github.com/codewptech/skyinnk/actions/runs/45637486245); advisory COMMENT6059794601 is not independent assurance. Actual postmerge logs pass the fully checked terminal-packet test and the hard dependency test requiring trusted merge and push CI evidence. The previous sensitive-governance hold below is historical and superseded; no general governance waiver, production permission or unattended activation.
 
 ### Outstanding acceptance receipts (not additional assumed implementation)
 
-| Gate | Concrete evidence required before acceptance |
-| --- | --- |
-| Educator and rights, #108/#127 | [Five pinned drafts](https://github.com/codewptech/skyinnk/issues/108#issuecomment-7165247254) and [two additional mathematics drafts](https://github.com/codewptech/skyinnk/issues/127#issuecomment-7165248239). Use [educator packet exporter](../content-review/v1-class10/EDUCATOR-REVIEW-EXPORT.md); real qualified reviewer selects 4–6 lessons, verifies scope/answers/rights and records actual decision, reviewer identity/role, timezone timestamp and final SHA-256. Follow [content intake](V1-CONTENT-INTAKE.md) on a separate publication task; no synthetic approval. |
-| Existing Auth0 development app | Record exact source SHA, approved non-production origin, test browser and disposable PG18 instance; verify actual Universal Login callback, reload/session persistence, successful authenticated POST /api/v1/auth/sync and stable subject row, logout and rejection without a session. Record only redacted outcomes, never credentials, cookies or personal profile data. Existing [sync runbook](../auth0-user-sync.md); prior owner login/logout observation is not complete acceptance. No new tenant or live database. |
-| Human accessibility and content/media | Record actual device/OS/browser/screen reader, keyboard and touch navigation, focus/dialog/lesson transitions, notes tables and math, readable print and genuine selected lesson/media behavior; attach redacted results and correction list. Automated browser/axe/print generation below is not this evidence. |
-| Legal and operations | Actual operator/controller identity, working privacy contact, applicable age/minors/consent requirements, verified rights, retention/deletion and provider/analytics/consent behavior, monitored ingress/readiness and rollback plan. [Legal review](../analytics-and-legal.md), [recovery proposal and rehearsal](V1-RELEASE-SAFETY.md); responsible owner/reviewer must approve real facts. Do not use production for a test without authorization. |
-| Permanent SDC, #59 | Genuine original-role trigger/assignment ACK, authorized source write/test/PR from an unattended run, independent review, guarded integration and next eligible task pickup; 0/2 qualifying full cycles recorded. Interactive HQ, routing and prior read-only Work event receipts are not substitutes. No automatic activation or new paid service inferred. |
-| Global release, #58 | Actual accepted content and all applicable external evidence; independent release assurance; exact release candidate and explicit owner production authorization. No main merge, deployment or live DB migration performed. |
+| Gate                                  | Concrete evidence required before acceptance                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Educator and rights, #108/#127        | [Five pinned drafts](https://github.com/codewptech/skyinnk/issues/108#issuecomment-7165247254) and [two additional mathematics drafts](https://github.com/codewptech/skyinnk/issues/127#issuecomment-7165248239). Use [educator packet exporter](../content-review/v1-class10/EDUCATOR-REVIEW-EXPORT.md); real qualified reviewer selects 4–6 lessons, verifies scope/answers/rights and records actual decision, reviewer identity/role, timezone timestamp and final SHA-256. Follow [content intake](V1-CONTENT-INTAKE.md) on a separate publication task; no synthetic approval. |
+| Existing Auth0 development app        | Record exact source SHA, approved non-production origin, test browser and disposable PG18 instance; verify actual Universal Login callback, reload/session persistence, successful authenticated POST /api/v1/auth/sync and stable subject row, logout and rejection without a session. Record only redacted outcomes, never credentials, cookies or personal profile data. Existing [sync runbook](../auth0-user-sync.md); prior owner login/logout observation is not complete acceptance. No new tenant or live database.                                                         |
+| Human accessibility and content/media | Record actual device/OS/browser/screen reader, keyboard and touch navigation, focus/dialog/lesson transitions, notes tables and math, readable print and genuine selected lesson/media behavior; attach redacted results and correction list. Automated browser/axe/print generation below is not this evidence.                                                                                                                                                                                                                                                                     |
+| Legal and operations                  | Actual operator/controller identity, working privacy contact, applicable age/minors/consent requirements, verified rights, retention/deletion and provider/analytics/consent behavior, monitored ingress/readiness and rollback plan. [Legal review](../analytics-and-legal.md), [recovery proposal and rehearsal](V1-RELEASE-SAFETY.md); responsible owner/reviewer must approve real facts. Do not use production for a test without authorization.                                                                                                                                |
+| Permanent SDC, #59                    | Genuine original-role trigger/assignment ACK, authorized source write/test/PR from an unattended run, independent review, guarded integration and next eligible task pickup; 0/2 qualifying full cycles recorded. Interactive HQ, routing and prior read-only Work event receipts are not substitutes. No automatic activation or new paid service inferred.                                                                                                                                                                                                                         |
+| Global release, #58                   | Actual accepted content and all applicable external evidence; independent release assurance; exact release candidate and explicit owner production authorization. No main merge, deployment or live DB migration performed.                                                                                                                                                                                                                                                                                                                                                          |
 
 No further demonstrated routine product-source defect was established in this closeout. Prefer obtaining genuine external receipts or addressing a concrete new finding to creating speculative changes or repeated status-only PRs. [Milestone evidence](https://github.com/codewptech/skyinnk/issues/58#issuecomment-7166055700). Earlier source checkpoints retained verbatim below.
 
@@ -34,13 +34,13 @@ No further demonstrated routine product-source defect was established in this cl
 
 Exact development ancestry compared against prior recorded baseline `8011daa5f297e6e176c16fb50f1c9346a8ff240f`: five commits ahead, zero behind.
 
-| PR | Integrated change | Exact development commit |
-| --- | --- | --- |
-| #138 | Additive canonical release evidence refresh | `654b82f97927bf328c504db653f5a493732a9dc0` |
-| #140 | Actual rendered heading and parsed math validation for final reviewed text intake | `7816af713b78984200118807b4f33961e3fb7094` |
+| PR   | Integrated change                                                                                                | Exact development commit                   |
+| ---- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| #138 | Additive canonical release evidence refresh                                                                      | `654b82f97927bf328c504db653f5a493732a9dc0` |
+| #140 | Actual rendered heading and parsed math validation for final reviewed text intake                                | `7816af713b78984200118807b4f33961e3fb7094` |
 | #142 | Mandatory build rejects known draft warnings, NUL, excessive length and invalid parsed math for text/video notes | `5ec5b0eb59a075ca764da0d21ecd0bba3bbee1fe` |
-| #144 | Real Chromium native dialog relationships and computed symbol contrast regression | `f289c6c0a9f9682edd716278b9da8d1ece36308a` |
-| #146 | Actual offline educator packet browser/print smoke | `8b5e6ceb84bafa554b0ace86a7b127a56b2bd9ae` |
+| #144 | Real Chromium native dialog relationships and computed symbol contrast regression                                | `f289c6c0a9f9682edd716278b9da8d1ece36308a` |
+| #146 | Actual offline educator packet browser/print smoke                                                               | `8b5e6ceb84bafa554b0ace86a7b127a56b2bd9ae` |
 
 Tasks #137, #139, #141, #143 and #145 are DONE/closed following guarded merges and verified postmerge CI. Same-author technical COMMENT review under the temporary owner-directed HQ coverage is not independent release assurance.
 
@@ -48,15 +48,15 @@ Tasks #137, #139, #141, #143 and #145 are DONE/closed following guarded merges a
 
 **Actual remaining gates at the source checkpoint (before this documentation task):**
 
-| Gate | Current state / next required evidence |
-| --- | --- |
+| Gate                                      | Current state / next required evidence                                                                                                                                                                                  |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Real educational publication (#108, #127) | Catalogue directly reread: schemaVersion 1, empty courses. Seven candidates unapproved. Actual named educator and rights owner decisions, final exact approved bytes, select 4–6 lessons and separate publication task. |
-| Real accessibility and content/media | Human screen reader, physical device, visual contrast, print/layout and real released-lesson/media acceptance still required. |
-| Real Auth0 | Approved existing dev tenant login/logout/session and authenticated disposable DB sync proof; no new tenant or paid service assumed. |
-| Legal/operations | Actual operator, privacy/minors/consent/rights and production operational readiness decisions remain open. |
-| Sensitive governance (#125 / PR126) | Held unmerged; prior candidate green at older base; scoped owner authorization or independent governance review required before integration, then current-base reconciliation and fresh CI. |
-| Permanent runtime (#59) | 0/2 qualifying unattended engineering cycles; interactive HQ and routing not autonomous dispatch proof. |
-| Production (#58) | Separate explicit owner authorization, release PR and rollback/monitoring checks required. No main merge, deployment, live DB migration or actual publication. |
+| Real accessibility and content/media      | Human screen reader, physical device, visual contrast, print/layout and real released-lesson/media acceptance still required.                                                                                           |
+| Real Auth0                                | Approved existing dev tenant login/logout/session and authenticated disposable DB sync proof; no new tenant or paid service assumed.                                                                                    |
+| Legal/operations                          | Actual operator, privacy/minors/consent/rights and production operational readiness decisions remain open.                                                                                                              |
+| Sensitive governance (#125 / PR126)       | Held unmerged; prior candidate green at older base; scoped owner authorization or independent governance review required before integration, then current-base reconciliation and fresh CI.                             |
+| Permanent runtime (#59)                   | 0/2 qualifying unattended engineering cycles; interactive HQ and routing not autonomous dispatch proof.                                                                                                                 |
+| Production (#58)                          | Separate explicit owner authorization, release PR and rollback/monitoring checks required. No main merge, deployment, live DB migration or actual publication.                                                          |
 
 Open issues at source checkpoint: #2, #58, #59, #108, #125, #127; only PR126 open. Full technical handoff: [milestone evidence](https://github.com/codewptech/skyinnk/issues/58#issuecomment-7164590693), plus #145 postmerge closure. No new product scope, architecture, governance, dependency or approval changes in this documentation. Earlier snapshots retained verbatim below.
 
@@ -68,21 +68,21 @@ Open issues at source checkpoint: #2, #58, #59, #108, #125, #127; only PR126 ope
 
 The following thirteen commits are in the verified development ancestry since the preceding documented baseline `4a2f845c1aa3d961389ca493aea76bd2b5ab14f1` (source integration history, not a claim that every workflow was re-read in this refresh):
 
-| PR | Integrated change | Exact development commit |
-| --- | --- | --- |
-| #111 | Prior release evidence refresh | `5aff0d8edbf1c37e5e6c84ca95dd1f1bafa35167` |
-| #112 | Formal email model/editorial correction | `d9dcbce8dde969868319b6d03ee2f59c9c22bdcb` |
-| #114 | Explicit review timestamp timezone | `cd55f35c7ade7720b8d3c797f0534603d1580d95` |
-| #116 | Legal factual descriptions of guest learning and video | `aaa548e91e0c46c24d3dcc4204bf5d1d3687cf85` |
-| #118 | Repeatable integrated guest browser checks | `e87b08517e0c480aa6818c79faed0665f6e3e533` |
-| #120 | Repeatable disposable PostgreSQL/recovery checks | `8aedfd90b8baab856f2120527dbbf01ed39792f2` |
+| PR   | Integrated change                                             | Exact development commit                   |
+| ---- | ------------------------------------------------------------- | ------------------------------------------ |
+| #111 | Prior release evidence refresh                                | `5aff0d8edbf1c37e5e6c84ca95dd1f1bafa35167` |
+| #112 | Formal email model/editorial correction                       | `d9dcbce8dde969868319b6d03ee2f59c9c22bdcb` |
+| #114 | Explicit review timestamp timezone                            | `cd55f35c7ade7720b8d3c797f0534603d1580d95` |
+| #116 | Legal factual descriptions of guest learning and video        | `aaa548e91e0c46c24d3dcc4204bf5d1d3687cf85` |
+| #118 | Repeatable integrated guest browser checks                    | `e87b08517e0c480aa6818c79faed0665f6e3e533` |
+| #120 | Repeatable disposable PostgreSQL/recovery checks              | `8aedfd90b8baab856f2120527dbbf01ed39792f2` |
 | #122 | Learner catalogue projection separated from approval metadata | `1ce118afcb3b73d80c43c78f5671f44d111624fd` |
-| #124 | First-publication-safe browser and accessibility acceptance | `acbf2c94e3711327f54114e368ee86aa70ae991b` |
-| #128 | Two additional mathematics draft lessons | `e2a1408e6abccdc36bdcf99932e503b6dfcfd78d` |
-| #130 | Read-only reviewed-text catalogue candidate preparation | `8681c172e2f05c4183df168942abff50278e7d37` |
-| #132 | Accessible native notes tables and keyboard scrolling | `0073c5d0bb1991fab33452afa1a402a3eac028b1` |
-| #134 | Strict actual-draft Markdown/KaTeX preflight | `6866bd7465d9d50758e3f8e7b714e93d75a65c7c` |
-| #136 | Local printable educator-review packet exporter | `8011daa5f297e6e176c16fb50f1c9346a8ff240f` |
+| #124 | First-publication-safe browser and accessibility acceptance   | `acbf2c94e3711327f54114e368ee86aa70ae991b` |
+| #128 | Two additional mathematics draft lessons                      | `e2a1408e6abccdc36bdcf99932e503b6dfcfd78d` |
+| #130 | Read-only reviewed-text catalogue candidate preparation       | `8681c172e2f05c4183df168942abff50278e7d37` |
+| #132 | Accessible native notes tables and keyboard scrolling         | `0073c5d0bb1991fab33452afa1a402a3eac028b1` |
+| #134 | Strict actual-draft Markdown/KaTeX preflight                  | `6866bd7465d9d50758e3f8e7b714e93d75a65c7c` |
+| #136 | Local printable educator-review packet exporter               | `8011daa5f297e6e176c16fb50f1c9346a8ff240f` |
 
 **Actual release gates and queue at this checkpoint:**
 
@@ -102,37 +102,36 @@ Previous snapshots below are retained verbatim as historical records.
 
 The ten-PR development batch #101, #91, #93, #96, #97, #99, #103, #105, #107 and #109 was integrated under the specific documented owner authorization for same-author technical COMMENT review plus CI; this is **not independent release-level assurance** and not a standing waiver. Final [Development CI 45563237254](https://github.com/codewptech/skyinnk/actions/runs/45563237254) and [routing 45563237261](https://github.com/codewptech/skyinnk/actions/runs/45563237261) job conclusions rechecked successfully. Recorded integration evidence reports 221 application tests, 30 governance tests and Prisma/types/Nuxt production build passing. Last user-facing change #105 has [hosted Chromium axe 45562574856](https://github.com/codewptech/skyinnk/actions/runs/45562574856) SUCCESS; manual assistive technology and contrast acceptance are not implied. Full batch detail: [V1 closeout](https://github.com/codewptech/skyinnk/issues/58#issuecomment-7155193729).
 
-| Area | Actual status |
-| --- | --- |
-| V1 application source | Ten-PR batch integrated; no outstanding source PR at observed baseline |
-| Publication | `content/catalogue.json` directly rechecked, zero approved courses |
-| Editorial intake | Five original Class 10 drafts in `docs/content-review/v1-class10/`; #108 open, genuine educator/rights approval missing |
+| Area                    | Actual status                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| V1 application source   | Ten-PR batch integrated; no outstanding source PR at observed baseline                                                                     |
+| Publication             | `content/catalogue.json` directly rechecked, zero approved courses                                                                         |
+| Editorial intake        | Five original Class 10 drafts in `docs/content-review/v1-class10/`; #108 open, genuine educator/rights approval missing                    |
 | Release-level assurance | Independent technical review, real physical device/screen reader/contrast, actual content/media and Auth0 tenant/session tests remain open |
-| Legal / operations | Verified operator, privacy/minors/consent, media rights, production readiness and separate owner release authorization outstanding |
-| Permanent SDC | #59 remains open, recorded 0/2 qualifying unattended cycles; routing success is not agent dispatch |
-| Production | Not authorized or performed; no live data or main changes |
+| Legal / operations      | Verified operator, privacy/minors/consent, media rights, production readiness and separate owner release authorization outstanding         |
+| Permanent SDC           | #59 remains open, recorded 0/2 qualifying unattended cycles; routing success is not agent dispatch                                         |
+| Production              | Not authorized or performed; no live data or main changes                                                                                  |
 
 Owner's reported weekly allowance is 1%; temporary interactive HQ coverage of existing six role duties is not a replacement permanent SDC architecture, independent authenticated review, or proof of autonomous execution. No automatic worker, hosting, payment, deployment or publication authorization follows. All earlier snapshots below are retained as historical evidence; use the latest checkpoint and live GitHub for current state.
 
 ---
 
-
 ## Latest verified technical acceptance — 21 November 2026
 
 **Last independently verifiable application/test baseline before this documentation-only change:** `3714ae1e8eeb9cde2d38f8a51c3763c49527861e`; [post-merge Development CI SUCCESS 44900429542](https://github.com/codewptech/skyinnk/actions/runs/44900429542). The current GitHub development ref and [global V1 milestone #58](https://github.com/codewptech/skyinnk/issues/58) remain authoritative for any later documentation-only commit. **Production `main`:** `6bfc342e89a19b76570565854b643387d0139e90`; no V1 production release or live Neon migration authorized/performed.
 
-| Integrated PR | What changed | Exact postmerge validation |
-| --- | --- | --- |
-| #14 | First-publication regression test | [Development CI 44896930356](https://github.com/codewptech/skyinnk/actions/runs/44896930356) |
-| #55 | Six-role SDC charter, **documentation only** | [Development CI 44897212626](https://github.com/codewptech/skyinnk/actions/runs/44897212626) |
-| #18 | Reviewed public resource SHA-256/format/size verification | [Development CI 44897365514](https://github.com/codewptech/skyinnk/actions/runs/44897365514) |
-| #20 | Classroom keyboard, tab and mobile dialog corrections | [Development CI 44897531287](https://github.com/codewptech/skyinnk/actions/runs/44897531287) |
-| #56 | Guest Chromium runner with 320/330px overflow control | [Development CI 44897665280](https://github.com/codewptech/skyinnk/actions/runs/44897665280) |
-| #16 | Auth0 timestamp-safe write source and mocked tests | [Development CI 44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096) |
-| #30 | Corrected canonical release/testing historical evidence | [Development CI 44898437701](https://github.com/codewptech/skyinnk/actions/runs/44898437701) |
-| #28 | Disposable backup/restore/recovery rehearsal and owner-gate **proposal only** | [Development CI 44899733987](https://github.com/codewptech/skyinnk/actions/runs/44899733987); [real Docker/PG18 recovery 44899600841](https://github.com/codewptech/skyinnk/actions/runs/44899600841) |
-| #65 | Actual empty/fictional published guest Chromium/Nitro/HTTP suite | [Development CI 44899981477](https://github.com/codewptech/skyinnk/actions/runs/44899981477); [real Chromium 44899981497](https://github.com/codewptech/skyinnk/actions/runs/44899981497) |
-| #67 | Actual concurrency and freshness tests against PostgreSQL 18 | [Development CI 44900429542](https://github.com/codewptech/skyinnk/actions/runs/44900429542); [real PG18 44900429586](https://github.com/codewptech/skyinnk/actions/runs/44900429586) |
+| Integrated PR | What changed                                                                  | Exact postmerge validation                                                                                                                                                                            |
+| ------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #14           | First-publication regression test                                             | [Development CI 44896930356](https://github.com/codewptech/skyinnk/actions/runs/44896930356)                                                                                                          |
+| #55           | Six-role SDC charter, **documentation only**                                  | [Development CI 44897212626](https://github.com/codewptech/skyinnk/actions/runs/44897212626)                                                                                                          |
+| #18           | Reviewed public resource SHA-256/format/size verification                     | [Development CI 44897365514](https://github.com/codewptech/skyinnk/actions/runs/44897365514)                                                                                                          |
+| #20           | Classroom keyboard, tab and mobile dialog corrections                         | [Development CI 44897531287](https://github.com/codewptech/skyinnk/actions/runs/44897531287)                                                                                                          |
+| #56           | Guest Chromium runner with 320/330px overflow control                         | [Development CI 44897665280](https://github.com/codewptech/skyinnk/actions/runs/44897665280)                                                                                                          |
+| #16           | Auth0 timestamp-safe write source and mocked tests                            | [Development CI 44897891096](https://github.com/codewptech/skyinnk/actions/runs/44897891096)                                                                                                          |
+| #30           | Corrected canonical release/testing historical evidence                       | [Development CI 44898437701](https://github.com/codewptech/skyinnk/actions/runs/44898437701)                                                                                                          |
+| #28           | Disposable backup/restore/recovery rehearsal and owner-gate **proposal only** | [Development CI 44899733987](https://github.com/codewptech/skyinnk/actions/runs/44899733987); [real Docker/PG18 recovery 44899600841](https://github.com/codewptech/skyinnk/actions/runs/44899600841) |
+| #65           | Actual empty/fictional published guest Chromium/Nitro/HTTP suite              | [Development CI 44899981477](https://github.com/codewptech/skyinnk/actions/runs/44899981477); [real Chromium 44899981497](https://github.com/codewptech/skyinnk/actions/runs/44899981497)             |
+| #67           | Actual concurrency and freshness tests against PostgreSQL 18                  | [Development CI 44900429542](https://github.com/codewptech/skyinnk/actions/runs/44900429542); [real PG18 44900429586](https://github.com/codewptech/skyinnk/actions/runs/44900429586)                 |
 
 **Technically verified on disposable/fictional infrastructure:** Chromium 141 at 320/375/768/1365px with touch, keyboard, 320/330px overflow negative control, safe Notes, lesson navigation/history, tab/dialog focus; exact served SHA-256 resource bytes, `nosniff` and unlisted-resource denial; PG18 UUIDv7 first-sync concurrency and timestamp watermark integrity; local-only Docker/PG18 backup restore, expected 503 unreadiness and retained-image rollback. These are actual CI jobs, **not** real-course educational, real-identity-provider or production acceptance. Source reviews written inline by Architecture HQ are advisory COMMENT records, not separately authenticated SDC 03 Work approvals.
 
@@ -153,19 +152,18 @@ Everything below the divider is a **dated historical source snapshot** and must 
 
 ## Verified GitHub integration history
 
-| Workstream / change | Commit / PR | Status and evidence |
-| --- | --- | --- |
-| Existing application foundation | Original Nuxt 4 / Auth0 / Prisma User migration | Preserved; no new academic model or live database migration |
-| Chat 03 versioned APIs | `4fe0d24` | `/api/v1/health`, `/api/v1/ready`, `/api/v1/auth/sync`; historical local 20/20 Node tests, Prisma/build verification |
-| Approved release architecture | `3217efa` | ADL V3.1, ADR-069/070: public V1 and complete-feature V2 split |
-| Original release-state baseline | `ff63b22` | Previously created independent of frontend; Work's add/add document conflict was reconciled without discarding either history |
-| Development CI | PR #4, `17dcf7c` | Reviewed and integrated, non-deploying development PR/push workflow |
-| Governance controls | PR #6, `8ec0a4d` | `AGENTS.md`, governance policy and ownership/overlap checks; previous 40/40 validation passed |
-| Trusted-check source (NOT activated) | PR #8, `6971696` | Independent GitHub App checker code only; 57/57 tests and post-merge CI passed |
-| **Public frontend / classroom / content contract** | **PR #1, head `7910dcd`, merge `c381cb6`** | **Merged via reviewed PR into development, not production** |
-| Canonical release-state follow-up | PR #10, `fe06774` | Recorded the reviewed frontend merge. |
-| Guest-safe public reading APIs | PR #12, `c1250c4` | Merged versioned public course list, course outline and released lesson APIs. |
-
+| Workstream / change                                | Commit / PR                                     | Status and evidence                                                                                                           |
+| -------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Existing application foundation                    | Original Nuxt 4 / Auth0 / Prisma User migration | Preserved; no new academic model or live database migration                                                                   |
+| Chat 03 versioned APIs                             | `4fe0d24`                                       | `/api/v1/health`, `/api/v1/ready`, `/api/v1/auth/sync`; historical local 20/20 Node tests, Prisma/build verification          |
+| Approved release architecture                      | `3217efa`                                       | ADL V3.1, ADR-069/070: public V1 and complete-feature V2 split                                                                |
+| Original release-state baseline                    | `ff63b22`                                       | Previously created independent of frontend; Work's add/add document conflict was reconciled without discarding either history |
+| Development CI                                     | PR #4, `17dcf7c`                                | Reviewed and integrated, non-deploying development PR/push workflow                                                           |
+| Governance controls                                | PR #6, `8ec0a4d`                                | `AGENTS.md`, governance policy and ownership/overlap checks; previous 40/40 validation passed                                 |
+| Trusted-check source (NOT activated)               | PR #8, `6971696`                                | Independent GitHub App checker code only; 57/57 tests and post-merge CI passed                                                |
+| **Public frontend / classroom / content contract** | **PR #1, head `7910dcd`, merge `c381cb6`**      | **Merged via reviewed PR into development, not production**                                                                   |
+| Canonical release-state follow-up                  | PR #10, `fe06774`                               | Recorded the reviewed frontend merge.                                                                                         |
+| Guest-safe public reading APIs                     | PR #12, `c1250c4`                               | Merged versioned public course list, course outline and released lesson APIs.                                                 |
 
 **Frontend PR #1** carried exactly the previously approved 30 changed paths. Work's final merge head `7910dcd2a96380973ebb69f021b59a5ad1207adf` incorporates all preceding development/governance/security commits via history-preserving merges. Work's earlier validation tree `65b2409...` and subsequent `fd05912...` were superseded by exact final tree `26ccb5f4e73a4c49132950f2c66d7519f0e6501d`.
 
@@ -184,20 +182,20 @@ materials, live tenant flows and production operations remain separate gates.
 
 ## What is actually implemented in non-production V1
 
-| Route or behavior | Source / behavior | Verification boundary |
-| --- | --- | --- |
-| `/` | Replaced Coming Soon with responsive guest-facing homepage, honest subject preparation text and optional Auth0 sign-in controls | Nuxt build, lightweight tests and fixture HTTP; real tenant sign-in still pending |
-| `/courses` | Public published-course listing; deliberate empty state while no real courses approved | Build/tests and fixture HTTP |
-| `/courses/[courseSlug]` | Public released course detail, ordered modules and lesson links; unknown/unpublished course => 404 | Fixture HTTP; no real reviewed course yet |
-| `/courses/[courseSlug]/lessons/[lessonSlug]` | Stable route-based classroom for video/text lessons, collapsible desktop syllabus, mobile dialog, Overview/Notes/Resources tabs and next/previous navigation | Fictional Chromium history, navigation, dialog and iframe lifecycle exercised. Real learner/device acceptance remains. |
-| `/sitemap.xml` | Canonical homepage/catalogue and only manifest-published course/lesson URLs | Fixture HTTP; no unpublished sitemap URLs |
-| `/api/v1/health` | Existing liveness route | Local automated/HTTP checks; production state not inferred |
-| `/api/v1/ready` | Existing database readiness boundary | Mocked cases and actual packaged readiness against disposable PostgreSQL 18 |
-| `/api/v1/auth/sync` | Existing Auth0 POST-only sync/CSRF/rate-limit contract | Unit/HTTP boundary checks; real Auth0 tenant login/logout not yet exercised |
-| `/api/v1/public/courses` | Guest summaries of released courses | Verified empty and populated fictional responses |
-| `/api/v1/public/courses/:courseSlug` | Guest course outline and ordered syllabus | Verified the fictional outline and missing publication boundary |
-| `/api/v1/public/courses/:courseSlug/lessons/:lessonSlug` | Guest content and projected public resource metadata for a released lesson | Verified released fictional lesson and unpublished-route 404 |
-| `/auth/*` | Existing Auth0 SDK-managed routes, **not renamed** | Integration preserved; full real login flow pending |
+| Route or behavior                                        | Source / behavior                                                                                                                                            | Verification boundary                                                                                                  |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `/`                                                      | Replaced Coming Soon with responsive guest-facing homepage, honest subject preparation text and optional Auth0 sign-in controls                              | Nuxt build, lightweight tests and fixture HTTP; real tenant sign-in still pending                                      |
+| `/courses`                                               | Public published-course listing; deliberate empty state while no real courses approved                                                                       | Build/tests and fixture HTTP                                                                                           |
+| `/courses/[courseSlug]`                                  | Public released course detail, ordered modules and lesson links; unknown/unpublished course => 404                                                           | Fixture HTTP; no real reviewed course yet                                                                              |
+| `/courses/[courseSlug]/lessons/[lessonSlug]`             | Stable route-based classroom for video/text lessons, collapsible desktop syllabus, mobile dialog, Overview/Notes/Resources tabs and next/previous navigation | Fictional Chromium history, navigation, dialog and iframe lifecycle exercised. Real learner/device acceptance remains. |
+| `/sitemap.xml`                                           | Canonical homepage/catalogue and only manifest-published course/lesson URLs                                                                                  | Fixture HTTP; no unpublished sitemap URLs                                                                              |
+| `/api/v1/health`                                         | Existing liveness route                                                                                                                                      | Local automated/HTTP checks; production state not inferred                                                             |
+| `/api/v1/ready`                                          | Existing database readiness boundary                                                                                                                         | Mocked cases and actual packaged readiness against disposable PostgreSQL 18                                            |
+| `/api/v1/auth/sync`                                      | Existing Auth0 POST-only sync/CSRF/rate-limit contract                                                                                                       | Unit/HTTP boundary checks; real Auth0 tenant login/logout not yet exercised                                            |
+| `/api/v1/public/courses`                                 | Guest summaries of released courses                                                                                                                          | Verified empty and populated fictional responses                                                                       |
+| `/api/v1/public/courses/:courseSlug`                     | Guest course outline and ordered syllabus                                                                                                                    | Verified the fictional outline and missing publication boundary                                                        |
+| `/api/v1/public/courses/:courseSlug/lessons/:lessonSlug` | Guest content and projected public resource metadata for a released lesson                                                                                   | Verified released fictional lesson and unpublished-route 404                                                           |
+| `/auth/*`                                                | Existing Auth0 SDK-managed routes, **not renamed**                                                                                                           | Integration preserved; full real login flow pending                                                                    |
 
 **Publication-only content model:** `content/catalogue.json` has `{"schemaVersion":1,"courses":[]}`. Thus **zero educator-approved real courses and zero real lessons are currently published**. Do not claim the test fixtures are live lessons or artificially mark a course published. School scope starts with free Class 10 Mathematics and English; Class 11 commerce previews require approved materials. Publication requires stable source migration keys, public/published review metadata, valid ordering and routes. Review must come from an actual educator/content owner, not fabricated metadata.
 

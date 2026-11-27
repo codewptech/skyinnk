@@ -46,7 +46,7 @@ Consider this question:
 
 **Why did the students check the tank?**
 
-A useful answer is: *They checked it because the garden soil still looked dry after rain, even though they expected rainwater to have collected in the tank.*
+A useful answer is: _They checked it because the garden soil still looked dry after rain, even though they expected rainwater to have collected in the tank._
 
 The answer combines two details from paragraph 1. It does not invent a broken pipe or an empty underground supply; the passage never mentions either.
 
@@ -54,26 +54,26 @@ Now consider:
 
 **What can we infer about the club’s attitude toward evidence?**
 
-A reasonable inference is: *The students wanted to be accurate rather than announce a result too quickly.* Paragraphs 3 and 4 support that inference because they recorded observations, noticed that rainfall and the watering schedule also changed, and avoided claiming one cause without enough evidence.
+A reasonable inference is: _The students wanted to be accurate rather than announce a result too quickly._ Paragraphs 3 and 4 support that inference because they recorded observations, noticed that rainfall and the watering schedule also changed, and avoided claiming one cause without enough evidence.
 
 An inference goes a little beyond the literal words, but it must stay anchored to them.
 
 ## 4. Observation, assumption and explanation
 
-| Type | Example from the passage | Why it matters |
-| --- | --- | --- |
-| Observation | The tank level window showed little water. | A direct report of what students checked |
-| Assumption | The tank would be full after rainy days. | A belief they had not yet tested |
-| Possible explanation | Leaves blocking the gutter may have reduced the water reaching the tank. | Plausible, but further measurement is needed to establish how much difference it made |
-| Unsupported conclusion | Clearing the leaves caused all of the reduction in tap-water use. | Other factors also changed |
+| Type                   | Example from the passage                                                 | Why it matters                                                                        |
+| ---------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Observation            | The tank level window showed little water.                               | A direct report of what students checked                                              |
+| Assumption             | The tank would be full after rainy days.                                 | A belief they had not yet tested                                                      |
+| Possible explanation   | Leaves blocking the gutter may have reduced the water reaching the tank. | Plausible, but further measurement is needed to establish how much difference it made |
+| Unsupported conclusion | Clearing the leaves caused all of the reduction in tap-water use.        | Other factors also changed                                                            |
 
-The third row is a possible explanation, **not** a proven result. Good readers notice qualifying words such as *may*, *probably*, *alone*, *however* and *although*.
+The third row is a possible explanation, **not** a proven result. Good readers notice qualifying words such as _may_, _probably_, _alone_, _however_ and _although_.
 
 ### A vocabulary clue
 
-In paragraph 2, the students “traced the path” of the rainwater. Here, *traced* means **followed or examined the route**, not drew a picture of a person.
+In paragraph 2, the students “traced the path” of the rainwater. Here, _traced_ means **followed or examined the route**, not drew a picture of a person.
 
-In paragraph 3, the word *adjusted* means **changed slightly for a purpose**. The surrounding sentence mentions a changed watering schedule, which helps you understand the word.
+In paragraph 3, the word _adjusted_ means **changed slightly for a purpose**. The surrounding sentence mentions a changed watering schedule, which helps you understand the word.
 
 ## Practice: answer from the passage
 
@@ -83,7 +83,7 @@ In paragraph 3, the word *adjusted* means **changed slightly for a purpose**. Th
 4. How many **fewer** watering cans did the club carry from the tap in the second five-day period?
 5. Give **two** reasons the club could not confidently say that clearing the leaves alone caused the reduction.
 6. Write one observation and one assumption from the passage. Label each.
-7. In context, what does *traced* mean? Explain in a few words.
+7. In context, what does _traced_ mean? Explain in a few words.
 8. What is the main lesson of the passage? Write a one- or two-sentence summary using your own words.
 9. A classmate says, “The tank definitely became full after the caretaker cleared the gutter.” Is that claim supported by the passage? Explain.
 10. Suggest **one additional measurement** that might help the club compare water collection fairly across future days. Say why it would help.
@@ -97,7 +97,7 @@ In paragraph 3, the word *adjusted* means **changed slightly for a purpose**. Th
 5. Rainfall differed between the two periods, and the students had also changed their watering schedule (paragraph 3).
 6. **Observation:** the level window showed little water. **Assumption:** the tank would be full after rainy days (paragraph 1).
 7. It means they followed or examined the route the water should take (paragraph 2).
-8. One possible summary: *Students investigating an unexpectedly dry school garden learned to collect observations and avoid claiming a cause without enough evidence. Cooperation and careful records helped them ask better questions.*
+8. One possible summary: _Students investigating an unexpectedly dry school garden learned to collect observations and avoid claiming a cause without enough evidence. Cooperation and careful records helped them ask better questions._
 9. **No.** The passage says the students initially saw little water and later kept a record, but it never says the tank became full. “Definitely full” adds an unsupported detail.
 10. One acceptable suggestion is to record **daily rainfall in a consistent unit**, so the club can compare water collected with the amount of rain that actually fell. Another reasonable measurement is the **change in tank water level before and after rain**, recorded at consistent times. Explain why the chosen measurement would reduce guesswork.
 

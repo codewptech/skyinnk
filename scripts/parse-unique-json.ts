@@ -22,7 +22,8 @@ export function parseUniqueJson(source: string, context: string): unknown {
       const keys = scopes.at(-1);
       if (!keys) throw new SyntaxError(`${context}: invalid JSON member scope`);
       const key: string = JSON.parse(source.slice(start, index + 1));
-      if (keys.has(key)) throw new SyntaxError(`${context}: duplicate JSON object member`);
+      if (keys.has(key))
+        throw new SyntaxError(`${context}: duplicate JSON object member`);
       keys.add(key);
     }
   }
