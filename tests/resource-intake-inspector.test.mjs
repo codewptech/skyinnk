@@ -85,3 +85,51 @@ test("real command emits only metadata JSON and uses nonzero exit for mistakes",
   assert.equal(usage.status, 2);
   assert.match(usage.stderr, /Usage:/);
 });
+
+// Isolate the injected built-in binding and bound the time spent in a blocking
+// open on an unfixed inspector. Only synthetic files are modified.
+for (const mode of ["overwrite", "fifo"]) {
+  test(`inspector rejects ${mode} substitution after lstat without hanging`, {
+    skip: mode === "fifo" && process.platform === "win32",
+  }, async (t) => {
+    const root = await temp();
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const script = new URL("../scripts/inspect-public-resource.mjs", import.meta.url).href;
+    const child = spawnSync(process.execPath, ["--input-type=module", "--eval", `
+      import assert from "node:assert/strict";
+      import fs from "node:fs/promises";
+      import { syncBuiltinESMExports } from "node:module";
+      import { execFileSync } from "node:child_process";
+      const [script, file, mode] = process.argv.slice(1);
+      const { inspectPublicResource } = await import(script);
+      await fs.writeFile(file, "original");
+      const originalLstat = fs.lstat;
+      let changed = false;
+      fs.lstat = async (...args) => {
+        const info = await originalLstat(...args);
+        if (args[0] === file && !changed) {
+          changed = true;
+          if (mode === "fifo") {
+            await fs.rename(file, file + ".original");
+            execFileSync("mkfifo", [file]);
+          } else {
+            await fs.writeFile(file, "CHANGED!");
+            // Distinct metadata even on filesystems with coarse timestamps.
+            await fs.utimes(file, 1, 1);
+          }
+        }
+        return info;
+      };
+      syncBuiltinESMExports();
+      try {
+        await assert.rejects(inspectPublicResource(file, "/resources/public/sample.txt"), /file changed/i);
+        assert.equal(changed, true);
+      } finally {
+        fs.lstat = originalLstat;
+        syncBuiltinESMExports();
+      }
+    `, script, join(root, "sample.txt"), mode], { encoding: "utf8", timeout: 5000 });
+    assert.ifError(child.error);
+    assert.equal(child.status, 0, child.stderr);
+  });
+}
