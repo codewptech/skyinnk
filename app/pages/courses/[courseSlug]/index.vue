@@ -75,7 +75,7 @@ useHead({
           <NuxtLink
             :to="`/courses/${course.slug}/lessons/${lesson.slug}`"
             :aria-label="lessonNames.get(lesson.key)"
-          ><span class="outline-kind" aria-hidden="true">{{ lesson.kind === "video" ? "▷" : "≡" }}</span><span>{{ lesson.title }}</span><span class="outline-arrow" aria-hidden="true">→</span></NuxtLink>
+          >{{ lesson.title }}</NuxtLink>
         </li>
       </ol>
     </section>
@@ -97,9 +97,8 @@ useHead({
 .module-number { flex: 0 0 auto; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; background: var(--soft); color: var(--brand); border-radius: .75rem; font-weight: 750; }
 ol { list-style: none; padding: 0; margin: 0; }
 li { border-top: 1px solid var(--line); }
-li a { display: flex; align-items: center; gap: .8rem; min-height: 54px; text-decoration: none; color: var(--brand); font-weight: 650; padding: .65rem .45rem; overflow-wrap: anywhere; }
+li a { position: relative; display: flex; align-items: center; min-height: 54px; text-decoration: none; color: var(--brand); font-weight: 650; padding: .65rem 2rem .65rem .65rem; overflow-wrap: anywhere; }
 li a:hover { background: var(--soft); border-radius: .5rem; }
-.outline-kind { flex: 0 0 1.8rem; font-size: 1.1rem; text-align: center; }
-.outline-arrow { margin-left: auto; flex: 0 0 auto; }
+li a::after { content: ""; position: absolute; right: .85rem; top: calc(50% - .24rem); width: .48rem; height: .48rem; border-top: 2px solid currentColor; border-right: 2px solid currentColor; transform: rotate(45deg); }
 @media (max-width: 700px) { .course-hero { grid-template-columns: 1fr; } .module-card { padding: 1rem; } }
 </style>
