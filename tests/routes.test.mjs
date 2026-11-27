@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { focusMainContent } from "../app/utils/focus-main-content.ts";
 import { runInNewContext } from "node:vm";
 import { parse, compileScript } from "@vue/compiler-sfc";
 import { createSSRApp, h, ref } from "vue";
@@ -25,7 +26,10 @@ function evaluate(source, filename, globals) {
     {
       module,
       exports: module.exports,
-      require: createRequire(import.meta.url),
+      require: (id) =>
+        id === "./utils/focus-main-content"
+          ? { focusMainContent }
+          : createRequire(import.meta.url)(id),
       ...globals,
     },
     { filename },
@@ -75,12 +79,33 @@ async function renderPage(page, user) {
 
 test("public home renders its login action and shared legal navigation without an account", async () => {
   const page = await renderPage("index");
-  assert.match(page.html, /<h1[^>]*>Coming Soon\.\.\.<\/h1>/);
+  assert.match(
+    page.html,
+    /<h1[^>]*>Understand more\. Learn at your pace\.<\/h1>/,
+  );
   for (const path of ["/auth/login", "/privacy-policy", "/terms-of-service"])
     assert.ok(page.html.includes(`href="${path}"`));
   assert.ok(!page.html.includes('href="/auth/logout"'));
-  assert.match(page.headTags, /<title>Coming Soon<\/title>/);
+  assert.match(
+    page.headTags,
+    /<title>Skyinnk \| Free Learning for School Students<\/title>/,
+  );
   assert.match(page.htmlAttrs, /lang="en"/);
+});
+
+test("redesigned home presents honest preparation states and a single main landmark", async () => {
+  const page = await renderPage("index");
+  assert.equal((page.html.match(/<main\b/g) || []).length, 1);
+  assert.match(
+    page.html,
+    /What we&#39;re preparing|What we\x27re preparing|What we&apos;re preparing/,
+  );
+  assert.match(page.html, /In preparation/);
+  assert.match(page.html, /Preview planned/);
+  assert.match(page.html, /No account required for public lessons/);
+  assert.match(page.html, /Explore free lessons/);
+  assert.match(page.html, /aria-hidden="true"[^>]*>/);
+  assert.doesNotMatch(page.html, /Coming Soon/i);
 });
 
 test("signed-in home escapes profile text and renders logout and safe image attributes", async () => {
@@ -111,6 +136,25 @@ test("public legal pages render semantic content, home navigation and canonical 
     assert.match(page.headTags, /name="description"/);
     assert.match(page.htmlAttrs, /lang="en"/);
   }
+});
+
+test("V1 legal pages describe guest learning and conditional third-party services", async () => {
+  const privacy = await renderPage("privacy-policy");
+  const terms = await renderPage("terms-of-service");
+  for (const page of [privacy, terms]) {
+    assert.doesNotMatch(page.html, /coming-soon website/i);
+    assert.match(page.html, /course catalogue/i);
+    assert.match(page.html, /without (?:creating an account|registration)/i);
+  }
+  assert.match(privacy.html, /disabled by default/i);
+  assert.match(
+    privacy.html,
+    /When website analytics is enabled and the relevant tags are configured/i,
+  );
+  assert.match(privacy.html, /Optional lesson videos/i);
+  assert.match(privacy.html, /only when you choose to/i);
+  assert.match(privacy.html, /YouTube/);
+  assert.match(terms.html, /does not\s+guarantee enrollment, paid access/i);
 });
 
 test("analytics is opt-in, validates its public identifier and schedules only one credential-free startup", () => {

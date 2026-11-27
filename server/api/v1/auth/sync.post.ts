@@ -5,8 +5,8 @@ import {
   defineEventHandler,
   setResponseHeader,
 } from "h3";
-import { syncAuth0User, validAuth0Subject } from "../../utils/auth0-user.ts";
-import { createAuth0SyncRateLimiter } from "../../utils/auth0-sync-rate-limit.ts";
+import { syncAuth0User, validAuth0Subject } from "../../../utils/auth0-user.ts";
+import { createAuth0SyncRateLimiter } from "../../../utils/auth0-sync-rate-limit.ts";
 
 let rateLimiter: ReturnType<typeof createAuth0SyncRateLimiter> | undefined;
 

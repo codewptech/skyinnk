@@ -13,9 +13,11 @@ useHead({
   <LegalPage title="Privacy Policy">
     <p>
       This policy describes data practices for Skyinnk at
-      <a href="https://www.skyinnk.in">www.skyinnk.in</a>. Skyinnk currently
-      provides a public coming-soon website and account sign-in and
-      registration. You can read the public pages without creating an account.
+      <a href="https://www.skyinnk.in">www.skyinnk.in</a>. Skyinnk provides a
+      public learning website with a course catalogue, free reviewed learning
+      material when available, and optional account sign-in and registration.
+      You can browse the catalogue and read released public lessons without
+      creating an account.
     </p>
 
     <h2>Authentication and account information</h2>
@@ -62,15 +64,17 @@ useHead({
 
     <h2>Cookies and your choices</h2>
     <p>
-      When website analytics is enabled, Google Tag Manager loads Cookiebot to
-      present cookie choices and communicate your consent settings to Google
-      tags. Use Cookiebot's own privacy control to review or change your
-      choices. Browser settings can also restrict or delete cookies; restricting
-      session cookies can prevent sign-in from working.
+      The website analytics integration is disabled by default in the
+      application configuration. When enabled and configured, Google Tag Manager
+      loads Cookiebot to present cookie choices and communicate your consent
+      settings to Google tags. Use Cookiebot's own privacy control to review or
+      change your choices. Browser settings can also restrict or delete cookies;
+      restricting session cookies can prevent sign-in from working.
     </p>
 
     <h2>Analytics and Advanced Consent Mode v2</h2>
     <p>
+      When website analytics is enabled and the relevant tags are configured,
       Skyinnk uses Google Analytics 4 through Google Tag Manager to understand
       page visits and improve the website. Analytics can process page addresses,
       referring pages, browser and device information, consent status, and
@@ -78,14 +82,14 @@ useHead({
       storage is permitted, Google Analytics may use cookies to measure visits.
     </p>
     <p>
-      The configured consent approach is Advanced Google Consent Mode v2. Google
-      tags can load before you consent and can send cookieless measurement
-      signals when analytics storage is denied. These signals can include
-      consent status, page and referrer information, timing, and browser
-      information, and can support basic measurement and statistical modeling.
-      Rejecting analytics cookies therefore does not necessarily stop all
-      requests to Google. Cookieless measurement is not a guarantee of
-      anonymity.
+      When the configured analytics and consent tags are active, the consent
+      approach is Advanced Google Consent Mode v2. Google tags can load before
+      you consent and can send cookieless measurement signals when analytics
+      storage is denied. These signals can include consent status, page and
+      referrer information, timing, and browser information, and can support
+      basic measurement and statistical modeling. Rejecting analytics cookies
+      therefore does not necessarily stop all requests to Google. Cookieless
+      measurement is not a guarantee of anonymity.
     </p>
     <p>
       Skyinnk's application integration does not add your account profile fields
@@ -99,6 +103,16 @@ useHead({
         Consent Mode documentation</a
       >
       explains consent-dependent measurement.
+    </p>
+
+    <h2>Optional lesson videos</h2>
+    <p>
+      Some released lessons may include a YouTube video. The embedded player is
+      loaded from YouTube's privacy-enhanced domain only when you choose to load
+      the video. Choosing the separate Watch on YouTube link also opens YouTube.
+      These actions connect your browser to Google's services, which may process
+      network and device information under their own policies. Public text notes
+      do not require loading a video.
     </p>
 
     <h2>Service providers</h2>

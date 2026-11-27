@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { UserClaims } from "@auth0/auth0-server-js";
 import prisma from "./prisma.ts";
 
@@ -31,7 +31,11 @@ const addressClaims = {
 
 function optionalString(value: unknown): string | null | undefined {
   if (value === null || value === "") return null;
-  return typeof value === "string" && !value.includes("\0") ? value : undefined;
+  return typeof value === "string" &&
+    !value.includes("\0") &&
+    !/[\uD800-\uDFFF]/u.test(value)
+    ? value
+    : undefined;
 }
 
 export function validAuth0Subject(value: unknown): value is string {
@@ -39,13 +43,13 @@ export function validAuth0Subject(value: unknown): value is string {
     typeof value === "string" &&
     value.length <= 255 &&
     value.trim().length > 0 &&
-    !value.includes("\0")
+    !value.includes("\0") &&
+    !/[\uD800-\uDFFF]/u.test(value)
   );
 }
 
 // OIDC uses NumericDate seconds; Auth0 profiles may supply an ISO/RFC3339 string.
-function profileTimestamp(value: unknown): Date | null | undefined {
-  if (value === null || value === "") return null;
+function profileTimestamp(value: unknown): Date | undefined {
   let milliseconds: number;
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
     milliseconds = value * 1000;
@@ -131,27 +135,42 @@ export function mapAuth0Profile(claims: UserClaims): Prisma.UserCreateInput {
 /** No tokens, browser profile data, application-owned fields, IDs or timestamps are written. */
 export async function syncAuth0User(claims: UserClaims) {
   const data = mapAuth0Profile(claims);
-  const upsert = () =>
-    prisma.user.upsert({
-      where: { auth0Id: data.auth0Id },
-      create: data,
-      // Self-assignment guarantees a real UPDATE even for a subject-only profile.
-      // This also keeps the query eligible for PostgreSQL's native ON CONFLICT.
-      update: data,
-      select: { id: true },
-    });
-  try {
-    return await upsert();
-  } catch (error) {
-    // Bounded fallback if Prisma cannot use a native upsert in a future version.
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002" &&
-      Array.isArray(error.meta?.target) &&
-      error.meta.target.includes("auth0Id")
-    ) {
-      return upsert();
-    }
-    throw error;
-  }
+  const { auth0Id, auth0UpdatedAt } = data;
+  const identity = { auth0Id };
+  const select = { id: true } as const;
+
+  return prisma.$transaction(
+    async (tx) => {
+      const [created] = await tx.user.createManyAndReturn({
+        data,
+        skipDuplicates: true,
+        select,
+      });
+      if (created) return created;
+
+      // PostgreSQL rechecks the WHERE clause after a concurrent update releases
+      // its row lock. An older request cannot overwrite a newer committed profile.
+      const [updated] = await tx.user.updateManyAndReturn({
+        where: {
+          ...identity,
+          OR: [
+            { auth0UpdatedAt: null },
+            ...(auth0UpdatedAt
+              ? [{ auth0UpdatedAt: { lte: auth0UpdatedAt } }]
+              : []),
+          ],
+        },
+        data,
+        select,
+      });
+      return (
+        updated ??
+        tx.user.findUniqueOrThrow({
+          where: identity,
+          select,
+        })
+      );
+    },
+    { isolationLevel: "ReadCommitted" },
+  );
 }

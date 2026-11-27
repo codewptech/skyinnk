@@ -1,0 +1,375 @@
+/** Source migration keys are not database IDs. Every imported record is public. */
+export type Publication = {
+  status: "published";
+  visibility: "public";
+  reviewedBy: string;
+  reviewedAt: string;
+};
+export type PublicResource = {
+  key: string;
+  title: string;
+  url: string;
+  type: string;
+  sizeBytes: number;
+  sha256?: string;
+  publication: Publication;
+};
+export type PublicLesson = {
+  key: string;
+  slug: string;
+  title: string;
+  position: number;
+  kind: "video" | "text";
+  overview: string;
+  notesMarkdown: string;
+  publication: Publication;
+  video?: { provider: "youtube"; publicId: string };
+  resources?: PublicResource[];
+};
+export type PublicModule = {
+  key: string;
+  title: string;
+  position: number;
+  lessons: PublicLesson[];
+};
+export type PublicCourse = {
+  key: string;
+  slug: string;
+  title: string;
+  summary: string;
+  audience: string;
+  subject: string;
+  publication: Publication;
+  modules: PublicModule[];
+};
+export type PublicCatalogue = { schemaVersion: 1; courses: PublicCourse[] };
+const keyPattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const publicPath =
+  /^\/resources\/public\/(?:[a-zA-Z0-9_-]+\/)*[a-zA-Z0-9_-]+\.(?:pdf|txt|png|jpg|jpeg|webp)$/;
+function ensure(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(`Public content: ${message}`);
+}
+function record(
+  value: unknown,
+  fields: string[],
+  context: string,
+): asserts value is Record<string, unknown> {
+  ensure(
+    value !== null && typeof value === "object" && !Array.isArray(value),
+    `${context} must be an object`,
+  );
+  ensure(
+    Object.keys(value).every((key) => fields.includes(key)),
+    `${context} has an unsupported field`,
+  );
+}
+/** Valid UTF-8 JSON bytes may still contain escaped invalid text code units.
+ * Reject rather than normalize reviewed text; valid surrogate pairs remain valid. */
+function checkTextEncoding(value: string, context: string) {
+  ensure(
+    !value.includes("\0"),
+    `${context}: NUL character in publication text`,
+  );
+  ensure(
+    !/[\uD800-\uDFFF]/u.test(value),
+    `${context}: unpaired Unicode surrogate in publication text`,
+  );
+}
+function text(value: unknown, context: string) {
+  ensure(
+    typeof value === "string" && value.trim().length > 0,
+    `${context} is required`,
+  );
+  checkTextEncoding(value, context);
+}
+/** Date.parse normalizes invalid dates (for example February 30) into another day. */
+function validReviewTimestamp(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  // A review must identify an unambiguous instant, not the build host's local time.
+  const parts =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:[Zz]|[+-]\d{2}:?\d{2})$/.exec(
+      value,
+    );
+  if (!parts || !Number.isFinite(Date.parse(value))) return false;
+  const year = Number(parts[1]);
+  const month = Number(parts[2]);
+  const day = Number(parts[3]);
+  // Date.parse also permits 24:00:00, silently rolling into the next day.
+  const hour = Number(parts[4]);
+  const minute = Number(parts[5]);
+  const second = parts[6] === undefined ? 0 : Number(parts[6]);
+  if (hour > 23 || minute > 59 || second > 59) return false;
+  if (month < 1 || month > 12) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day >= 1 && day <= days[month - 1]!;
+}
+
+function publication(value: unknown, context: string) {
+  record(
+    value,
+    ["status", "visibility", "reviewedBy", "reviewedAt"],
+    `${context}.publication`,
+  );
+  ensure(
+    value.status === "published" && value.visibility === "public",
+    `${context} must be explicitly published and public`,
+  );
+  text(value.reviewedBy, `${context}.reviewedBy`);
+  ensure(
+    typeof value.reviewedBy === "string" &&
+      !/^(?:pending|unapproved|unknown|tbd|placeholder|test fixture only)$/i.test(
+        value.reviewedBy.trim(),
+      ),
+    `${context} needs a nonplaceholder reviewer identity`,
+  );
+  ensure(
+    validReviewTimestamp(value.reviewedAt),
+    `${context} needs an ISO review timestamp`,
+  );
+}
+function unique(value: unknown, seen: Set<string>, context: string) {
+  ensure(
+    typeof value === "string" && keyPattern.test(value),
+    `${context} must be a safe source key/slug`,
+  );
+  ensure(!seen.has(value), `${context} must be unique`);
+  seen.add(value);
+}
+function position(value: unknown, seen: Set<number>, context: string) {
+  ensure(
+    typeof value === "number" &&
+      Number.isSafeInteger(value) &&
+      value >= 0 &&
+      !seen.has(value),
+    `${context} must be a unique nonnegative position`,
+  );
+  seen.add(value);
+}
+/** Fail the build on drafts, unsafe paths, ambiguous routes or accidental private fields. */
+export function validatePublicCatalogue(value: unknown): PublicCatalogue {
+  record(value, ["schemaVersion", "courses"], "catalogue");
+  ensure(
+    value.schemaVersion === 1 && Array.isArray(value.courses),
+    "schemaVersion 1 and courses array required",
+  );
+  const keys = new Set<string>(),
+    courseSlugs = new Set<string>();
+  const resourceRecords = new Map<string, string>();
+  for (const course of value.courses) {
+    record(
+      course,
+      [
+        "key",
+        "slug",
+        "title",
+        "summary",
+        "audience",
+        "subject",
+        "publication",
+        "modules",
+      ],
+      "course",
+    );
+    unique(course.key, keys, "course.key");
+    unique(course.slug, courseSlugs, "course.slug");
+    for (const field of ["title", "summary", "audience", "subject"])
+      text(course[field], `course.${field}`);
+    publication(course.publication, "course");
+    ensure(
+      Array.isArray(course.modules) && course.modules.length > 0,
+      "listed course needs a released module",
+    );
+    const modulePositions = new Set<number>(),
+      lessonSlugs = new Set<string>();
+    for (const module of course.modules) {
+      record(module, ["key", "title", "position", "lessons"], "module");
+      unique(module.key, keys, "module.key");
+      text(module.title, "module.title");
+      position(module.position, modulePositions, "module.position");
+      ensure(
+        Array.isArray(module.lessons) && module.lessons.length > 0,
+        "module needs a released lesson",
+      );
+      const lessonPositions = new Set<number>();
+      for (const lesson of module.lessons) {
+        record(
+          lesson,
+          [
+            "key",
+            "slug",
+            "title",
+            "position",
+            "kind",
+            "overview",
+            "notesMarkdown",
+            "publication",
+            "video",
+            "resources",
+          ],
+          "lesson",
+        );
+        unique(lesson.key, keys, "lesson.key");
+        unique(lesson.slug, lessonSlugs, "lesson.slug");
+        position(lesson.position, lessonPositions, "lesson.position");
+        text(lesson.title, "lesson.title");
+        text(lesson.overview, "lesson.overview");
+        ensure(
+          typeof lesson.notesMarkdown === "string",
+          "notesMarkdown must be a string",
+        );
+        checkTextEncoding(
+          lesson.notesMarkdown,
+          `${course.slug}/${lesson.slug}`,
+        );
+        publication(lesson.publication, "lesson");
+        ensure(
+          lesson.kind === "video" || lesson.kind === "text",
+          "lesson kind must be video or text",
+        );
+        if (lesson.kind === "video") {
+          record(lesson.video, ["provider", "publicId"], "video");
+          ensure(
+            lesson.video.provider === "youtube" &&
+              typeof lesson.video.publicId === "string" &&
+              /^[a-zA-Z0-9_-]{11}$/.test(lesson.video.publicId),
+            "video needs a reviewed YouTube ID",
+          );
+        } else {
+          ensure(
+            lesson.video === undefined,
+            "text lesson cannot contain a video",
+          );
+          text(lesson.notesMarkdown, "text lesson notes");
+        }
+        if (lesson.resources !== undefined) {
+          ensure(Array.isArray(lesson.resources), "resources must be an array");
+          const lessonResourceKeys = new Set<string>();
+          for (const resource of lesson.resources) {
+            record(
+              resource,
+              [
+                "key",
+                "title",
+                "url",
+                "type",
+                "sizeBytes",
+                "sha256",
+                "publication",
+              ],
+              "resource",
+            );
+            unique(resource.key, lessonResourceKeys, "lesson resource key");
+            text(resource.title, "resource.title");
+            ensure(
+              typeof resource.url === "string" && publicPath.test(resource.url),
+              "resource needs an approved local public path and safe file type",
+            );
+            ensure(
+              resource.type ===
+                String(resource.url).split(".").at(-1)?.toUpperCase(),
+              "resource type must match its extension",
+            );
+            ensure(
+              typeof resource.sizeBytes === "number" &&
+                Number.isSafeInteger(resource.sizeBytes) &&
+                resource.sizeBytes > 0,
+              "resource sizeBytes must be positive",
+            );
+            // The filesystem-backed build check requires this digest. Public
+            // API projections deliberately continue to omit reviewer metadata.
+            ensure(
+              resource.sha256 === undefined ||
+                (typeof resource.sha256 === "string" &&
+                  /^[a-f0-9]{64}$/.test(resource.sha256)),
+              "resource sha256 must be a lowercase SHA-256 digest",
+            );
+            publication(resource.publication, "resource");
+            const review = resource.publication as Record<string, unknown>;
+            const signature = JSON.stringify([
+              resource.title,
+              resource.url,
+              resource.type,
+              resource.sizeBytes,
+              resource.sha256,
+              review.status,
+              review.visibility,
+              review.reviewedBy,
+              review.reviewedAt,
+            ]);
+            if (
+              typeof resource.key === "string" &&
+              resourceRecords.has(resource.key)
+            )
+              ensure(
+                resourceRecords.get(resource.key) === signature,
+                "reused resource must preserve its reviewed metadata",
+              );
+            else {
+              unique(resource.key, keys, "resource.key");
+              resourceRecords.set(resource.key as string, signature);
+            }
+          }
+        }
+      }
+    }
+  }
+  return value as unknown as PublicCatalogue;
+}
+
+/** Learner-facing data; source approval evidence stays in the reviewed manifest. */
+export type LearnerResource = Omit<PublicResource, "publication" | "sha256">;
+export type LearnerLesson = Omit<PublicLesson, "publication" | "resources"> & {
+  resources?: LearnerResource[];
+};
+export type LearnerModule = Omit<PublicModule, "lessons"> & {
+  lessons: LearnerLesson[];
+};
+export type LearnerCourse = Omit<PublicCourse, "publication" | "modules"> & {
+  modules: LearnerModule[];
+};
+
+/** Validate first, then copy only explicitly learner-facing fields. */
+export function projectLearnerCourses(value: unknown): LearnerCourse[] {
+  return validatePublicCatalogue(value).courses.map((course) => ({
+    key: course.key,
+    slug: course.slug,
+    title: course.title,
+    summary: course.summary,
+    audience: course.audience,
+    subject: course.subject,
+    modules: course.modules.map((module) => ({
+      key: module.key,
+      title: module.title,
+      position: module.position,
+      lessons: module.lessons.map((lesson) => ({
+        key: lesson.key,
+        slug: lesson.slug,
+        title: lesson.title,
+        position: lesson.position,
+        kind: lesson.kind,
+        overview: lesson.overview,
+        notesMarkdown: lesson.notesMarkdown,
+        ...(lesson.video
+          ? {
+              video: {
+                provider: lesson.video.provider,
+                publicId: lesson.video.publicId,
+              },
+            }
+          : {}),
+        ...(lesson.resources
+          ? {
+              resources: lesson.resources.map((resource) => ({
+                key: resource.key,
+                title: resource.title,
+                url: resource.url,
+                type: resource.type,
+                sizeBytes: resource.sizeBytes,
+              })),
+            }
+          : {}),
+      })),
+    })),
+  }));
+}

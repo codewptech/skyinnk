@@ -1,4 +1,11 @@
-# Nuxt Minimal Starter
+# Skyinnk
+
+V1 public-learning development uses the existing Nuxt/Auth0/Prisma application.
+Start with [the execution checklist](docs/releases/V1-TECHNICAL-BACKLOG.md),
+[actual release state](docs/releases/V1-RELEASE-STATE.md),
+and [content intake](docs/releases/V1-CONTENT-INTAKE.md).
+The public catalogue is empty until educator-approved lessons are supplied.
+No new academic database or V2 CMS is required for this release.
 
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
@@ -83,7 +90,7 @@ bun run dev
 ## Auth0 user synchronization
 
 The public Home Page synchronizes verified Auth0 session claims to Prisma through
-`POST /api/auth/sync`. See [the synchronization guide](docs/auth0-user-sync.md) for
+`POST /api/v1/auth/sync`. See [the synchronization guide](docs/auth0-user-sync.md) for
 the database model/migration, claim clearing policy, middleware lifecycle,
 origin-only cache controls, automated verification, and production prerequisites.
 Cloudflare Dashboard rules are configured separately.

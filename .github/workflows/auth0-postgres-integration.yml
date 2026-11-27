@@ -1,0 +1,118 @@
+name: Auth0 Real PostgreSQL 18 Integration
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/auth0-postgres-integration.yml
+      - tests/auth0-postgres.integration.mjs
+      - tests/academic-postgres.integration.mjs
+      - tests/academic-publication-postgres.integration.mjs
+      - tests/demo-catalogue-postgres.integration.mjs
+      - server/utils/demo-catalogue.ts
+      - server/api/v1/development/catalogue.get.ts
+      - server/middleware/demo-catalogue-context.ts
+      - app/utils/public-catalogue.ts
+      - server/utils/academic-publication.ts
+      - server/utils/academic-private-media.ts
+      - scripts/validate-public-content.ts
+      - app/utils/render-markdown.ts
+      - shared/public-content.ts
+      - server/utils/auth0-user.ts
+      - prisma/**
+      - prisma.config.ts
+      - server/utils/prisma.ts
+      - package.json
+      - package-lock.json
+  push:
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/auth0-postgres-integration.yml
+      - tests/auth0-postgres.integration.mjs
+      - tests/academic-postgres.integration.mjs
+      - tests/academic-publication-postgres.integration.mjs
+      - tests/demo-catalogue-postgres.integration.mjs
+      - server/utils/demo-catalogue.ts
+      - server/api/v1/development/catalogue.get.ts
+      - server/middleware/demo-catalogue-context.ts
+      - app/utils/public-catalogue.ts
+      - server/utils/academic-publication.ts
+      - server/utils/academic-private-media.ts
+      - scripts/validate-public-content.ts
+      - app/utils/render-markdown.ts
+      - shared/public-content.ts
+      - server/utils/auth0-user.ts
+      - prisma/**
+      - prisma.config.ts
+      - server/utils/prisma.ts
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: read
+
+jobs:
+  disposable-pg:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    name: Real concurrent Auth0 sync on disposable PostgreSQL 18
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://fixture:fictional-only@127.0.0.1:55432/skyinnk_fixture
+      DIRECT_URL: postgresql://fixture:fictional-only@127.0.0.1:55432/skyinnk_fixture
+    steps:
+      - name: Checkout nonproduction PR or integrated development
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+
+      - name: Install locked dependencies and generate Prisma client
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npx prisma generate
+
+      - name: Run actual disposable PostgreSQL transaction races
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull postgres:18-bookworm
+          docker run --detach --rm --name skyinnk-auth0-pg-fixture \
+            --publish 127.0.0.1:55432:5432 \
+            -e POSTGRES_USER=fixture -e POSTGRES_PASSWORD=fictional-only \
+            -e POSTGRES_DB=skyinnk_fixture postgres:18-bookworm
+          trap 'docker rm -f skyinnk-auth0-pg-fixture >/dev/null 2>&1 || true' EXIT
+          ready=0
+          for attempt in $(seq 1 60); do
+            if docker exec skyinnk-auth0-pg-fixture pg_isready -U fixture -d skyinnk_fixture >/dev/null 2>&1; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" != 1 ]; then docker logs skyinnk-auth0-pg-fixture; exit 1; fi
+          # Validate the complete chain from a genuinely empty database as well.
+          docker exec skyinnk-auth0-pg-fixture createdb -U fixture skyinnk_fresh_fixture
+          fresh_url=postgresql://fixture:fictional-only@127.0.0.1:55432/skyinnk_fresh_fixture
+          DATABASE_URL="$fresh_url" DIRECT_URL="$fresh_url" npx prisma migrate deploy
+          DATABASE_URL="$fresh_url" DIRECT_URL="$fresh_url" npx prisma migrate status
+          # Rehearse upgrading from the owner's already-applied init migration.
+          docker exec -i skyinnk-auth0-pg-fixture psql -X -v ON_ERROR_STOP=1 \
+            -U fixture -d skyinnk_fixture \
+            < prisma/migrations/20261127124126_init/migration.sql
+          # Rehearse an upgrade from the existing User-only database, preserving a sentinel identity.
+          docker exec skyinnk-auth0-pg-fixture psql -X -v ON_ERROR_STOP=1 \
+            -U fixture -d skyinnk_fixture -c "INSERT INTO \"User\" (\"id\",\"auth0Id\",\"name\") VALUES ('019abcd0-0000-7000-8000-000000000001','fixture|pre-academic-upgrade','Existing fictional identity')"
+          npx prisma migrate resolve --applied 20261127124126_init
+          npx prisma migrate deploy
+          npx prisma migrate status
+          node --experimental-strip-types tests/auth0-postgres.integration.mjs
+          node --experimental-strip-types tests/academic-postgres.integration.mjs
+          node --experimental-strip-types tests/academic-publication-postgres.integration.mjs
+          node --experimental-strip-types tests/demo-catalogue-postgres.integration.mjs

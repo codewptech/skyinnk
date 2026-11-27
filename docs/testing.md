@@ -1,5 +1,16 @@
 # Testing and CI
 
+## Current hosted verification — 21 November 2026
+
+**Last verified application/test SHA before this documentation-only revision:** `3714ae1e8eeb9cde2d38f8a51c3763c49527861e`; [Development CI SUCCESS 44900429542](https://github.com/codewptech/skyinnk/actions/runs/44900429542). Ordinary `test:all`/`check:all` still use mocks and never connect to live services, but three **additional opt-in real integration workflows** now exist and executed successfully:
+
+- [V1 real Chromium/Nitro, postmerge 44899981497](https://github.com/codewptech/skyinnk/actions/runs/44899981497): both empty and fictional published catalogues, Chromium 141 at 320/375/768/1365px, 320/330px overflow controls, keyboard/touch, direct URLs/history, classroom tabs/dialog/notes/video, API/HTTP published resource SHA-256 bytes, `nosniff` and unlisted denial, no browser errors.
+- [Auth0 real PostgreSQL 18, postmerge 44900429586](https://github.com/codewptech/skyinnk/actions/runs/44900429586): actual disposable PG18 User migration/native UUIDv7, eight concurrent first-sync callers with one identity, racing old/new/undated provider timestamps, trigger-backed `updatedAt`, duplicate-email distinct identities, invalid subject rejection.
+- [Local-only recovery rehearsal, 44899600841](https://github.com/codewptech/skyinnk/actions/runs/44899600841): Docker runtime and disposable PG18 backup/restore, staged candidate, intentional readiness=503 while liveness=200, then original-image rollback with healthy probes; no production access.
+
+These checks use fictional content/identities and temporary runners. They do **not** authenticate a real Auth0 tenant, license real lesson media, establish legal/cookie compliance, or authorize a production release. The historical test command/count reports below refer only to their dated snapshots. Read [V1 milestone #58](https://github.com/codewptech/skyinnk/issues/58) for external release blockers.
+---
+
 ## Commands
 
 Use the installed dependencies and Node 24.22+ (verified locally on 24.22.1):
@@ -59,30 +70,21 @@ The analytics test uses a minimal DOM double and never downloads GTM.
 
 ## CI and production boundary
 
-The single `ci` job has five steps: checkout, Node setup, `npm ci`, `check:all`,
-then `test:all`. There are no service containers, database URLs, migrations,
-Docker commands, Chrome discovery, browser launches, or extra test jobs in CI
-validation. Existing npm caching is unchanged. There is one dependency install
-and one host production build.
+Development CI runs on pull requests and pushes targeting
+`development/v1-public-launch`. It installs locked dependencies, runs
+`test:all` and runs `check:all`. The task/ownership policy runs on the PR
+path. The separate production workflow validates pull requests and pushes to
+`main`. Its deployment job is gated by a successful `main` push and has its own
+container, migration and health/readiness steps.
 
-The complete existing `deploy` job is preserved byte-for-byte. It remains
-push-only and depends on successful `ci`. Its production Docker builds, exact
-commit safeguard, Prisma migration before startup, health checks and database
-readiness check remain intact. Production Docker is intentionally independent
-of the infrastructure-free validation job.
+## Extended verification
 
-No push, merge, PR creation or deployment is part of this rewrite. The existing
-pull-request event targeting `main` provides validation without the push-only
-deploy job, if an owner later submits the changes for hosted review.
-
-## Intentionally removed assurance
-
-The old tests directory was replaced, including every legacy test and helper.
-There are no retained database, Docker, browser, TLS/OIDC, schema lifecycle,
-cleanup or prerequisite fixtures. No test-only dependency needed removal: the
-existing dependencies remain required by the app or its build/toolchain.
-The redundant test alias and focused browser script were removed; seven scripts
-remain, including the two primary validation commands and normal Nuxt operations.
+The regular suite covers content publication, public API projections, Markdown
+safety and both governance checkers in addition to the tests above. For the
+optional production-like HTTP and Chromium checks, run
+`node scripts/smoke-v1.mjs --isolated-fixture`. Add `--http-only` if the browser
+runtime is unavailable. The fixture contains fictional materials and uses a
+temporary copy. The ordinary CI commands keep the lightweight scope below.
 
 This lightweight suite deliberately does **not** establish:
 
@@ -105,6 +107,15 @@ Owner/environment release checks remain in `analytics-and-legal.md` and
 `auth0-user-sync.md`.
 
 ## Verification record
+
+On the audited integration commit
+`c1250c40b07ef37894a927cb64249892989bbf84`, the independent audit recorded
+75 passing tests, a successful production build with 362 scanned output
+artifacts and 15 passed fixture smoke groups in Chromium. The hosted exact-head
+Development CI also passed.
+[GitHub Development CI](https://github.com/codewptech/skyinnk/actions/runs/43237307644)
+
+### Historical lightweight test rewrite
 
 November 5, 2026, Node 24.22.1, using the existing installed dependencies:
 

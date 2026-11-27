@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
+import { readdirSync } from "node:fs";
 import { registerHooks } from "node:module";
 import { Readable } from "node:stream";
 import { ServerResponse } from "node:http";
@@ -38,8 +39,8 @@ registerHooks({
     return next(specifier, context);
   },
 });
-const health = (await import("../server/api/health.get.ts")).default;
-const ready = (await import("../server/api/ready.get.ts")).default;
+const health = (await import("../server/api/v1/health.get.ts")).default;
+const ready = (await import("../server/api/v1/ready.get.ts")).default;
 const bodyLimit = (
   await import("../server/middleware/backchannel-body-limit.ts")
 ).default;
@@ -54,18 +55,18 @@ let fixtureId = 0;
 async function api() {
   // Each fixture gets a fresh process-local limiter; no global clock mutation.
   const sync = (
-    await import(`../server/api/auth/sync.post.ts?fixture=${++fixtureId}`)
+    await import(`../server/api/v1/auth/sync.post.ts?fixture=${++fixtureId}`)
   ).default;
   const app = createApp({ debug: false });
   app.use(
     createRouter()
-      .get("/api/health", health)
-      .get("/api/ready", ready)
-      .post("/api/auth/sync", sync),
+      .get("/api/v1/health", health)
+      .get("/api/v1/ready", ready)
+      .post("/api/v1/auth/sync", sync),
   );
   const handle = toWebHandler(app);
   return async (
-    path = "/api/auth/sync",
+    path = "/api/v1/auth/sync",
     init = {},
     user = { sub: "session|owner" },
   ) => {
@@ -90,6 +91,40 @@ async function api() {
   };
 }
 
+test("owned API routes are versioned and legacy URLs are unavailable", async () => {
+  const handlers = readdirSync(new URL("../server/api/", import.meta.url), {
+    recursive: true,
+  }).filter((path) => path.endsWith(".ts"));
+  assert.deepEqual(
+    [...handlers].sort(),
+    [
+      "v1/auth/sync.post.ts",
+      "v1/development/catalogue.get.ts",
+      "v1/health.get.ts",
+      "v1/public/courses.get.ts",
+      "v1/public/courses/[courseSlug].get.ts",
+      "v1/public/courses/[courseSlug]/lessons/[lessonSlug].get.ts",
+      "v1/ready.get.ts",
+    ].sort(),
+  );
+  for (const path of handlers) assert.ok(path.startsWith("v1/"), path);
+
+  const request = await api();
+  for (const [path, method] of [
+    ["/api/health", "GET"],
+    ["/api/ready", "GET"],
+    ["/api/auth/sync", "POST"],
+  ]) {
+    const response = await request(path, { method });
+    assert.equal(
+      response.status,
+      404,
+      `Legacy endpoint ${path} must not exist`,
+    );
+  }
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 0);
+});
+
 test("HTTP rejects invalid origins, missing CSRF, cross-site requests and framed bodies before writes", async () => {
   const request = await api();
   for (const headers of [
@@ -106,9 +141,9 @@ test("HTTP rejects invalid origins, missing CSRF, cross-site requests and framed
     assert.equal(response.status, 403);
     assert.equal((await response.json()).statusCode, 403);
   }
-  assert.equal(database.user.upsert.mock.callCount(), 0);
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 0);
   assert.equal((await request(undefined, { method: "GET" })).status, 404);
-  assert.equal(database.user.upsert.mock.callCount(), 0);
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 0);
 });
 
 test("HTTP rejects absent or unusable verified identities and never writes", async () => {
@@ -121,20 +156,20 @@ test("HTTP rejects absent or unusable verified identities and never writes", asy
       "Authentication required",
     );
   }
-  assert.equal(database.user.upsert.mock.callCount(), 0);
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 0);
 });
 
 test("HTTP accepts verified-session claims, ignores query identity and returns minimal success JSON", async () => {
   const request = await api();
   const response = await request(
-    "/api/auth/sync?sub=forged",
+    "/api/v1/auth/sync?sub=forged",
     {},
     { sub: "session|actual", name: "Actual", access_token: "private" },
   );
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { synced: true });
-  const [write] = database.user.upsert.mock.calls[0].arguments;
-  assert.deepEqual(write.create, { auth0Id: "session|actual", name: "Actual" });
+  const [write] = database.user.createManyAndReturn.mock.calls[0].arguments;
+  assert.deepEqual(write.data, { auth0Id: "session|actual", name: "Actual" });
 });
 
 test("HTTP rate limits verified identities before persistence and returns Retry-After", async () => {
@@ -147,7 +182,7 @@ test("HTTP rate limits verified identities before persistence and returns Retry-
   assert.equal(denied.length, 5);
   for (const response of denied)
     assert.ok(Number(response.headers.get("retry-after")) >= 1);
-  assert.equal(database.user.upsert.mock.callCount(), 2);
+  assert.equal(database.user.createManyAndReturn.mock.callCount(), 2);
   assert.equal(
     (await request(undefined, {}, { sub: "another|identity" })).status,
     200,
@@ -161,7 +196,7 @@ test("HTTP persistence failures return sanitized 503 or 500 without leaking priv
     [new RequestError("P1001"), 503],
     [new Error("private-query-marker"), 500],
   ]) {
-    database.user.upsert.mock.mockImplementation(async () => {
+    database.user.createManyAndReturn.mock.mockImplementation(async () => {
       throw error;
     });
     const response = await request(
@@ -184,17 +219,17 @@ test("HTTP persistence failures return sanitized 503 or 500 without leaking priv
 test("liveness is independent of persistence; readiness reports sanitized availability", async () => {
   const request = await api();
   assert.deepEqual(
-    await (await request("/api/ready", { method: "GET" })).json(),
+    await (await request("/api/v1/ready", { method: "GET" })).json(),
     { status: "ready" },
   );
   database.user.findFirst.mock.mockImplementation(async () => {
     throw new Error("private-database-marker");
   });
-  const unavailable = await request("/api/ready", { method: "GET" });
+  const unavailable = await request("/api/v1/ready", { method: "GET" });
   assert.equal(unavailable.status, 503);
   assert.equal((await unavailable.json()).statusMessage, "Database not ready");
   assert.deepEqual(
-    await (await request("/api/health", { method: "GET" })).json(),
+    await (await request("/api/v1/health", { method: "GET" })).json(),
     { status: "ok" },
   );
 });
@@ -381,5 +416,37 @@ test("rolling quotas recover at their boundary, isolate exact subjects and fail 
   assert.throws(
     () => createAuth0SyncRateLimiter({ maxRequests: 0, windowMs: 1000 }),
     TypeError,
+  );
+});
+
+test("HTTP rejects malformed Unicode verified subjects before quota or persistence", async () => {
+  const request = await api();
+  for (const sub of ["fixture|\ud800", "fixture|\udc00"]) {
+    const response = await request(undefined, {}, { sub });
+    assert.equal(response.status, 401);
+    assert.equal(
+      (await response.json()).statusMessage,
+      "Authentication required",
+    );
+  }
+  assert.equal(database.$transaction.mock.callCount(), 0);
+  const response = await request(
+    undefined,
+    {},
+    {
+      sub: "fixture|ExactCase-𝑥",
+      name: "bad\ud800",
+      nickname: "José 𝑥",
+      address: { locality: "bad\udc00", country: "IN" },
+    },
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual(
+    database.user.createManyAndReturn.mock.calls[0].arguments[0].data,
+    {
+      auth0Id: "fixture|ExactCase-𝑥",
+      nickname: "José 𝑥",
+      addressCountry: "IN",
+    },
   );
 });

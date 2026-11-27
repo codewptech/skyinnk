@@ -1,2 +1,4 @@
-User-Agent: *
-Disallow:
+User-agent: *
+Disallow: /auth/
+Disallow: /api/
+Sitemap: https://www.skyinnk.in/sitemap.xml

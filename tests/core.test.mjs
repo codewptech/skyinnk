@@ -69,44 +69,112 @@ test("synchronization writes only normalized session claims and returns only the
     id: "forged",
   });
   assert.deepEqual(result, { id: "stored-user" });
-  assert.deepEqual(database.user.upsert.mock.calls[0].arguments, [
+  assert.deepEqual(database.user.createManyAndReturn.mock.calls[0].arguments, [
     {
-      where: { auth0Id: "session|owner" },
-      create: { auth0Id: "session|owner", name: "Owner" },
-      update: { auth0Id: "session|owner", name: "Owner" },
+      data: { auth0Id: "session|owner", name: "Owner" },
+      skipDuplicates: true,
       select: { id: true },
     },
   ]);
+  assert.equal(database.user.updateManyAndReturn.mock.callCount(), 0);
 });
 
-test("synchronization retries an identity uniqueness conflict once and propagates other failures", async () => {
-  const conflict = new RequestError("P2002", { target: ["auth0Id"] });
-  database.user.upsert.mock.mockImplementationOnce(async () => {
-    throw conflict;
+test("an existing subject updates only when the stored profile is no newer", async () => {
+  database.user.createManyAndReturn.mock.mockImplementation(async () => []);
+  const timestamp = "2026-11-12T00:00:00Z";
+  assert.deepEqual(
+    await syncAuth0User({
+      sub: "owner",
+      name: "Current",
+      updated_at: timestamp,
+    }),
+    { id: "stored-user" },
+  );
+  const [update] = database.user.updateManyAndReturn.mock.calls[0].arguments;
+  assert.deepEqual(update.where, {
+    auth0Id: "owner",
+    OR: [
+      { auth0UpdatedAt: null },
+      { auth0UpdatedAt: { lte: new Date(timestamp) } },
+    ],
   });
-  assert.deepEqual(await syncAuth0User({ sub: "owner" }), {
-    id: "stored-user",
-  });
-  assert.equal(database.user.upsert.mock.callCount(), 2);
-  database.user.upsert.mock.mockImplementation(async () => {
-    throw conflict;
+  assert.equal(
+    database.$transaction.mock.calls[0].arguments[1].isolationLevel,
+    "ReadCommitted",
+  );
+  assert.equal(database.user.findUniqueOrThrow.mock.callCount(), 0);
+});
+
+test("undated claims cannot clear a watermark and a skipped write still returns the subject ID", async () => {
+  database.user.createManyAndReturn.mock.mockImplementation(async () => []);
+  database.user.updateManyAndReturn.mock.mockImplementation(async () => []);
+  for (const updated_at of [undefined, null, "", "invalid"]) {
+    assert.deepEqual(await syncAuth0User({ sub: "owner", updated_at }), {
+      id: "stored-user",
+    });
+  }
+  for (const {
+    arguments: [update],
+  } of database.user.updateManyAndReturn.mock.calls) {
+    assert.deepEqual(update.where, {
+      auth0Id: "owner",
+      OR: [{ auth0UpdatedAt: null }],
+    });
+    assert.equal("auth0UpdatedAt" in update.data, false);
+  }
+  assert.equal(database.user.findUniqueOrThrow.mock.callCount(), 4);
+  const failure = new RequestError("P1001");
+  database.user.updateManyAndReturn.mock.mockImplementation(async () => {
+    throw failure;
   });
   await assert.rejects(
     syncAuth0User({ sub: "owner" }),
-    (error) => error === conflict,
+    (error) => error === failure,
   );
-  assert.equal(database.user.upsert.mock.callCount(), 4);
-  const unrelated = new RequestError("P2002", { target: ["email"] });
-  database.user.upsert.mock.mockImplementation(async () => {
-    throw unrelated;
-  });
-  await assert.rejects(
-    syncAuth0User({ sub: "owner" }),
-    (error) => error === unrelated,
-  );
-  assert.equal(database.user.upsert.mock.callCount(), 5);
 });
 
+test("two concurrent first-time syncs resolve one permanent subject ID in the mocked conflict path", async () => {
+  let attempts = 0;
+  database.user.createManyAndReturn.mock.mockImplementation(
+    async ({ data }) => {
+      assert.equal(data.auth0Id, "same|verified-subject");
+      return ++attempts === 1 ? [{ id: "stored-user" }] : [];
+    },
+  );
+  const [first, second] = await Promise.all([
+    syncAuth0User({ sub: "same|verified-subject", name: "First" }),
+    syncAuth0User({ sub: "same|verified-subject", name: "Second" }),
+  ]);
+  assert.deepEqual(first, { id: "stored-user" });
+  assert.deepEqual(second, { id: "stored-user" });
+  assert.equal(attempts, 2);
+  assert.equal(database.user.updateManyAndReturn.mock.callCount(), 1);
+});
+
+test("older timestamp cannot pass the atomic profile-update predicate", async () => {
+  database.user.createManyAndReturn.mock.mockImplementation(async () => []);
+  database.user.updateManyAndReturn.mock.mockImplementation(
+    async ({ where }) => {
+      assert.equal(where.auth0Id, "stored|subject");
+      assert.equal(
+        where.OR[1].auth0UpdatedAt.lte.toISOString(),
+        "2025-01-01T00:00:00.000Z",
+      );
+      // The simulated stored watermark is later; no row may be updated.
+      return [];
+    },
+  );
+  const stored = await syncAuth0User({
+    sub: "stored|subject",
+    name: "Stale",
+    updated_at: "2025-01-01T00:00:00Z",
+  });
+  assert.deepEqual(stored, { id: "stored-user" });
+  assert.equal(database.user.findUniqueOrThrow.mock.callCount(), 1);
+});
+
+// These unit controls model conflict responses; only a real disposable
+// PostgreSQL integration test can establish lock/commit behavior under load.
 test("client synchronization follows eligible visits, late profiles, identity changes and freshness", async (t) => {
   const user = ref();
   const router = createRouter({
@@ -200,4 +268,30 @@ test("client failures preserve navigation, deduplicate in-flight work and honor 
     2000,
   );
   assert.equal(new Auth0SyncRateLimitError("invalid", 0).retryAfterMs, 30000);
+});
+
+test("malformed Unicode subjects are rejected before persistence and invalid optional claims are omitted", async () => {
+  for (const invalid of ["\ud800", "\udc00"]) {
+    const sub = "fixture|" + invalid;
+    assert.throws(() => mapAuth0Profile({ sub }), TypeError);
+    await assert.rejects(syncAuth0User({ sub }), TypeError);
+  }
+  assert.equal(database.$transaction.mock.callCount(), 0);
+  assert.deepEqual(
+    mapAuth0Profile({
+      sub: "fixture|ExactCase-𝑥",
+      name: "समीक्षक José 𝑥",
+      nickname: "bad\ud800",
+      email: "",
+      phone_number: null,
+      address: { locality: "bad\udc00", country: "IN" },
+    }),
+    {
+      auth0Id: "fixture|ExactCase-𝑥",
+      name: "समीक्षक José 𝑥",
+      email: null,
+      phoneNumber: null,
+      addressCountry: "IN",
+    },
+  );
 });

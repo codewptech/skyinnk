@@ -1,0 +1,114 @@
+name: Development PR CI
+
+on:
+  pull_request:
+    types:
+      [
+        opened,
+        synchronize,
+        reopened,
+        edited,
+        ready_for_review,
+        converted_to_draft,
+      ]
+    branches:
+      - development/v1-public-launch
+  push:
+    branches:
+      - development/v1-public-launch
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: skyinnk-development-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  development-ci:
+    name: Development CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout development policy
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: development-policy
+          persist-credentials: false
+
+      - name: Checkout exact candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          path: candidate
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Verify checkout revisions
+        env:
+          EXPECTED_CANDIDATE: ${{ github.sha }}
+          EXPECTED_BASE: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_PUSH: ${{ github.event.after }}
+        run: |
+          set -euo pipefail
+
+          verify_revision() {
+            local expected="$1" actual="$2" label="$3"
+            if [[ ! "$expected" =~ ^[0-9a-f]{40}$ || "$expected" != "$actual" ]]; then
+              echo "::error::Missing or mismatched GitHub revision for $label."
+              exit 1
+            fi
+          }
+
+          candidate_sha="$(git -C candidate rev-parse --verify HEAD)"
+          verify_revision "$EXPECTED_CANDIDATE" "$candidate_sha" 'candidate checkout'
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              verify_revision "$EXPECTED_BASE" "$(git -C development-policy rev-parse --verify HEAD)" 'development policy checkout'
+              verify_revision "$EXPECTED_BASE" "$(git -C candidate rev-parse --verify HEAD^1)" 'PR merge base parent'
+              verify_revision "$EXPECTED_HEAD" "$(git -C candidate rev-parse --verify HEAD^2)" 'PR merge head parent'
+              ;;
+            push)
+              verify_revision "$EXPECTED_PUSH" "$candidate_sha" 'development push'
+              ;;
+            *)
+              echo "::error::Unsupported development CI event."
+              exit 1
+              ;;
+          esac
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+
+      - name: Enforce PR governance with current development policy
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        working-directory: development-policy
+        run: node scripts/verify-pr-governance.mjs
+
+      - name: Run focused PEA-2 policy tests
+        working-directory: candidate
+        run: node --test docs/governance/parallel-task-policy.test.mjs
+
+      - name: Install locked dependencies
+        working-directory: candidate
+        run: npm ci
+
+      - name: Run lightweight tests
+        working-directory: candidate
+        run: npm run test:all
+
+      - name: Validate Prisma, types and production build
+        working-directory: candidate
+        run: npm run check:all

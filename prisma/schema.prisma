@@ -44,5 +44,424 @@ model User {
   createdAt            DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt            DateTime  @default(now()) @db.Timestamptz(6)
 
+  // Academic authoring permissions; existing User columns and identity unchanged.
+  roles                UserRole[]
+  courseAssignments    CourseEducator[]
+  reviewedReleases     CourseRelease[] @relation("AcademicReviewedBy")
+  retiredReleases      CourseRelease[] @relation("AcademicRetiredBy")
+
   @@index([email])
+}
+
+// V1 academic foundation: authoring records only. Public release authority
+// is a separate immutable, transactional publication slice. No automatic grants.
+
+model Role {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  key                   String @unique
+  name                  String
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  users                 UserRole[]
+}
+
+model AcademicCategory {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  key                   String @unique
+  name                  String
+  archivedAt            DateTime? @db.Timestamptz(6)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  courses               CourseCategory[]
+}
+
+model AcademicLevel {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  key                   String @unique
+  name                  String
+  archivedAt            DateTime? @db.Timestamptz(6)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  courses               CourseLevel[]
+}
+
+model Curriculum {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  key                   String @unique
+  name                  String
+  archivedAt            DateTime? @db.Timestamptz(6)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  courses               CourseCurriculum[]
+}
+
+model Subject {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  key                   String @unique
+  name                  String
+  archivedAt            DateTime? @db.Timestamptz(6)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  courses               CourseSubject[]
+  topics                SubjectTopic[]
+}
+
+model Topic {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  key                   String @unique
+  name                  String
+  parentId              String? @db.Uuid
+  archivedAt            DateTime? @db.Timestamptz(6)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  parent                Topic? @relation("TopicTree", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  children              Topic[] @relation("TopicTree")
+  subjects              SubjectTopic[]
+  lessons               LessonTopic[]
+
+  @@index([parentId])
+}
+
+model Course {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  sourceKey             String @unique
+  slug                  String @unique
+  title                 String
+  summary               String @default("")
+  audience              String @default("")
+  archivedAt            DateTime? @db.Timestamptz(6)
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  categories            CourseCategory[]
+  levels                CourseLevel[]
+  curricula             CourseCurriculum[]
+  subjects              CourseSubject[]
+  modules               Module[]
+  educators             CourseEducator[]
+  resources             CourseResource[]
+  releases              CourseRelease[]
+}
+
+model MediaAsset {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  provider              String
+  externalKey           String
+  mimeType              String?
+  sizeBytes             Int?
+  sha256                String?
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  videoLessons          Lesson[] @relation("LessonVideo")
+  resources             LearningResource[]
+
+  @@unique([provider, externalKey])
+}
+
+model LearningResource {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  sourceKey             String @unique
+  title                 String
+  mediaAssetId          String @db.Uuid
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  mediaAsset            MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  courses               CourseResource[]
+  lessons               LessonResource[]
+  publishedCourseLinks  PublishedCourseResource[]
+  publishedLessonLinks  PublishedLessonResource[]
+
+  @@index([mediaAssetId])
+}
+
+model Module {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  courseId              String @db.Uuid
+  sourceKey             String @unique
+  title                 String
+  position              Int
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  course                Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  lessons               Lesson[]
+  publishedModules      PublishedModule[]
+
+  @@unique([id, courseId])
+  @@unique([courseId, position])
+}
+
+model Lesson {
+  id                    String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  courseId              String @db.Uuid
+  moduleId              String @db.Uuid
+  sourceKey             String @unique
+  slug                  String
+  title                 String
+  position              Int
+  kind                  String @default("TEXT")
+  overview              String @default("")
+  notesMarkdown         String @default("")
+  videoAssetId          String? @db.Uuid
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  module                Module @relation(fields: [moduleId, courseId], references: [id, courseId], onDelete: Restrict, onUpdate: Restrict)
+  videoAsset            MediaAsset? @relation("LessonVideo", fields: [videoAssetId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  topics                LessonTopic[]
+  resources             LessonResource[]
+  publishedLessons      PublishedLesson[]
+
+  @@unique([courseId, slug])
+  @@unique([id, courseId])
+  @@unique([moduleId, position])
+  @@index([videoAssetId])
+  @@index([moduleId, courseId])
+}
+
+model UserRole {
+  userId                String @db.Uuid
+  roleId                String @db.Uuid
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  user                  User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  role                  Role @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+model CourseEducator {
+  courseId              String @db.Uuid
+  userId                String @db.Uuid
+  permission            String
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+
+  course                Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user                  User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([courseId, userId])
+  @@index([userId])
+}
+
+model CourseCategory {
+  courseId              String @db.Uuid
+  categoryId            String @db.Uuid
+  isPrimary             Boolean @default(false)
+
+  course                Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  category              AcademicCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([courseId, categoryId])
+  @@index([categoryId])
+}
+
+model CourseLevel {
+  courseId              String @db.Uuid
+  levelId               String @db.Uuid
+
+  course                Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  level                 AcademicLevel @relation(fields: [levelId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([courseId, levelId])
+  @@index([levelId])
+}
+
+model CourseCurriculum {
+  courseId              String @db.Uuid
+  curriculumId          String @db.Uuid
+
+  course                Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  curriculum            Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([courseId, curriculumId])
+  @@index([curriculumId])
+}
+
+model CourseSubject {
+  courseId              String @db.Uuid
+  subjectId             String @db.Uuid
+  isPrimary             Boolean @default(false)
+
+  course                Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  subject               Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([courseId, subjectId])
+  @@index([subjectId])
+}
+
+model SubjectTopic {
+  subjectId             String @db.Uuid
+  topicId               String @db.Uuid
+
+  subject               Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  topic                 Topic @relation(fields: [topicId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([subjectId, topicId])
+  @@index([topicId])
+}
+
+model LessonTopic {
+  lessonId              String @db.Uuid
+  topicId               String @db.Uuid
+
+  lesson                Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  topic                 Topic @relation(fields: [topicId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([lessonId, topicId])
+  @@index([topicId])
+}
+
+model CourseResource {
+  courseId              String @db.Uuid
+  resourceId            String @db.Uuid
+  position              Int
+
+  course                Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  resource              LearningResource @relation(fields: [resourceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([courseId, resourceId])
+  @@unique([courseId, position])
+  @@index([resourceId])
+}
+
+model LessonResource {
+  lessonId              String @db.Uuid
+  resourceId            String @db.Uuid
+  position              Int
+
+  lesson                Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  resource              LearningResource @relation(fields: [resourceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([lessonId, resourceId])
+  @@unique([lessonId, position])
+  @@index([resourceId])
+}
+
+// Immutable approved release snapshot; STAGED exists only inside publication transaction.
+model CourseRelease {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  courseId String @db.Uuid
+  version Int
+  state String @default("STAGED")
+  sourceKey String
+  slug String
+  title String
+  summary String
+  audience String
+  subject String
+  contentDigest String
+  reviewedById String @db.Uuid
+  reviewedAt DateTime @default(now()) @db.Timestamptz(6)
+  rightsConfirmed Boolean
+  retiredAt DateTime? @db.Timestamptz(6)
+  retiredById String? @db.Uuid
+  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  reviewer User @relation("AcademicReviewedBy", fields: [reviewedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  retiredBy User? @relation("AcademicRetiredBy", fields: [retiredById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  modules PublishedModule[]
+  classifications PublishedClassification[]
+  resources PublishedCourseResource[]
+  @@unique([id, courseId])
+  @@unique([courseId, version])
+  @@index([state, slug])
+  @@index([reviewedById])
+  @@index([retiredById])
+}
+
+model PublishedModule {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  releaseId String @db.Uuid
+  courseId String @db.Uuid
+  moduleId String @db.Uuid
+  sourceKey String
+  title String
+  position Int
+  release CourseRelease @relation(fields: [releaseId, courseId], references: [id, courseId], onDelete: Restrict, onUpdate: Restrict)
+  module Module @relation(fields: [moduleId, courseId], references: [id, courseId], onDelete: Restrict, onUpdate: Restrict)
+  lessons PublishedLesson[]
+  @@unique([id, releaseId, courseId])
+  @@unique([releaseId, moduleId])
+  @@unique([releaseId, position])
+  @@index([moduleId, courseId])
+}
+
+model PublishedLesson {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  releaseId String @db.Uuid
+  courseId String @db.Uuid
+  publishedModuleId String @db.Uuid
+  lessonId String @db.Uuid
+  sourceKey String
+  slug String
+  title String
+  position Int
+  kind String
+  overview String
+  notesMarkdown String
+  videoPublicId String?
+  publishedModule PublishedModule @relation(fields: [publishedModuleId, releaseId, courseId], references: [id, releaseId, courseId], onDelete: Restrict, onUpdate: Restrict)
+  lesson Lesson @relation(fields: [lessonId, courseId], references: [id, courseId], onDelete: Restrict, onUpdate: Restrict)
+  resources PublishedLessonResource[]
+  @@unique([id, releaseId])
+  @@unique([releaseId, lessonId])
+  @@unique([releaseId, slug])
+  @@unique([publishedModuleId, position])
+  @@index([lessonId, courseId])
+}
+
+model PublishedClassification {
+  releaseId String @db.Uuid
+  kind String
+  key String
+  name String
+  isPrimary Boolean @default(false)
+  release CourseRelease @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@id([releaseId, kind, key])
+}
+
+model PublishedCourseResource {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  releaseId String @db.Uuid
+  resourceId String @db.Uuid
+  sourceKey String
+  title String
+  position Int
+  mimeType String
+  sizeBytes Int
+  sha256 String
+  release CourseRelease @relation(fields: [releaseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  resource LearningResource @relation(fields: [resourceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([releaseId, resourceId])
+  @@unique([releaseId, position])
+  @@index([resourceId])
+  @@index([sha256])
+}
+
+model PublishedLessonResource {
+  id String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  releaseId String @db.Uuid
+  publishedLessonId String @db.Uuid
+  resourceId String @db.Uuid
+  sourceKey String
+  title String
+  position Int
+  mimeType String
+  sizeBytes Int
+  sha256 String
+  lesson PublishedLesson @relation(fields: [publishedLessonId, releaseId], references: [id, releaseId], onDelete: Restrict, onUpdate: Restrict)
+  resource LearningResource @relation(fields: [resourceId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([publishedLessonId, resourceId])
+  @@unique([publishedLessonId, position])
+  @@index([resourceId])
+  @@index([releaseId])
+  @@index([sha256])
 }

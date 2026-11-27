@@ -1,0 +1,113 @@
+name: V1 Disposable Recovery Rehearsal
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/v1-recovery-rehearsal.yml
+      - scripts/rehearse-v1-recovery.sh
+      - scripts/validate-public-content.ts
+      - scripts/parse-unique-json.ts
+      - app/utils/render-markdown.ts
+      - shared/public-content.ts
+      - tests/docker-build-context.test.mjs
+      - scripts/check-release-authorization.mjs
+      - tests/release-authorization.test.mjs
+      - Dockerfile
+      - .dockerignore
+      - server/api/v1/health.get.ts
+      - server/api/v1/ready.get.ts
+      - nuxt.config.ts
+      - prisma/**
+      - prisma.config.ts
+      - server/utils/prisma.ts
+      - package.json
+      - package-lock.json
+  push:
+    branches:
+      - development/v1-public-launch
+    paths:
+      - .github/workflows/v1-recovery-rehearsal.yml
+      - scripts/rehearse-v1-recovery.sh
+      - scripts/validate-public-content.ts
+      - scripts/parse-unique-json.ts
+      - app/utils/render-markdown.ts
+      - shared/public-content.ts
+      - tests/docker-build-context.test.mjs
+      - scripts/check-release-authorization.mjs
+      - tests/release-authorization.test.mjs
+      - Dockerfile
+      - .dockerignore
+      - server/api/v1/health.get.ts
+      - server/api/v1/ready.get.ts
+      - nuxt.config.ts
+      - prisma/**
+      - prisma.config.ts
+      - server/utils/prisma.ts
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: read
+
+jobs:
+  rehearsal:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    name: Isolated Docker and PostgreSQL 18 recovery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout nonproduction PR candidate or integrated development
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Confirm isolated runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" != pull_request && "$GITHUB_EVENT_NAME" != push ]]; then exit 1; fi
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then test "$GITHUB_REF" = refs/heads/development/v1-public-launch; fi
+          test "$GITHUB_REPOSITORY" = codewptech/skyinnk
+          docker info >/dev/null
+          test -S /var/run/docker.sock
+
+      - name: Build disposable app image and fetch PostgreSQL 18
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull postgres:18-bookworm
+          docker build --pull --tag skyinnk-rehearsal:local .
+
+      - name: Inspect actual Docker build-stage script inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --target build --tag skyinnk-rehearsal:build-context .
+          docker run --rm --network none --entrypoint /bin/sh skyinnk-rehearsal:build-context -eu -c '
+            for path in scripts/parse-unique-json.ts scripts/validate-public-content.ts; do
+              test -f "$path" || { echo "Missing required build script: $path"; exit 1; }
+            done
+            actual="$(find scripts -type f | LC_ALL=C sort)"
+            expected="$(printf "%s\n" scripts/parse-unique-json.ts scripts/validate-public-content.ts)"
+            if [ "$actual" != "$expected" ]; then
+              printf "%s\n" "Unexpected script files in actual Docker build stage:" "$actual"
+              exit 1
+            fi
+            echo "PASS: actual Docker build stage contains exactly the two required scripts"
+          '
+
+      - name: Test backup restore, failed readiness and prior-image recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/rehearse-v1-recovery.sh skyinnk-rehearsal:local \
+            | tee "$RUNNER_TEMP/skyinnk-recovery-rehearsal.log"
+          grep -F 'Verified backup restore with a fictional record' "$RUNNER_TEMP/skyinnk-recovery-rehearsal.log"
+          grep -F 'Restored prior runtime ' "$RUNNER_TEMP/skyinnk-recovery-rehearsal.log"
+
+      - name: Verify proposed owner gate without production credentials
+        shell: bash
+        run: node --test tests/release-authorization.test.mjs
