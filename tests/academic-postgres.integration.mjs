@@ -17,6 +17,14 @@ const expectCheck = (fn, constraint) => assert.rejects(fn, error => {
     String(error.meta?.message ?? "").includes('violates check constraint "' + constraint + '"');
   return postgres && named;
 }, "Expected PostgreSQL 23514 for " + constraint);
+const expectRestrict = (fn, constraints) => assert.rejects(fn, error => {
+  const message = String(error.message).replaceAll('\\\"', '"');
+  // PostgreSQL 18 reports ON DELETE RESTRICT as SQLSTATE 23001, not the
+  // 23503 code that Prisma normally translates into P2003.
+  return (message.includes('code: "23001"') || error.meta?.code === "23001") &&
+    constraints.some(name => message.includes('violates RESTRICT setting of foreign key constraint "' + name + '"'));
+}, "Expected PostgreSQL 23001 for one of " + constraints.join(", "));
+
 try {
   const existing = await prisma.user.findUniqueOrThrow({ where: { auth0Id: "fixture|pre-academic-upgrade" } });
   assert.equal(existing.id, "019abcd0-0000-7000-8000-000000000001");
@@ -53,8 +61,8 @@ try {
   await expectReject(()=>prisma.lesson.create({data:{courseId:other.id,moduleId:mod.id,sourceKey:"wrong-course",slug:"wrong",title:"Wrong context",position:2}}), "P2003");
   await expectReject(()=>prisma.lesson.create({data:{courseId:c.id,moduleId:mod2.id,sourceKey:"duplicate-lesson-slug",slug:"intro",title:"Duplicate slug",position:0}}), "P2002");
   await expectReject(()=>prisma.lesson.create({data:{courseId:c.id,moduleId:mod.id,sourceKey:"duplicate-lesson-pos",slug:"different",title:"Duplicate position",position:0}}), "P2002");
-  await expectReject(()=>prisma.course.delete({where:{id:c.id}}), "P2003");
-  await expectReject(()=>prisma.module.delete({where:{id:mod.id}}), "P2003");
+  await expectRestrict(()=>prisma.course.delete({where:{id:c.id}}), ["Module_courseId_fkey","CourseCategory_courseId_fkey","CourseLevel_courseId_fkey","CourseCurriculum_courseId_fkey","CourseSubject_courseId_fkey"]);
+  await expectRestrict(()=>prisma.module.delete({where:{id:mod.id}}), ["Lesson_moduleId_courseId_fkey"]);
   console.log("PASS topic relationship, scoped ordering, course-wide lesson slug, cross-course FK and restricted deletion");
   const hash = "a".repeat(64);
   const media = await prisma.mediaAsset.create({data:{provider:"LOCAL_PRIVATE",externalKey:hash,sha256:hash,mimeType:"application/pdf",sizeBytes:10}});
@@ -66,8 +74,8 @@ try {
   await expectCheck(()=>prisma.mediaAsset.create({data:{provider:"YOUTUBE",externalKey:"https://invalid.example"}}), "MediaAsset_provider_check");
   await expectCheck(()=>prisma.lesson.update({where:{id:lesson.id},data:{videoAssetId:video.id}}), "Lesson_kind_check");
   await prisma.lesson.update({where:{id:lesson.id},data:{kind:"VIDEO",videoAssetId:video.id}});
-  await expectReject(()=>prisma.mediaAsset.delete({where:{id:media.id}}), "P2003");
-  await expectReject(()=>prisma.learningResource.delete({where:{id:resource.id}}), "P2003");
+  await expectRestrict(()=>prisma.mediaAsset.delete({where:{id:media.id}}), ["LearningResource_mediaAssetId_fkey"]);
+  await expectRestrict(()=>prisma.learningResource.delete({where:{id:resource.id}}), ["CourseResource_resourceId_fkey","LessonResource_resourceId_fkey"]);
   const role = await prisma.role.create({data:{key:"academic-admin",name:"Academic admin"}});
   await prisma.userRole.create({data:{userId:existing.id,roleId:role.id}});
   await prisma.courseEducator.create({data:{courseId:c.id,userId:existing.id,permission:"EDITOR"}});
