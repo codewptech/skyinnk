@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { request as httpRequest } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 import prisma from "../server/utils/prisma.ts";
 import { readDemoCatalogue } from "../server/utils/demo-catalogue.ts";
@@ -81,11 +82,23 @@ try {
   assert.deepEqual(JSON.parse(api.text).courses.map(c => c.slug), ["demo-ci-course"]);
   assert.match(api.response.headers.get("cache-control") || "", /no-store/);
   assert.match(api.response.headers.get("x-robots-tag") || "", /noindex/);
-  const denied = await fetch(base + "/api/v1/development/catalogue", {
-    headers: { Host: "invalid.example.test" }, redirect: "manual", signal: AbortSignal.timeout(15000),
+  // Fetch may normalize a caller-supplied Host. Use the actual wire header.
+  const denied = await new Promise((resolve, reject) => {
+    const req = httpRequest({ hostname: "127.0.0.1", port, path: "/api/v1/development/catalogue",
+      headers: { Host: "invalid.example.test", "x-skyinnk-internal-demo-loopback": "a".repeat(64) } }, res => {
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", chunk => { body += chunk; });
+      res.on("end", () => resolve({ status: res.statusCode, body }));
+      res.on("error", reject);
+    });
+    req.on("error", reject);
+    req.setTimeout(15000, () => req.destroy(new Error("Foreign host request timed out")));
+    req.end();
   });
-  if (denied.ok) assert.equal(JSON.parse(await denied.text()).enabled, false);
+  if (denied.status === 200) assert.equal(JSON.parse(denied.body).enabled, false);
   else assert.ok([400, 403, 404].includes(denied.status), `unexpected denied status ${denied.status}`);
+  assert.ok(!denied.body.includes(marker), "Foreign host received demo data");
   const publicApi = await request("/api/v1/public/courses");
   assert.ok(!publicApi.text.includes("demo-ci-course"));
   console.log("PASS actual local API, no-store/noindex, denied foreign host and no public draft exposure");
