@@ -342,3 +342,30 @@ test("mandatory catalogue build rejects malformed UTF-8 without altering valid m
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+
+test("mandatory catalogue build rejects ambiguous duplicate JSON members before approval validation", () => {
+  const value = publicCatalogueFixture();
+  value.courses[0].summary = 'Literal text: {"status":"draft","status":"published"} and escaped quote "';
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-duplicate-publication-"));
+  try {
+    mkdirSync(join(root, "content"));
+    const path = join(root, "content/catalogue.json");
+    const valid = JSON.stringify(value);
+    writeFileSync(path, valid);
+    assert.deepEqual(checkPublicContent(root), value);
+    for (const duplicate of [
+      valid.replace('"status":"published"', '"status":"draft","status":"published"'),
+      valid.replace('"status":"published"', '"status":"draft","\\u0073tatus":"published"'),
+      valid.replace('"schemaVersion":1', '"schemaVersion":2,"schemaVersion":1'),
+    ]) {
+      assert.notEqual(duplicate, valid);
+      assert.deepEqual(JSON.parse(duplicate), value);
+      writeFileSync(path, duplicate);
+      assert.throws(() => checkPublicContent(root), /duplicate JSON object member/i);
+      assert.equal(readFileSync(path, "utf8"), duplicate);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
