@@ -4,13 +4,13 @@ Authority: repository owner approval and CODE RED Issue #2. This is a source-con
 
 ## Protected branches
 
-| Branch | Purpose | Change protocol |
-| --- | --- | --- |
-| `main` | Production only | Owner-approved release PR, required `CI`, never routine agent push |
-| `development/v1-public-launch` | Non-production integration | Reviewed PR only, required `Development CI` |
-| `chat03/task-*` | One backend/technical task | Task issue and reserved files |
-| `work/task-*` | One V1 frontend/content task | Task issue and reserved files |
-| `chat01/task-*` | One architecture/governance task | Task issue and reserved files |
+| Branch                         | Purpose                          | Change protocol                                                    |
+| ------------------------------ | -------------------------------- | ------------------------------------------------------------------ |
+| `main`                         | Production only                  | Owner-approved release PR, required `CI`, never routine agent push |
+| `development/v1-public-launch` | Non-production integration       | Reviewed PR only, required `Development CI`                        |
+| `chat03/task-*`                | One backend/technical task       | Task issue and reserved files                                      |
+| `work/task-*`                  | One V1 frontend/content task     | Task issue and reserved files                                      |
+| `chat01/task-*`                | One architecture/governance task | Task issue and reserved files                                      |
 
 Every task starts from the **latest remote development HEAD** on a fresh short-lived branch. Do not push directly to the integration branch even if the owner account's emergency bypass could allow it. Do not reuse a prior task branch. Never reset or delete unintegrated work.
 

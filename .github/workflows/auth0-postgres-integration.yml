@@ -62,7 +62,7 @@ jobs:
       - name: Install Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Install locked dependencies and generate Prisma client
         shell: bash
@@ -87,14 +87,21 @@ jobs:
             sleep 1
           done
           if [ "$ready" != 1 ]; then docker logs skyinnk-auth0-pg-fixture; exit 1; fi
+          # Validate the complete chain from a genuinely empty database as well.
+          docker exec skyinnk-auth0-pg-fixture createdb -U fixture skyinnk_fresh_fixture
+          fresh_url=postgresql://fixture:fictional-only@127.0.0.1:55432/skyinnk_fresh_fixture
+          DATABASE_URL="$fresh_url" DIRECT_URL="$fresh_url" npx prisma migrate deploy
+          DATABASE_URL="$fresh_url" DIRECT_URL="$fresh_url" npx prisma migrate status
+          # Rehearse upgrading from the owner's already-applied init migration.
           docker exec -i skyinnk-auth0-pg-fixture psql -X -v ON_ERROR_STOP=1 \
             -U fixture -d skyinnk_fixture \
-            < prisma/migrations/20261104000000_create_auth0_user/migration.sql
+            < prisma/migrations/20261127124126_init/migration.sql
           # Rehearse an upgrade from the existing User-only database, preserving a sentinel identity.
           docker exec skyinnk-auth0-pg-fixture psql -X -v ON_ERROR_STOP=1 \
             -U fixture -d skyinnk_fixture -c "INSERT INTO \"User\" (\"id\",\"auth0Id\",\"name\") VALUES ('019abcd0-0000-7000-8000-000000000001','fixture|pre-academic-upgrade','Existing fictional identity')"
-          npx prisma migrate resolve --applied 20261104000000_create_auth0_user
+          npx prisma migrate resolve --applied 20261127124126_init
           npx prisma migrate deploy
+          npx prisma migrate status
           node --experimental-strip-types tests/auth0-postgres.integration.mjs
           node --experimental-strip-types tests/academic-postgres.integration.mjs
           node --experimental-strip-types tests/academic-publication-postgres.integration.mjs

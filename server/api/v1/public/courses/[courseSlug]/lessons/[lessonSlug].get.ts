@@ -9,7 +9,10 @@ export default defineEventHandler((event) => {
     getRouterParam(event, "lessonSlug") ?? "",
   );
   if (!data) {
-    throw createError({ statusCode: 404, statusMessage: "Lesson not published" });
+    throw createError({
+      statusCode: 404,
+      statusMessage: "Lesson not published",
+    });
   }
   return data;
 });

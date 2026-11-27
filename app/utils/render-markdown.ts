@@ -18,7 +18,8 @@ export function isSafeMarkdownLink(value: string): boolean {
   // A standalone URL parser accepts https:/path and https:path, but browsers
   // can resolve those relative to the current HTTPS document. Only explicit
   // authority syntax has the same meaning at validation and navigation time.
-  if (!/^https:\/\/[^/]/i.test(value) || !/^https:\/\/[^/]/i.test(decoded)) return false;
+  if (!/^https:\/\/[^/]/i.test(value) || !/^https:\/\/[^/]/i.test(decoded))
+    return false;
   try {
     const url = new URL(value);
     return (
@@ -47,9 +48,14 @@ export function isSafeMarkdownImage(value: string): boolean {
   );
 }
 
-function renderMath(source: string, displayMode: boolean, throwOnError = false): string {
+function renderMath(
+  source: string,
+  displayMode: boolean,
+  throwOnError = false,
+): string {
   if (source.length > MAX_MATH_LENGTH) {
-    if (throwOnError) throw new Error("Math expression exceeds renderer length limit");
+    if (throwOnError)
+      throw new Error("Math expression exceeds renderer length limit");
     return `<code>${markdown.utils.escapeHtml(source)}</code>`;
   }
   return katex.renderToString(source, {
@@ -76,7 +82,8 @@ markdown.validateLink = isSafeMarkdownLink;
 markdown.core.ruler.after("block", "number_notes_tables", ({ tokens }) => {
   let number = 0;
   for (const token of tokens) {
-    if (token.type === "table_open") token.meta = { ...token.meta, tableNumber: ++number };
+    if (token.type === "table_open")
+      token.meta = { ...token.meta, tableNumber: ++number };
   }
 });
 
@@ -90,12 +97,26 @@ const renderTableClose =
   markdown.renderer.rules.table_close ??
   ((tokens, index, options, _environment, renderer) =>
     renderer.renderToken(tokens, index, options));
-markdown.renderer.rules.table_open = (tokens, index, options, environment, renderer) => {
+markdown.renderer.rules.table_open = (
+  tokens,
+  index,
+  options,
+  environment,
+  renderer,
+) => {
   const number = tokens[index]!.meta!.tableNumber;
-  return `<div class="notes-table-scroll" role="region" aria-label="Lesson notes table ${number}" tabindex="-1">` +
-    renderTableOpen(tokens, index, options, environment, renderer);
+  return (
+    `<div class="notes-table-scroll" role="region" aria-label="Lesson notes table ${number}" tabindex="-1">` +
+    renderTableOpen(tokens, index, options, environment, renderer)
+  );
 };
-markdown.renderer.rules.table_close = (tokens, index, options, environment, renderer) =>
+markdown.renderer.rules.table_close = (
+  tokens,
+  index,
+  options,
+  environment,
+  renderer,
+) =>
   renderTableClose(tokens, index, options, environment, renderer) + "</div>\n";
 
 // Markdown pipe-table headers always describe columns. Make that relationship
@@ -104,11 +125,16 @@ const renderHeaderOpen =
   markdown.renderer.rules.th_open ??
   ((tokens, index, options, _environment, renderer) =>
     renderer.renderToken(tokens, index, options));
-markdown.renderer.rules.th_open = (tokens, index, options, environment, renderer) => {
+markdown.renderer.rules.th_open = (
+  tokens,
+  index,
+  options,
+  environment,
+  renderer,
+) => {
   tokens[index]!.attrSet("scope", "col");
   return renderHeaderOpen(tokens, index, options, environment, renderer);
 };
-
 
 const defaultLinkOpen =
   markdown.renderer.rules.link_open ??
@@ -125,13 +151,19 @@ markdown.renderer.rules.link_open = (
   return defaultLinkOpen(tokens, index, options, environment, renderer);
 };
 
-type InlineToken = NonNullable<ReturnType<typeof markdown.parse>[number]["children"]>[number];
+type InlineToken = NonNullable<
+  ReturnType<typeof markdown.parse>[number]["children"]
+>[number];
 
 /** Strip inline syntax from image descriptions, including formatted and code text. */
 function plainImageLabel(tokens: readonly InlineToken[]): string {
   let result = "";
   for (const token of tokens) {
-    if (["text", "code_inline", "math_inline", "math_display"].includes(token.type)) {
+    if (
+      ["text", "code_inline", "math_inline", "math_display"].includes(
+        token.type,
+      )
+    ) {
       result += token.content;
     } else if (token.type === "softbreak" || token.type === "hardbreak") {
       result += " ";
@@ -254,12 +286,15 @@ export function markdownResourcePaths(source: string): Set<string> {
     for (const token of tokens) {
       const image = token.type === "image";
       const value = token.attrGet(image ? "src" : "href");
-      if (typeof value === "string" &&
-          (value.startsWith("/") || /^https:\/\//i.test(value)) &&
-          (image ? isSafeMarkdownImage(value) : isSafeMarkdownLink(value))) {
+      if (
+        typeof value === "string" &&
+        (value.startsWith("/") || /^https:\/\//i.test(value)) &&
+        (image ? isSafeMarkdownImage(value) : isSafeMarkdownLink(value))
+      ) {
         const url = new URL(value, base);
         const path = decodeURIComponent(url.pathname);
-        if (url.origin === base && path.startsWith("/resources/public/")) paths.add(path);
+        if (url.origin === base && path.startsWith("/resources/public/"))
+          paths.add(path);
       }
       // Image children are flattened into text by the image renderer.
       if (!image && token.children) walk(token.children);
@@ -271,7 +306,10 @@ export function markdownResourcePaths(source: string): Set<string> {
 
 /** Editorial preflight: validate the same parsed math tokens with strict error
  * reporting, without changing the learner renderer's graceful fallback. */
-export function validateMarkdownMath(source: string): { count: number; errors: string[] } {
+export function validateMarkdownMath(source: string): {
+  count: number;
+  errors: string[];
+} {
   if (source.length > MAX_SOURCE_LENGTH)
     return { count: 0, errors: ["Notes exceed renderer length limit"] };
   let count = 0;
@@ -283,7 +321,9 @@ export function validateMarkdownMath(source: string): { count: number; errors: s
         try {
           renderMath(token.content, token.type !== "math_inline", true);
         } catch {
-          errors.push(`KaTeX expression ${count} rejected or exceeds renderer limits`);
+          errors.push(
+            `KaTeX expression ${count} rejected or exceeds renderer limits`,
+          );
         }
       }
       if (token.type !== "image" && token.children) walk(token.children);

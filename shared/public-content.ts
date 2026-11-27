@@ -66,8 +66,14 @@ function record(
 /** Valid UTF-8 JSON bytes may still contain escaped invalid text code units.
  * Reject rather than normalize reviewed text; valid surrogate pairs remain valid. */
 function checkTextEncoding(value: string, context: string) {
-  ensure(!value.includes("\0"), `${context}: NUL character in publication text`);
-  ensure(!/[\uD800-\uDFFF]/u.test(value), `${context}: unpaired Unicode surrogate in publication text`);
+  ensure(
+    !value.includes("\0"),
+    `${context}: NUL character in publication text`,
+  );
+  ensure(
+    !/[\uD800-\uDFFF]/u.test(value),
+    `${context}: unpaired Unicode surrogate in publication text`,
+  );
 }
 function text(value: unknown, context: string) {
   ensure(
@@ -80,7 +86,10 @@ function text(value: unknown, context: string) {
 function validReviewTimestamp(value: unknown): boolean {
   if (typeof value !== "string") return false;
   // A review must identify an unambiguous instant, not the build host's local time.
-  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:[Zz]|[+-]\d{2}:?\d{2})$/.exec(value);
+  const parts =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:[Zz]|[+-]\d{2}:?\d{2})$/.exec(
+      value,
+    );
   if (!parts || !Number.isFinite(Date.parse(value))) return false;
   const year = Number(parts[1]);
   const month = Number(parts[2]);
@@ -109,7 +118,9 @@ function publication(value: unknown, context: string) {
   text(value.reviewedBy, `${context}.reviewedBy`);
   ensure(
     typeof value.reviewedBy === "string" &&
-      !/^(?:pending|unapproved|unknown|tbd|placeholder|test fixture only)$/i.test(value.reviewedBy.trim()),
+      !/^(?:pending|unapproved|unknown|tbd|placeholder|test fixture only)$/i.test(
+        value.reviewedBy.trim(),
+      ),
     `${context} needs a nonplaceholder reviewer identity`,
   );
   ensure(
@@ -207,7 +218,10 @@ export function validatePublicCatalogue(value: unknown): PublicCatalogue {
           typeof lesson.notesMarkdown === "string",
           "notesMarkdown must be a string",
         );
-        checkTextEncoding(lesson.notesMarkdown, `${course.slug}/${lesson.slug}`);
+        checkTextEncoding(
+          lesson.notesMarkdown,
+          `${course.slug}/${lesson.slug}`,
+        );
         publication(lesson.publication, "lesson");
         ensure(
           lesson.kind === "video" || lesson.kind === "text",
@@ -234,7 +248,15 @@ export function validatePublicCatalogue(value: unknown): PublicCatalogue {
           for (const resource of lesson.resources) {
             record(
               resource,
-              ["key", "title", "url", "type", "sizeBytes", "sha256", "publication"],
+              [
+                "key",
+                "title",
+                "url",
+                "type",
+                "sizeBytes",
+                "sha256",
+                "publication",
+              ],
               "resource",
             );
             unique(resource.key, lessonResourceKeys, "lesson resource key");
@@ -258,7 +280,8 @@ export function validatePublicCatalogue(value: unknown): PublicCatalogue {
             // API projections deliberately continue to omit reviewer metadata.
             ensure(
               resource.sha256 === undefined ||
-                (typeof resource.sha256 === "string" && /^[a-f0-9]{64}$/.test(resource.sha256)),
+                (typeof resource.sha256 === "string" &&
+                  /^[a-f0-9]{64}$/.test(resource.sha256)),
               "resource sha256 must be a lowercase SHA-256 digest",
             );
             publication(resource.publication, "resource");
@@ -327,16 +350,25 @@ export function projectLearnerCourses(value: unknown): LearnerCourse[] {
         kind: lesson.kind,
         overview: lesson.overview,
         notesMarkdown: lesson.notesMarkdown,
-        ...(lesson.video ? { video: { provider: lesson.video.provider, publicId: lesson.video.publicId } } : {}),
-        ...(lesson.resources ? {
-          resources: lesson.resources.map((resource) => ({
-            key: resource.key,
-            title: resource.title,
-            url: resource.url,
-            type: resource.type,
-            sizeBytes: resource.sizeBytes,
-          })),
-        } : {}),
+        ...(lesson.video
+          ? {
+              video: {
+                provider: lesson.video.provider,
+                publicId: lesson.video.publicId,
+              },
+            }
+          : {}),
+        ...(lesson.resources
+          ? {
+              resources: lesson.resources.map((resource) => ({
+                key: resource.key,
+                title: resource.title,
+                url: resource.url,
+                type: resource.type,
+                sizeBytes: resource.sizeBytes,
+              })),
+            }
+          : {}),
       })),
     })),
   }));

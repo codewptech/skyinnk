@@ -1,4 +1,7 @@
-import { validatePublicCatalogue, type PublicCourse } from "../../shared/public-content.ts";
+import {
+  validatePublicCatalogue,
+  type PublicCourse,
+} from "../../shared/public-content.ts";
 
 const keyPattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
@@ -23,7 +26,10 @@ export function listPublicCourseSummaries(courses: PublicCourse[]) {
       audience: course.audience,
       subject: course.subject,
       moduleCount: course.modules.length,
-      lessonCount: course.modules.reduce((count, module) => count + module.lessons.length, 0),
+      lessonCount: course.modules.reduce(
+        (count, module) => count + module.lessons.length,
+        0,
+      ),
     })),
   };
 }
@@ -66,7 +72,8 @@ export function readPublicLesson(
   lessonSlug: string,
 ) {
   const released = publishedCourses(courses);
-  if (!keyPattern.test(courseSlug) || !keyPattern.test(lessonSlug)) return undefined;
+  if (!keyPattern.test(courseSlug) || !keyPattern.test(lessonSlug))
+    return undefined;
   const course = released.find((item) => item.slug === courseSlug);
   if (!course) return undefined;
   for (const module of [...course.modules].sort(byPosition)) {
@@ -93,7 +100,12 @@ export function readPublicLesson(
         overview: lesson.overview,
         notesMarkdown: lesson.notesMarkdown,
         ...(lesson.video
-          ? { video: { provider: lesson.video.provider, publicId: lesson.video.publicId } }
+          ? {
+              video: {
+                provider: lesson.video.provider,
+                publicId: lesson.video.publicId,
+              },
+            }
           : {}),
         resources: (lesson.resources ?? []).map((resource) => ({
           key: resource.key,

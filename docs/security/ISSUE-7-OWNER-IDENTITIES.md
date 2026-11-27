@@ -6,12 +6,12 @@ Repository is **user-owned**, `codewptech/skyinnk`; current GitHub connection id
 
 ## Required secure arrangement
 
-| Identity | Purpose | Capabilities | Ruleset bypass |
-| --- | --- | --- | --- |
-| `codewptech` — owner | Account and ruleset administration, emergency recovery, exclusive production approval | Owner-admin, MFA/passkey, emergency access under owner's control only | Owner-only `Always allow` if still required |
-| Dedicated Chat 03 coding identity | Backend/API/security features and PRs | Repository write, issues/PRs; no admin, secrets, deployment, ruleset edit | **None** |
-| Dedicated Work coding identity | Public frontend/content features and PRs | Repository write, issues/PRs; no admin, secrets, deployment, ruleset edit | **None** |
-| Dedicated Skyinnk Trusted Governance App | Independently verifies PRs and posts check run | Metadata/read, Issues/read, PR/read, Checks/write only | **None** |
+| Identity                                 | Purpose                                                                               | Capabilities                                                              | Ruleset bypass                              |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------- |
+| `codewptech` — owner                     | Account and ruleset administration, emergency recovery, exclusive production approval | Owner-admin, MFA/passkey, emergency access under owner's control only     | Owner-only `Always allow` if still required |
+| Dedicated Chat 03 coding identity        | Backend/API/security features and PRs                                                 | Repository write, issues/PRs; no admin, secrets, deployment, ruleset edit | **None**                                    |
+| Dedicated Work coding identity           | Public frontend/content features and PRs                                              | Repository write, issues/PRs; no admin, secrets, deployment, ruleset edit | **None**                                    |
+| Dedicated Skyinnk Trusted Governance App | Independently verifies PRs and posts check run                                        | Metadata/read, Issues/read, PR/read, Checks/write only                    | **None**                                    |
 
 Preferred coders: **two independently installed GitHub Apps**, one for Chat 03 and one for Work, with `Contents: read/write`, `Issues: read/write`, `Pull requests: read/write`, `Metadata: read`; no Actions/Checks/Administration/Secrets/Deployments rights. Their installation tokens should be minted and stored by each isolated coding workspace, not sent in chat. Apps must not be on the branch ruleset bypass lists. If the chosen ChatGPT/Codex connector cannot authenticate as distinct App installations, use two separate human-controlled, MFA-protected **machine-user accounts** as repository collaborators with Write role, under GitHub's applicable terms/plan; never use the owner account for AI coding. They may need separate GitHub seats depending on the plan.
 

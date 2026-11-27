@@ -27,9 +27,9 @@ function evaluate(source, filename, globals) {
       module,
       exports: module.exports,
       require: (id) =>
-      id === "./utils/focus-main-content"
-        ? { focusMainContent }
-        : createRequire(import.meta.url)(id),
+        id === "./utils/focus-main-content"
+          ? { focusMainContent }
+          : createRequire(import.meta.url)(id),
       ...globals,
     },
     { filename },
@@ -79,18 +79,27 @@ async function renderPage(page, user) {
 
 test("public home renders its login action and shared legal navigation without an account", async () => {
   const page = await renderPage("index");
-  assert.match(page.html, /<h1[^>]*>Understand more\. Learn at your pace\.<\/h1>/);
+  assert.match(
+    page.html,
+    /<h1[^>]*>Understand more\. Learn at your pace\.<\/h1>/,
+  );
   for (const path of ["/auth/login", "/privacy-policy", "/terms-of-service"])
     assert.ok(page.html.includes(`href="${path}"`));
   assert.ok(!page.html.includes('href="/auth/logout"'));
-  assert.match(page.headTags, /<title>Skyinnk \| Free Learning for School Students<\/title>/);
+  assert.match(
+    page.headTags,
+    /<title>Skyinnk \| Free Learning for School Students<\/title>/,
+  );
   assert.match(page.htmlAttrs, /lang="en"/);
 });
 
 test("redesigned home presents honest preparation states and a single main landmark", async () => {
   const page = await renderPage("index");
   assert.equal((page.html.match(/<main\b/g) || []).length, 1);
-  assert.match(page.html, /What we&#39;re preparing|What we\x27re preparing|What we&apos;re preparing/);
+  assert.match(
+    page.html,
+    /What we&#39;re preparing|What we\x27re preparing|What we&apos;re preparing/,
+  );
   assert.match(page.html, /In preparation/);
   assert.match(page.html, /Preview planned/);
   assert.match(page.html, /No account required for public lessons/);
@@ -138,7 +147,10 @@ test("V1 legal pages describe guest learning and conditional third-party service
     assert.match(page.html, /without (?:creating an account|registration)/i);
   }
   assert.match(privacy.html, /disabled by default/i);
-  assert.match(privacy.html, /When website analytics is enabled and the relevant tags are configured/i);
+  assert.match(
+    privacy.html,
+    /When website analytics is enabled and the relevant tags are configured/i,
+  );
   assert.match(privacy.html, /Optional lesson videos/i);
   assert.match(privacy.html, /only when you choose to/i);
   assert.match(privacy.html, /YouTube/);

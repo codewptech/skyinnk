@@ -3,6 +3,7 @@
 This repository has **two protected long-lived branches**: `main` (production) and `development/v1-public-launch` (non-production integration). **Never directly push to either.** Never push to, merge, or deploy `main` without explicit approval from the human repository owner. Do not modify live Neon, production VPS, production secrets or deployed infrastructure without separate explicit approval.
 
 **Before any GitHub write:**
+
 1. Read [CODE RED coordination Issue #2](https://github.com/codewptech/skyinnk/issues/2), [the workflow contract](docs/governance/DEVELOPMENT-WORKFLOW.md), current open PRs, and the latest remote development SHA.
 2. Open/claim one GitHub task issue. Record `Workstream`, exact `Branch`, affected paths and exact `Reserved shared paths`. Ensure no other active task owns those files.
 3. Create a fresh short-lived branch **from latest remote development**: `chat03/task-*` for technical work; `work/task-*` for V1 frontend/educational content; `chat01/task-*` only for architecture/governance.
@@ -16,7 +17,7 @@ This repository has **two protected long-lived branches**: `main` (production) a
 
 **Workspace ownership:** Chat 01 = product architecture and governance code/docs (`AGENTS.md`, `.github/ISSUE_TEMPLATE/`, PR template, `docs/governance/`, `docs/architecture/`, governance script and tests); Chat 03 = backend/APIs/Auth0/Prisma/infra/CI/security/integration (may edit CI with exact reservation); Work = V1 public UI/classroom/catalogue/educational lesson integration and UI verification. Work and Chat 03 must not edit Chat 01 governance files even if they attempt to self-reserve them.
 
-**Emergency bypass:** `codewptech` has an *Always allow* branch-ruleset exception, for owner-authorized emergency recovery only. An available bypass is **not** permission for agents to use it for routine commits or merges. The account owner retains release authority.
+**Emergency bypass:** `codewptech` has an _Always allow_ branch-ruleset exception, for owner-authorized emergency recovery only. An available bypass is **not** permission for agents to use it for routine commits or merges. The account owner retains release authority.
 
 **Changed paths:** A rename counts as a change to both its old and new paths. Apply ownership, reservations and overlap checks to both.
 

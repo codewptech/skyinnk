@@ -20,7 +20,7 @@ Many pairs satisfy this equation: $(0,9)$, $(4,5)$, $(9,0)$ and so on. To identi
 
 $$x-y=3.$$
 
-Now we want a pair that makes **both** statements true. This is a *pair of linear equations in two variables*. A solution is an ordered pair $(x,y)$ that satisfies both equations at once.
+Now we want a pair that makes **both** statements true. This is a _pair of linear equations in two variables_. A solution is an ordered pair $(x,y)$ that satisfies both equations at once.
 
 For example, $(6,3)$ works because $6+3=9$ and $6-3=3$. The pair $(4,5)$ satisfies the first equation but not the second; it is **not** a solution of the pair.
 
@@ -155,4 +155,4 @@ On a graph, the corresponding straight lines intersect once, coincide, or are di
 
 ## Before moving on
 
-Explain in your own words why checking just one equation does **not** prove that a pair solves a system. Then choose one practice problem and solve it using the *other* method (substitution instead of elimination, or vice versa). If both methods agree and both original equations check out, you have a stronger reason to trust the result.
+Explain in your own words why checking just one equation does **not** prove that a pair solves a system. Then choose one practice problem and solve it using the _other_ method (substitution instead of elimination, or vice versa). If both methods agree and both original equations check out, you have a stronger reason to trust the result.

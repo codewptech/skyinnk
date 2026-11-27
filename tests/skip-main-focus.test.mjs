@@ -11,25 +11,35 @@ import { focusMainContent } from "../app/utils/focus-main-content.ts";
 
 function fakeMain(initialTabindex) {
   const attributes = new Map();
-  if (initialTabindex !== undefined) attributes.set("tabindex", initialTabindex);
+  if (initialTabindex !== undefined)
+    attributes.set("tabindex", initialTabindex);
   const focusOptions = [];
   return {
     attributes,
     focusOptions,
-    hasAttribute(key) { return attributes.has(key); },
-    setAttribute(key, value) { attributes.set(key, value); },
-    focus(options) { focusOptions.push(options); },
+    hasAttribute(key) {
+      return attributes.has(key);
+    },
+    setAttribute(key, value) {
+      attributes.set(key, value);
+    },
+    focus(options) {
+      focusOptions.push(options);
+    },
   };
 }
 
 test("global skip link makes an existing main landmark focusable and moves focus without scrolling", () => {
   const main = fakeMain();
-  const doc = { getElementById: (id) => id === "main-content" ? main : null };
+  const doc = { getElementById: (id) => (id === "main-content" ? main : null) };
   assert.equal(focusMainContent(doc), true);
   assert.equal(main.attributes.get("tabindex"), "-1");
   assert.deepEqual(main.focusOptions, [{ preventScroll: true }]);
   assert.equal(focusMainContent(doc), true);
-  assert.deepEqual(main.focusOptions, [{ preventScroll: true }, { preventScroll: true }]);
+  assert.deepEqual(main.focusOptions, [
+    { preventScroll: true },
+    { preventScroll: true },
+  ]);
 });
 
 test("global skip link preserves existing tabindex and tolerates a missing landmark", () => {
@@ -60,22 +70,30 @@ test("real root Vue application SSR renders the native skip anchor and the targe
   });
   const mod = { exports: {} };
   const localRequire = createRequire(import.meta.url);
-  runInNewContext(outputText, {
-    module: mod,
-    exports: mod.exports,
-    require(id) {
-      if (id.endsWith("/focus-main-content")) return { focusMainContent };
-      return localRequire(id);
+  runInNewContext(
+    outputText,
+    {
+      module: mod,
+      exports: mod.exports,
+      require(id) {
+        if (id.endsWith("/focus-main-content")) return { focusMainContent };
+        return localRequire(id);
+      },
+      useHead() {},
     },
-    useHead() {},
-  }, { filename });
+    { filename },
+  );
   const app = createSSRApp(mod.exports.default);
   app.component("NuxtRouteAnnouncer", { render: () => null });
-  app.component("NuxtPage", { render: () => h("main", { id: "main-content" }, "Fixture") });
+  app.component("NuxtPage", {
+    render: () => h("main", { id: "main-content" }, "Fixture"),
+  });
   app.component("NuxtLink", {
     props: ["to"],
-    setup: (props, { attrs, slots }) =>
-      () => h("a", { href: props.to, ...attrs }, slots.default?.()),
+    setup:
+      (props, { attrs, slots }) =>
+      () =>
+        h("a", { href: props.to, ...attrs }, slots.default?.()),
   });
   const html = await renderToString(app);
   assert.match(html, /href="#main-content"[^>]*>Skip to content<\/a>/);

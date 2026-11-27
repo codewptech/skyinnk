@@ -25,7 +25,9 @@ const index = computed(() =>
 );
 const previous = computed(() => ordered.value[index.value - 1]);
 const next = computed(() => ordered.value[index.value + 1]);
-const resourceNames = computed(() => resourceActionNames(lesson.value.resources ?? []));
+const resourceNames = computed(() =>
+  resourceActionNames(lesson.value.resources ?? []),
+);
 const activeTab = ref("overview");
 const availableTabs = computed(() => [
   { key: "overview", label: "Overview" },
@@ -49,7 +51,10 @@ let lastSyllabusFocus: "desktop" | "mobile" | null = null;
 function syllabusFocus(target: EventTarget | null) {
   if (!(target instanceof Node)) return null;
   if (drawerToggle.value?.contains(target)) return "mobile" as const;
-  if (desktopToggle.value?.contains(target) || desktopSyllabus.value?.contains(target))
+  if (
+    desktopToggle.value?.contains(target) ||
+    desktopSyllabus.value?.contains(target)
+  )
     return "desktop" as const;
   return null;
 }
@@ -60,8 +65,11 @@ function forgetSyllabusFocus(event: FocusEvent) {
   // A breakpoint may hide the focused element before the media-query event.
   // Preserve that location only when it actually became hidden, not on an
   // ordinary blur. A subsequent focusin elsewhere also clears the location.
-  if (event.relatedTarget === null && event.target instanceof HTMLElement &&
-      event.target.getClientRects().length > 0)
+  if (
+    event.relatedTarget === null &&
+    event.target instanceof HTMLElement &&
+    event.target.getClientRects().length > 0
+  )
     lastSyllabusFocus = null;
 }
 
@@ -82,7 +90,9 @@ function closeDrawer() {
 function drawerClosed() {
   drawerOpen.value = false;
   if (document.activeElement === lessonHeading.value) return;
-  const toggle = mobileLayout?.matches ? drawerToggle.value : desktopToggle.value;
+  const toggle = mobileLayout?.matches
+    ? drawerToggle.value
+    : desktopToggle.value;
   toggle?.focus();
 }
 function onLayoutChange(event: MediaQueryListEvent) {
@@ -91,11 +101,13 @@ function onLayoutChange(event: MediaQueryListEvent) {
     return;
   }
   const active = document.activeElement;
-  const previousFocus = active === document.body || !active
-    ? lastSyllabusFocus
-    : syllabusFocus(active);
+  const previousFocus =
+    active === document.body || !active
+      ? lastSyllabusFocus
+      : syllabusFocus(active);
   if (event.matches && previousFocus === "desktop") drawerToggle.value?.focus();
-  else if (!event.matches && previousFocus === "mobile") desktopToggle.value?.focus();
+  else if (!event.matches && previousFocus === "mobile")
+    desktopToggle.value?.focus();
 }
 function onDrawerBackdrop(event: MouseEvent) {
   if (event.target !== drawer.value) return;
@@ -184,7 +196,11 @@ useHead(() => ({
 
 <template>
   <main id="main-content" class="classroom-page">
-    <header class="learning-nav"><NuxtLink class="learning-brand" to="/"><span class="brand-mark" aria-hidden="true">S</span>Skyinnk</NuxtLink><span class="studio-label">Learning studio</span></header>
+    <header class="learning-nav">
+      <NuxtLink class="learning-brand" to="/"
+        ><span class="brand-mark" aria-hidden="true">S</span>Skyinnk</NuxtLink
+      ><span class="studio-label">Learning studio</span>
+    </header>
     <nav class="classroom-breadcrumbs" aria-label="Breadcrumb">
       <NuxtLink to="/courses">Courses</NuxtLink
       ><span aria-hidden="true">/</span>
@@ -213,7 +229,9 @@ useHead(() => ({
       >
         <span aria-hidden="true">☰</span> Course syllabus
       </button>
-      <span class="lesson-number">Lesson {{ index + 1 }} of {{ ordered.length }}</span>
+      <span class="lesson-number"
+        >Lesson {{ index + 1 }} of {{ ordered.length }}</span
+      >
     </div>
     <div
       class="classroom-workspace"
@@ -274,8 +292,15 @@ useHead(() => ({
           </div>
         </div>
         <div class="lesson-heading">
-          <span class="eyebrow">{{ course.subject }} · {{ lesson.kind === "video" ? "VIDEO LESSON" : "READING LESSON" }}</span>
-          <h1 id="lesson-title" ref="lessonHeading" tabindex="-1">{{ lesson.title }}</h1>
+          <span class="eyebrow"
+            >{{ course.subject }} ·
+            {{
+              lesson.kind === "video" ? "VIDEO LESSON" : "READING LESSON"
+            }}</span
+          >
+          <h1 id="lesson-title" ref="lessonHeading" tabindex="-1">
+            {{ lesson.title }}
+          </h1>
           <p>Free to learn. No account required.</p>
         </div>
         <div class="lesson-tabs" role="tablist" aria-label="Lesson content">
@@ -312,14 +337,17 @@ useHead(() => ({
             ><h2 class="sr-only">Lesson notes</h2>
             <MarkdownNotes :source="lesson.notesMarkdown"
           /></template>
-          <template v-else-if="item.key === 'resources' && activeTab === item.key"
+          <template
+            v-else-if="item.key === 'resources' && activeTab === item.key"
             ><h2>Lesson resources</h2>
             <p>These resources are available to everyone.</p>
             <ul class="resource-list">
-              <li v-for="(resource, resourceIndex) in lesson.resources" :key="resource.key + '-' + resourceIndex">
+              <li
+                v-for="(resource, resourceIndex) in lesson.resources"
+                :key="resource.key + '-' + resourceIndex"
+              >
                 <div>
-                  <strong>{{ resource.title }}</strong
-                  ><span
+                  <strong>{{ resource.title }}</strong><span
                     >{{ resource.type }} ·
                     {{
                       resource.sizeBytes < 1024
@@ -334,7 +362,8 @@ useHead(() => ({
                     target="_blank"
                     rel="noopener noreferrer"
                     >Preview<span class="sr-only">
-                      {{ resourceNames[resourceIndex] }} (opens in a new tab)</span
+                      {{ resourceNames[resourceIndex] }} (opens in a new
+                      tab)</span
                     ></a
                   ><a :href="resource.url" download
                     >Download<span class="sr-only">
@@ -447,12 +476,12 @@ button {
   display: none;
 }
 .lesson-number {
-  font-size: .86rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--brand);
   background: var(--soft);
   border-radius: 2rem;
-  padding: .4rem .8rem;
+  padding: 0.4rem 0.8rem;
 }
 .classroom-workspace {
   display: grid;
@@ -566,7 +595,7 @@ button {
 h1 {
   margin: 0.5rem 0 0.7rem;
   font-size: clamp(1.65rem, 3vw, 2.65rem);
-  letter-spacing: -.05em;
+  letter-spacing: -0.05em;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
@@ -578,8 +607,8 @@ h1 {
 .lesson-tabs {
   display: flex;
   border-bottom: 1px solid var(--line);
-  padding: .35rem 2rem 0;
-  gap: .75rem;
+  padding: 0.35rem 2rem 0;
+  gap: 0.75rem;
   background: #f8f8fd;
   overflow-x: auto;
 }
@@ -588,7 +617,7 @@ h1 {
   border: 0;
   border-bottom: 3px solid transparent;
   background: transparent;
-  padding: .8rem .75rem;
+  padding: 0.8rem 0.75rem;
   color: var(--muted);
   font-weight: 600;
   min-height: 48px;
@@ -597,7 +626,7 @@ h1 {
   border-bottom-color: var(--brand);
   color: var(--brand);
   background: var(--soft);
-  border-radius: .65rem .65rem 0 0;
+  border-radius: 0.65rem 0.65rem 0 0;
 }
 .lesson-panel {
   padding: 1.5rem 2rem 2rem;
@@ -815,15 +844,55 @@ a:focus-visible,
     flex-direction: column;
   }
 }
-.studio-label { font-size: .85rem; font-weight: 650; color: var(--muted); }
-.syllabus-heading { background: var(--soft); border-radius: .75rem; padding: 1rem; }
-.syllabus-heading h2 { overflow-wrap: anywhere; }
-.classroom-breadcrumbs a { color: var(--brand); }
-.classroom-breadcrumbs { overflow-wrap: anywhere; }
-.video-placeholder { background: #262447; }
-.load-video:hover { background: #e4e1ff; }
-.resource-list li { background: #fafaff; min-width: 0; overflow-wrap: anywhere; }
-.lesson-navigation a { padding: .5rem .65rem; border-radius: .65rem; }
-.lesson-navigation a:hover { background: var(--soft); }
-@media (max-width: 700px) { .classroom-toolbar { gap: .5rem; } .lesson-number { padding: .35rem .55rem; } .lesson-tabs { gap: .3rem; } .lesson-tabs button { padding-inline: .6rem; } }
+.studio-label {
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--muted);
+}
+.syllabus-heading {
+  background: var(--soft);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+.syllabus-heading h2 {
+  overflow-wrap: anywhere;
+}
+.classroom-breadcrumbs a {
+  color: var(--brand);
+}
+.classroom-breadcrumbs {
+  overflow-wrap: anywhere;
+}
+.video-placeholder {
+  background: #262447;
+}
+.load-video:hover {
+  background: #e4e1ff;
+}
+.resource-list li {
+  background: #fafaff;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.lesson-navigation a {
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.65rem;
+}
+.lesson-navigation a:hover {
+  background: var(--soft);
+}
+@media (max-width: 700px) {
+  .classroom-toolbar {
+    gap: 0.5rem;
+  }
+  .lesson-number {
+    padding: 0.35rem 0.55rem;
+  }
+  .lesson-tabs {
+    gap: 0.3rem;
+  }
+  .lesson-tabs button {
+    padding-inline: 0.6rem;
+  }
+}
 </style>

@@ -12,8 +12,10 @@ import { courseSyllabusLinkLabels } from "../app/utils/course-link-labels.ts";
 
 test("course link names remain concise unless displayed course titles collide", () => {
   const courses = [
-    { title: "Science" }, { title: "Art" },
-    { title: "Science" }, { title: "Science" },
+    { title: "Science" },
+    { title: "Art" },
+    { title: "Science" },
+    { title: "Science" },
   ];
   assert.deepEqual(courseSyllabusLinkLabels(courses), [
     "View syllabus: Science (course 1 of 3)",
@@ -22,9 +24,10 @@ test("course link names remain concise unless displayed course titles collide", 
     "View syllabus: Science (course 3 of 3)",
   ]);
   assert.deepEqual(courseSyllabusLinkLabels([]), []);
-  assert.deepEqual(courses.map((course) => course.title), [
-    "Science", "Art", "Science", "Science",
-  ]);
+  assert.deepEqual(
+    courses.map((course) => course.title),
+    ["Science", "Art", "Science", "Science"],
+  );
 });
 
 async function renderActualCatalogue(courses) {
@@ -40,45 +43,84 @@ async function renderActualCatalogue(courses) {
     templateOptions: { ssr: true },
   });
   const { outputText } = ts.transpileModule(compiled.content, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
   });
   const mod = { exports: {} };
   const localRequire = createRequire(import.meta.url);
   let head;
-  runInNewContext(outputText, {
-    module: mod, exports: mod.exports,
-    require(id) {
-      if (id.endsWith("/public-catalogue")) return { listPublicCourses: () => courses };
-      if (id.endsWith("/course-link-labels")) return { courseSyllabusLinkLabels };
-      return localRequire(id);
+  runInNewContext(
+    outputText,
+    {
+      module: mod,
+      exports: mod.exports,
+      require(id) {
+        if (id.endsWith("/public-catalogue"))
+          return { listPublicCourses: () => courses };
+        if (id.endsWith("/course-link-labels"))
+          return { courseSyllabusLinkLabels };
+        return localRequire(id);
+      },
+      useHead: (value) => {
+        head = value;
+      },
     },
-    useHead: (value) => { head = value; },
-  }, { filename });
+    { filename },
+  );
   const app = createSSRApp(mod.exports.default);
   app.component("NuxtLink", {
     props: ["to"],
-    setup: (props, { attrs, slots }) =>
-      () => h("a", { href: props.to, ...attrs }, slots.default?.()),
+    setup:
+      (props, { attrs, slots }) =>
+      () =>
+        h("a", { href: props.to, ...attrs }, slots.default?.()),
   });
   return { html: await renderToString(app), head };
 }
 
 test("actual Vue catalogue renders individually named same-title course links", async () => {
   const { html, head } = await renderActualCatalogue([
-    { key: "physics-a", slug: "physics-a", title: "Physics", summary: "First topic" },
-    { key: "history", slug: "history", title: "History", summary: "Second topic" },
-    { key: "physics-b", slug: "physics-b", title: "Physics", summary: "Third topic" },
+    {
+      key: "physics-a",
+      slug: "physics-a",
+      title: "Physics",
+      summary: "First topic",
+    },
+    {
+      key: "history",
+      slug: "history",
+      title: "History",
+      summary: "Second topic",
+    },
+    {
+      key: "physics-b",
+      slug: "physics-b",
+      title: "Physics",
+      summary: "Third topic",
+    },
   ]);
-  assert.ok(html.includes('aria-label="View syllabus: Physics (course 1 of 2)"'));
-  assert.ok(html.includes('aria-label="View syllabus: Physics (course 2 of 2)"'));
+  assert.ok(
+    html.includes('aria-label="View syllabus: Physics (course 1 of 2)"'),
+  );
+  assert.ok(
+    html.includes('aria-label="View syllabus: Physics (course 2 of 2)"'),
+  );
   assert.ok(html.includes('aria-label="View syllabus: History"'));
-  assert.equal((html.match(/href="\/courses\/(?:physics-a|history|physics-b)"/g) ?? []).length, 3);
+  assert.equal(
+    (html.match(/href="\/courses\/(?:physics-a|history|physics-b)"/g) ?? [])
+      .length,
+    3,
+  );
   assert.ok(html.includes("First topic") && html.includes("Third topic"));
-  assert.ok(!html.includes("aria-label=\"View syllabus: History (course"));
+  assert.ok(!html.includes('aria-label="View syllabus: History (course'));
   assert.ok(html.includes('href="/courses/physics-a"'));
   assert.ok(html.includes('href="/courses/physics-b"'));
   assert.ok(html.includes('href="/courses/history"'));
-  assert.ok(head.link.some((item) => item.href === "https://www.skyinnk.in/courses"));
+  assert.ok(
+    head.link.some((item) => item.href === "https://www.skyinnk.in/courses"),
+  );
 });
 
 test("actual Vue catalogue preserves the honest no-publication empty state", async () => {
@@ -89,68 +131,121 @@ test("actual Vue catalogue preserves the honest no-publication empty state", asy
 });
 
 test("course names that differ only in casing or whitespace are disambiguated", () => {
-  assert.deepEqual(courseSyllabusLinkLabels([
-    { title: " Physics 101 " },
-    { title: "physics   101" },
-    { title: "Biology" },
-  ]), [
-    "View syllabus: Physics 101 (course 1 of 2)",
-    "View syllabus: physics 101 (course 2 of 2)",
-    "View syllabus: Biology",
-  ]);
+  assert.deepEqual(
+    courseSyllabusLinkLabels([
+      { title: " Physics 101 " },
+      { title: "physics   101" },
+      { title: "Biology" },
+    ]),
+    [
+      "View syllabus: Physics 101 (course 1 of 2)",
+      "View syllabus: physics 101 (course 2 of 2)",
+      "View syllabus: Biology",
+    ],
+  );
 });
 
 test("catalogue final names cannot collide with literal suffix-shaped titles", async () => {
-  const titles = ["Science", "Science", " science (course 1 of 2) ", "Science (course 2 of 2)", "Art"];
-  const courses = titles.map((title, index) => ({ title, key: "course-" + index, slug: "course-" + index, summary: "Fixture" }));
+  const titles = [
+    "Science",
+    "Science",
+    " science (course 1 of 2) ",
+    "Science (course 2 of 2)",
+    "Art",
+  ];
+  const courses = titles.map((title, index) => ({
+    title,
+    key: "course-" + index,
+    slug: "course-" + index,
+    summary: "Fixture",
+  }));
   const labels = courseSyllabusLinkLabels(courses);
-  const normalize = value => value.trim().replace(/\s+/gu, " ").toLowerCase();
+  const normalize = (value) => value.trim().replace(/\s+/gu, " ").toLowerCase();
   assert.equal(new Set(labels.map(normalize)).size, courses.length);
   assert.equal(labels[4], "View syllabus: Art");
   assert.deepEqual(courseSyllabusLinkLabels(courses), labels);
   for (const [index, title] of titles.entries())
-    assert.ok(normalize(labels[index]).startsWith(normalize("View syllabus: " + title)));
+    assert.ok(
+      normalize(labels[index]).startsWith(normalize("View syllabus: " + title)),
+    );
   const { html } = await renderActualCatalogue(courses);
-  const actual = [...html.matchAll(/aria-label="([^"]+)"/g)].map(match => match[1]);
+  const actual = [...html.matchAll(/aria-label="([^"]+)"/g)].map(
+    (match) => match[1],
+  );
   assert.deepEqual(actual, labels);
-  for (const course of courses) assert.ok(html.includes('href="/courses/' + course.slug + '"'));
+  for (const course of courses)
+    assert.ok(html.includes('href="/courses/' + course.slug + '"'));
 });
 
 test("final-name fallback reserves literal suffixes and handles repeated collisions", () => {
-  const input = ["Name", " name ", "Name (link 2)", "NAME", "name (link 3)", "Independent"];
+  const input = [
+    "Name",
+    " name ",
+    "Name (link 2)",
+    "NAME",
+    "name (link 3)",
+    "Independent",
+  ];
   const result = uniqueAccessibleNames(input);
-  assert.deepEqual(result, ["Name", "name (link 4)", "Name (link 2)", "NAME (link 5)", "name (link 3)", "Independent"]);
+  assert.deepEqual(result, [
+    "Name",
+    "name (link 4)",
+    "Name (link 2)",
+    "NAME (link 5)",
+    "name (link 3)",
+    "Independent",
+  ]);
   assert.deepEqual(uniqueAccessibleNames(result), result);
   assert.deepEqual(uniqueAccessibleNames([]), []);
 });
 
-
 test("accessible course, syllabus and resource labels distinguish canonically equivalent Unicode titles", async () => {
-  const { resourceActionNames } = await import("../app/utils/resource-action-names.ts");
-  const { syllabusAccessibleNames } = await import("../app/utils/syllabus-link-labels.ts");
-  for (const pair of [["Café", "Cafe\u0301"], ["\u0958", "\u0915\u093c"]]) {
-    const [a,b] = pair;
-    const titles = pair.map(title => ({ title }));
+  const { resourceActionNames } =
+    await import("../app/utils/resource-action-names.ts");
+  const { syllabusAccessibleNames } =
+    await import("../app/utils/syllabus-link-labels.ts");
+  for (const pair of [
+    ["Café", "Cafe\u0301"],
+    ["\u0958", "\u0915\u093c"],
+  ]) {
+    const [a, b] = pair;
+    const titles = pair.map((title) => ({ title }));
     assert.equal(a.normalize("NFC"), b.normalize("NFC"));
     assert.deepEqual(courseSyllabusLinkLabels(titles), [
       "View syllabus: " + a + " (course 1 of 2)",
       "View syllabus: " + b + " (course 2 of 2)",
     ]);
     assert.deepEqual(resourceActionNames(titles), [
-      a + " (resource 1 of 2)", b + " (resource 2 of 2)",
+      a + " (resource 1 of 2)",
+      b + " (resource 2 of 2)",
     ]);
-    const labels = syllabusAccessibleNames([{
-      key: "unit", title: "Unit", position: 0, lessons: pair.map((title, position) => ({
-        key: "lesson-" + position, slug: "lesson-" + position, title, kind: "text", position,
-      })),
-    }]);
-    assert.deepEqual([...labels.values()], [
-      a + ", Unit (module 1, lesson 1), Text lesson",
-      b + ", Unit (module 1, lesson 2), Text lesson",
+    const labels = syllabusAccessibleNames([
+      {
+        key: "unit",
+        title: "Unit",
+        position: 0,
+        lessons: pair.map((title, position) => ({
+          key: "lesson-" + position,
+          slug: "lesson-" + position,
+          title,
+          kind: "text",
+          position,
+        })),
+      },
     ]);
-    const result = uniqueAccessibleNames([a,b,a + " (link 2)"]);
-    assert.deepEqual(result, [a,b + " (link 3)",a + " (link 2)"]);
+    assert.deepEqual(
+      [...labels.values()],
+      [
+        a + ", Unit (module 1, lesson 1), Text lesson",
+        b + ", Unit (module 1, lesson 2), Text lesson",
+      ],
+    );
+    const result = uniqueAccessibleNames([a, b, a + " (link 2)"]);
+    assert.deepEqual(result, [a, b + " (link 3)", a + " (link 2)"]);
     assert.deepEqual(uniqueAccessibleNames(result), result);
-    assert.deepEqual(titles.map(x => x.title), pair);
+    assert.deepEqual(
+      titles.map((x) => x.title),
+      pair,
+    );
   }
 });

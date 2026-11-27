@@ -12,12 +12,22 @@ import { readReleaseExpectations } from "./released-catalogue-expectations.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
-const axeJavaScript = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
+const axeJavaScript = readFileSync(
+  require.resolve("axe-core/axe.min.js"),
+  "utf8",
+);
 const [rawBase, mode, manifestPath] = process.argv.slice(2);
-assert.ok(rawBase && ["empty", "published", "actual"].includes(mode), "Usage: smoke-axe-public.mjs http://127.0.0.1:PORT empty|published|actual [manifest]");
+assert.ok(
+  rawBase && ["empty", "published", "actual"].includes(mode),
+  "Usage: smoke-axe-public.mjs http://127.0.0.1:PORT empty|published|actual [manifest]",
+);
 const base = new URL(rawBase);
 assert.equal(base.protocol, "http:");
-assert.equal(base.hostname, "127.0.0.1", "Never scan a remote site or real account");
+assert.equal(
+  base.hostname,
+  "127.0.0.1",
+  "Never scan a remote site or real account",
+);
 const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 const routes = [
   ["/", "Home"],
@@ -56,8 +66,8 @@ try {
       hasTouch: width === 375,
     });
     const errors = [];
-    page.on("pageerror", error => errors.push(error.message));
-    await page.route("**/*", request => {
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.route("**/*", (request) => {
       const url = new URL(request.request().url());
       return url.origin === base.origin ? request.continue() : request.abort();
     });
@@ -71,48 +81,66 @@ try {
           });
         }, tags);
         scans++;
-        console.log(`AXE ${width}px ${label}: ${result.passes.length} rules passed, ${result.violations.length} violations, ${result.incomplete.length} needs manual review`);
+        console.log(
+          `AXE ${width}px ${label}: ${result.passes.length} rules passed, ${result.violations.length} violations, ${result.incomplete.length} needs manual review`,
+        );
         for (const finding of result.incomplete) {
-          const affected = finding.nodes.slice(0, 6).map(node => {
+          const affected = finding.nodes.slice(0, 6).map((node) => {
             const checks = [...node.any, ...node.all, ...node.none];
-            const reason = node.failureSummary ||
-              checks.map(check => check.message).filter(Boolean).join("; ");
-            const target = node.target.slice(0, 8).map(selector =>
-              Array.isArray(selector)
-                ? selector.slice(0, 8).map(part => part.slice(0, 300))
-                : selector.slice(0, 300)
-            );
+            const reason =
+              node.failureSummary ||
+              checks
+                .map((check) => check.message)
+                .filter(Boolean)
+                .join("; ");
+            const target = node.target
+              .slice(0, 8)
+              .map((selector) =>
+                Array.isArray(selector)
+                  ? selector.slice(0, 8).map((part) => part.slice(0, 300))
+                  : selector.slice(0, 300),
+              );
             return { target, reason: reason.slice(0, 300) || undefined };
           });
-          console.log(JSON.stringify({
-            kind: "incomplete",
-            viewport: width,
-            page: label,
-            id: finding.id,
-            affected,
-            omittedNodes: finding.nodes.length - affected.length,
-          }));
+          console.log(
+            JSON.stringify({
+              kind: "incomplete",
+              viewport: width,
+              page: label,
+              id: finding.id,
+              affected,
+              omittedNodes: finding.nodes.length - affected.length,
+            }),
+          );
         }
         for (const violation of result.violations) {
           violations++;
-          console.error(JSON.stringify({
-            viewport: width,
-            page: label,
-            id: violation.id,
-            impact: violation.impact,
-            description: violation.description,
-            helpUrl: violation.helpUrl,
-            affected: violation.nodes.slice(0, 6).map(node => ({
-              target: node.target,
-              html: node.html?.slice(0, 200),
-              failureSummary: node.failureSummary?.slice(0, 300),
-            })),
-          }));
+          console.error(
+            JSON.stringify({
+              viewport: width,
+              page: label,
+              id: violation.id,
+              impact: violation.impact,
+              description: violation.description,
+              helpUrl: violation.helpUrl,
+              affected: violation.nodes.slice(0, 6).map((node) => ({
+                target: node.target,
+                html: node.html?.slice(0, 200),
+                failureSummary: node.failureSummary?.slice(0, 300),
+              })),
+            }),
+          );
         }
       }
       for (const [route, label, lesson] of routes) {
-        const response = await page.goto(new URL(route, base).href, { waitUntil: "networkidle" });
-        assert.equal(response?.status(), 200, `${label} must be publicly available`);
+        const response = await page.goto(new URL(route, base).href, {
+          waitUntil: "networkidle",
+        });
+        assert.equal(
+          response?.status(),
+          200,
+          `${label} must be publicly available`,
+        );
         await page.getByRole("main").first().waitFor();
         await scan(label);
         if (lesson) {
@@ -121,11 +149,15 @@ try {
             await scan(label + " Notes");
           }
           if (lesson.resources.length) {
-            await page.getByRole("tab", { name: "Resources", exact: true }).click();
+            await page
+              .getByRole("tab", { name: "Resources", exact: true })
+              .click();
             await scan(label + " Resources");
           }
           if (width === 375) {
-            await page.getByRole("button", { name: "Course syllabus", exact: true }).click();
+            await page
+              .getByRole("button", { name: "Course syllabus", exact: true })
+              .click();
             await page.locator("dialog[open]").waitFor();
             await scan(label + " mobile syllabus");
           }
@@ -135,7 +167,9 @@ try {
           await page.getByRole("tab", { name: "Resources" }).click();
           await scan("Fictional lesson Resources panel");
           if (width === 375) {
-            await page.getByRole("button", { name: "Course syllabus", exact: true }).click();
+            await page
+              .getByRole("button", { name: "Course syllabus", exact: true })
+              .click();
             await page.locator("dialog[open]").waitFor();
             await scan("Open mobile syllabus dialog");
           }
@@ -149,5 +183,7 @@ try {
 } finally {
   await browser.close();
 }
-console.log(`Completed ${scans} actual axe-core WCAG 2/2.1 A/AA scans; total violations ${violations}`);
+console.log(
+  `Completed ${scans} actual axe-core WCAG 2/2.1 A/AA scans; total violations ${violations}`,
+);
 if (!scans || violations) process.exitCode = 1;

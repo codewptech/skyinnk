@@ -21,8 +21,8 @@ useHead({
     <p>
       Skyinnk provides a public learning website with a course catalogue and
       free reviewed lessons when available. Released public lessons can be
-      accessed without registration. Optional account registration, sign-in,
-      and sign-out are provided through Auth0. Creating an account does not
+      accessed without registration. Optional account registration, sign-in, and
+      sign-out are provided through Auth0. Creating an account does not
       guarantee enrollment, paid access or access to future products or
       features. Future services may have additional terms presented when they
       become available.
@@ -48,9 +48,10 @@ useHead({
     <p>
       The <NuxtLink to="/privacy-policy">Privacy Policy</NuxtLink> explains
       account information, authentication cookies, Cookiebot consent choices,
-      and, when analytics is enabled, Google Analytics measurement, including possible cookieless signals
-      under Advanced Consent Mode v2. Third-party services linked from or used
-      by the website have their own terms and privacy policies.
+      and, when analytics is enabled, Google Analytics measurement, including
+      possible cookieless signals under Advanced Consent Mode v2. Third-party
+      services linked from or used by the website have their own terms and
+      privacy policies.
     </p>
 
     <h2>Website content</h2>
