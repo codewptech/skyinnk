@@ -14,8 +14,8 @@ const { data: catalogue, error: catalogueError } = await useLearningCatalogue();
 if (catalogueError.value || !catalogue.value)
   throw createError({ statusCode: 503, statusMessage: "Learning catalogue temporarily unavailable" });
 const courses = catalogue.value.courses;
-const demoPreview = catalogue.value.enabled;
-if (demoPreview) useHead({ meta: [{ name: "robots", content: "noindex, nofollow" }] });
+const developmentCatalogue = catalogue.value.enabled;
+if (developmentCatalogue) useHead({ meta: [{ name: "robots", content: "noindex, nofollow" }] });
 const match = computed(() =>
   findPublicLesson(
     String(route.params.courseSlug ?? ""),
@@ -257,7 +257,7 @@ useHead(() => ({
           <span class="eyebrow">YOUR LEARNING PATH</span>
           <h2>{{ course.title }}</h2>
           <p>
-            {{ ordered.length }} {{ demoPreview ? "demo" : "public" }}
+            {{ ordered.length }} {{ developmentCatalogue ? "" : "public" }}
             {{ ordered.length === 1 ? "lesson" : "lessons" }}
           </p>
         </div>
@@ -300,10 +300,10 @@ useHead(() => ({
             >
           </div>
         </div>
-        <div v-else-if="demoPreview && lesson.kind === 'video'" class="video-player">
+        <div v-else-if="developmentCatalogue && lesson.kind === 'video'" class="video-player">
           <div class="video-screen"><div class="video-placeholder">
             <span class="play-symbol" aria-hidden="true">▷</span>
-            <p>Demo video placeholder — no video has been attached.</p>
+            <p>No video has been attached.</p>
           </div></div>
         </div>
         <div class="lesson-heading">
@@ -316,7 +316,7 @@ useHead(() => ({
           <h1 id="lesson-title" ref="lessonHeading" tabindex="-1">
             {{ lesson.title }}
           </h1>
-          <p>{{ demoPreview ? "Development preview — not educator-reviewed." : "Free to learn. No account required." }}</p>
+          <p>{{ developmentCatalogue ? "Learning materials" : "Free to learn. No account required." }}</p>
         </div>
         <div class="lesson-tabs" role="tablist" aria-label="Lesson content">
           <button

@@ -23,7 +23,7 @@ export function useLearningCatalogue() {
   const event = import.meta.server ? useRequestEvent() : undefined;
   const request = useRequestFetch();
   return useAsyncData<CataloguePreview>("learning-catalogue", async () => {
-    const load = event?.context.skyinnkDemoCatalogue as
+    const load = event?.context.skyinnkDevelopmentCatalogue as
       | (() => Promise<CataloguePreview>)
       | undefined;
     const preview = import.meta.server
