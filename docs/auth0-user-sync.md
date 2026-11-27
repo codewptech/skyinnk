@@ -78,7 +78,8 @@ an unknown-valued index signature; every persisted claim is validated at runtime
 - Explicit `null` clears a nullable profile column. An empty string clears a text
   column. Whitespace within otherwise supplied text is preserved.
 - Booleans accept only booleans or explicit null; missing values do not become false.
-- Text must be a string without PostgreSQL-invalid NUL characters.
+- Text must be well-formed Unicode without PostgreSQL-invalid NUL characters.
+  Unpaired UTF-16 surrogates are invalid and treated as absent, not normalized.
 - An address object updates only supplied valid members; `address: null` clears
   all six address columns. Invalid address types are ignored.
 - `birthdate` remains a string, including partially specified dates.
@@ -88,8 +89,9 @@ an unknown-valued index signature; every persisted claim is validated at runtime
   set can update an undated row. Once a row has a provider timestamp, incoming
   claims must carry an equal or newer timestamp to update it. Null or blank
   timestamps cannot clear the stored watermark.
-- `sub` must be a nonempty, non-whitespace, NUL-free string of at most 255 characters.
-  Its exact case/value is preserved.
+- `sub` must be a nonempty, non-whitespace, NUL-free, well-formed Unicode string
+  of at most 255 characters. Unpaired surrogates are rejected before quota or
+  persistence. Its exact case/value is preserved without Unicode normalization.
 
 Only claims actually present in the session are available. Default Auth0 scopes
 remain unchanged. Phone/address claims remain nullable when Auth0 does not supply

@@ -46,6 +46,25 @@ try {
   assert.notEqual(left.id, right.id, "Equal email must never merge distinct subjects");
   await assert.rejects(syncAuth0User({ sub: "  " }), TypeError);
   console.log("PASS distinct subjects with equal email and invalid subject rejection");
+
+  const unicode = "fixture|ExactCase-𝑥";
+  const unicodeId = (await syncAuth0User({
+    sub: unicode, name: "समीक्षक José 𝑥", address: { locality: "क़", country: "IN" },
+  })).id;
+  const unicodeResult = await syncAuth0User({
+    sub: unicode, name: "bad\ud800", nickname: "Valid 𝑥", address: { locality: "bad\udc00" },
+  });
+  assert.equal(unicodeResult.id, unicodeId);
+  const unicodeRow = await prisma.user.findUniqueOrThrow({ where: { auth0Id: unicode } });
+  assert.equal(unicodeRow.auth0Id, unicode);
+  assert.equal(unicodeRow.name, "समीक्षक José 𝑥");
+  assert.equal(unicodeRow.addressLocality, "क़");
+  assert.equal(unicodeRow.addressCountry, "IN");
+  assert.equal(unicodeRow.nickname, "Valid 𝑥");
+  for (const invalid of ["\ud800", "\udc00"]) {
+    await assert.rejects(syncAuth0User({ sub: "fixture|" + invalid }), TypeError);
+  }
+  console.log("PASS well-formed Unicode identity and invalid optional claim preservation");
 } finally {
   await prisma.$disconnect();
 }
