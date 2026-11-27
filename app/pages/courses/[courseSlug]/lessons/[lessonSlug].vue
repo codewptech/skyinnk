@@ -820,7 +820,7 @@ a:focus-visible,
 .syllabus-heading h2 { overflow-wrap: anywhere; }
 .classroom-breadcrumbs a { color: var(--brand); }
 .classroom-breadcrumbs { overflow-wrap: anywhere; }
-.video-placeholder { background: radial-gradient(ellipse at 48% 25%, #49437c, #262447 70%); }
+.video-placeholder { background: #262447; }
 .load-video:hover { background: #e4e1ff; }
 .resource-list li { background: #fafaff; min-width: 0; overflow-wrap: anywhere; }
 .lesson-navigation a { padding: .5rem .65rem; border-radius: .65rem; }
