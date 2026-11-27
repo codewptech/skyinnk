@@ -9,7 +9,9 @@
 !shared/
 !shared/public-content.ts
 !scripts/
+scripts/**
 !scripts/validate-public-content.ts
+!scripts/parse-unique-json.ts
 !app/
 !app/**
 !server/

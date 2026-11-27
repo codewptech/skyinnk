@@ -8,6 +8,11 @@ on:
     paths:
       - .github/workflows/v1-recovery-rehearsal.yml
       - scripts/rehearse-v1-recovery.sh
+      - scripts/validate-public-content.ts
+      - scripts/parse-unique-json.ts
+      - app/utils/render-markdown.ts
+      - shared/public-content.ts
+      - tests/docker-build-context.test.mjs
       - scripts/check-release-authorization.mjs
       - tests/release-authorization.test.mjs
       - Dockerfile
@@ -26,6 +31,11 @@ on:
     paths:
       - .github/workflows/v1-recovery-rehearsal.yml
       - scripts/rehearse-v1-recovery.sh
+      - scripts/validate-public-content.ts
+      - scripts/parse-unique-json.ts
+      - app/utils/render-markdown.ts
+      - shared/public-content.ts
+      - tests/docker-build-context.test.mjs
       - scripts/check-release-authorization.mjs
       - tests/release-authorization.test.mjs
       - Dockerfile
@@ -70,6 +80,24 @@ jobs:
           set -euo pipefail
           docker pull postgres:18-bookworm
           docker build --pull --tag skyinnk-rehearsal:local .
+
+      - name: Inspect actual Docker build-stage script inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --target build --tag skyinnk-rehearsal:build-context .
+          docker run --rm --network none --entrypoint /bin/sh skyinnk-rehearsal:build-context -eu -c '
+            for path in scripts/parse-unique-json.ts scripts/validate-public-content.ts; do
+              test -f "$path" || { echo "Missing required build script: $path"; exit 1; }
+            done
+            actual="$(find scripts -type f | LC_ALL=C sort)"
+            expected="$(printf "%s\n" scripts/parse-unique-json.ts scripts/validate-public-content.ts)"
+            if [ "$actual" != "$expected" ]; then
+              printf "%s\n" "Unexpected script files in actual Docker build stage:" "$actual"
+              exit 1
+            fi
+            echo "PASS: actual Docker build stage contains exactly the two required scripts"
+          '
 
       - name: Test backup restore, failed readiness and prior-image recovery
         shell: bash
