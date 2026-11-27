@@ -96,6 +96,7 @@ test("owned API routes are versioned and legacy URLs are unavailable", async () 
     recursive: true,
   }).filter((path) => path.endsWith(".ts"));
   assert.deepEqual([...handlers].sort(), [
+    "v1/academic/courses.get.ts",
     "v1/auth/sync.post.ts",
     "v1/health.get.ts",
     "v1/public/courses.get.ts",
