@@ -126,3 +126,28 @@ test("final edited notes require rendered heading hierarchy and strictly valid p
   const prepared = prepareTextCatalogue(packet, () => valid);
   for (const lesson of lessons(prepared)) assert.equal(lesson.notesMarkdown, valid.toString("utf8"));
 });
+
+test("external intake rejects malformed UTF-8 metadata and preserves valid Unicode", () => {
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-intake-utf8-"));
+  try {
+    const repo = join(root, "repo"), stage = join(root, "stage");
+    mkdirSync(repo); mkdirSync(stage);
+    const path = join(stage, "reviewed-intake.json"), packet = fixture();
+    packet.courses[0].publication.reviewedBy = "SYNTHETIC TEST REVIEWER – समीक्षक José";
+    for (const lesson of lessons(packet)) writeFileSync(join(stage, lesson.notesFile), bytes);
+    writeFileSync(path, JSON.stringify(packet));
+    assert.equal(prepareFromStaging(path, repo).courses[0].publication.reviewedBy,
+      packet.courses[0].publication.reviewedBy);
+    packet.courses[0].publication.reviewedBy = "SYNTHETIC TEST REVIEWER CORRUPT_MARKER";
+    const raw = JSON.stringify(packet);
+    const marker = raw.indexOf("CORRUPT_MARKER");
+    assert.ok(marker >= 0);
+    const corrupt = Buffer.concat([Buffer.from(raw.slice(0, marker)),
+      Buffer.from([0xff]), Buffer.from(raw.slice(marker + "CORRUPT_MARKER".length))]);
+    writeFileSync(path, corrupt);
+    assert.throws(() => prepareFromStaging(path, repo), /invalid UTF-8/);
+    assert.deepEqual(readFileSync(path), corrupt);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
