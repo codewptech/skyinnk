@@ -26,7 +26,25 @@ const desktop = page.locator(".desktop-toggle");
 const mobile = page.locator(".mobile-toggle");
 const drawer = page.locator("#mobile-syllabus");
 const outside = page.getByRole("tab", { name: "Overview" });
-const resize = (width) => page.setViewportSize({ width, height: 900 });
+async function resize(width) {
+  // Arm the listener before resize. Wait for the real media-query change
+  // and a subsequent rendering frame, not merely the viewport RPC.
+  await page.evaluate((mobile) => {
+    const layout = matchMedia("(max-width: 700px)");
+    if (layout.matches === mobile) throw Error("Expected a breakpoint transition");
+    window.__skyinnkSyllabusResizeObserved = false;
+    layout.addEventListener("change", (event) => {
+      if (event.matches === mobile) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          window.__skyinnkSyllabusResizeObserved = true;
+        }));
+      }
+    }, { once: true });
+  }, width <= 700);
+  await page.setViewportSize({ width, height: 900 });
+  await page.waitForFunction(() => window.__skyinnkSyllabusResizeObserved === true,
+    undefined, { timeout: 5000 });
+}
 async function focused(locator) {
   await locator.and(page.locator(":focus")).waitFor({ timeout: 5000 });
 }
@@ -56,9 +74,11 @@ try {
   await focused(desktop);
   await outside.focus();
   await resize(375);
-  await focused(outside);
+  assert.ok(await outside.evaluate(node => node === document.activeElement),
+    "Outside focus must survive the observed mobile transition");
   await resize(1365);
-  await focused(outside);
+  assert.ok(await outside.evaluate(node => node === document.activeElement),
+    "Outside focus must survive the observed desktop transition");
   await desktop.focus();
   await desktop.evaluate(node => node.blur());
   await resize(375);
