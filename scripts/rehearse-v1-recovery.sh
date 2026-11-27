@@ -7,7 +7,7 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
 fi
 
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-migration="$root/prisma/migrations/20261104000000_create_auth0_user/migration.sql"
+export LC_ALL=C
 # Only the local Unix socket, already-present images and an isolated network.
 unset DOCKER_HOST DOCKER_CONTEXT
 docker_local=(docker --host unix:///var/run/docker.sock)
@@ -40,8 +40,12 @@ for ((attempt = 0; attempt < 30; attempt++)); do
   sleep 1
 done
 "${docker_local[@]}" exec "$db" pg_isready -h 127.0.0.1 -U rehearsal -d rehearsal >/dev/null
-"${docker_local[@]}" exec -i "$db" psql -X -v ON_ERROR_STOP=1 -U rehearsal -d rehearsal \
-  < "$migration" >/dev/null
+# Apply all ordered migrations, including the academic and timestamp guards.
+for migration in "$root"/prisma/migrations/*/migration.sql; do
+  [[ -f "$migration" ]]
+  "${docker_local[@]}" exec -i "$db" psql -X -v ON_ERROR_STOP=1 -U rehearsal -d rehearsal \
+    < "$migration" >/dev/null
+done
 
 "${docker_local[@]}" exec "$db" psql -X -v ON_ERROR_STOP=1 -U rehearsal -d rehearsal \
   -c "INSERT INTO \"User\" (\"auth0Id\") VALUES ('fixture|rehearsal')" >/dev/null
