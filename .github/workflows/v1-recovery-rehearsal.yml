@@ -8,6 +8,9 @@ on:
     paths:
       - .github/workflows/v1-recovery-rehearsal.yml
       - scripts/rehearse-v1-recovery.sh
+      - scripts/validate-public-content.ts
+      - scripts/parse-unique-json.ts
+      - tests/docker-build-context.test.mjs
       - scripts/check-release-authorization.mjs
       - tests/release-authorization.test.mjs
       - Dockerfile
@@ -26,6 +29,9 @@ on:
     paths:
       - .github/workflows/v1-recovery-rehearsal.yml
       - scripts/rehearse-v1-recovery.sh
+      - scripts/validate-public-content.ts
+      - scripts/parse-unique-json.ts
+      - tests/docker-build-context.test.mjs
       - scripts/check-release-authorization.mjs
       - tests/release-authorization.test.mjs
       - Dockerfile
