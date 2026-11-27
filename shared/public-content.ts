@@ -63,11 +63,18 @@ function record(
     `${context} has an unsupported field`,
   );
 }
+/** Valid UTF-8 JSON bytes may still contain escaped invalid text code units.
+ * Reject rather than normalize reviewed text; valid surrogate pairs remain valid. */
+function checkTextEncoding(value: string, context: string) {
+  ensure(!value.includes("\0"), `${context}: NUL character in publication text`);
+  ensure(!/[\uD800-\uDFFF]/u.test(value), `${context}: unpaired Unicode surrogate in publication text`);
+}
 function text(value: unknown, context: string) {
   ensure(
     typeof value === "string" && value.trim().length > 0,
     `${context} is required`,
   );
+  checkTextEncoding(value, context);
 }
 /** Date.parse normalizes invalid dates (for example February 30) into another day. */
 function validReviewTimestamp(value: unknown): boolean {
@@ -200,6 +207,7 @@ export function validatePublicCatalogue(value: unknown): PublicCatalogue {
           typeof lesson.notesMarkdown === "string",
           "notesMarkdown must be a string",
         );
+        checkTextEncoding(lesson.notesMarkdown, `${course.slug}/${lesson.slug}`);
         publication(lesson.publication, "lesson");
         ensure(
           lesson.kind === "video" || lesson.kind === "text",
