@@ -111,7 +111,11 @@ try {
     );
     for (const [index, path] of paths.entries()) {
       const { html } = await response(path);
-      if (fixture.reviewerMarker) assert.ok(!html.includes(fixture.reviewerMarker), "Reviewer evidence in rendered HTML");
+      if (fixture.reviewerMarker)
+        assert.ok(
+          !html.includes(fixture.reviewerMarker),
+          "Reviewer evidence in rendered HTML",
+        );
       const heading = html
         .match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)?.[1]
         ?.replace(/<[^>]*>/g, "")
@@ -134,7 +138,10 @@ try {
     }
     if (fixture.resourcePath) {
       const resource = await response(fixture.resourcePath);
-      assert.equal(resource.response.headers.get("x-content-type-options"), "nosniff");
+      assert.equal(
+        resource.response.headers.get("x-content-type-options"),
+        "nosniff",
+      );
     }
     passed(
       "isolated fixture course, video/text lesson SSR and public resource served",
@@ -237,15 +244,30 @@ try {
         });
         await image.scrollIntoViewIfNeeded();
         await page.waitForFunction(
-          (path) => Array.from(document.images).some(
-            (item) => item.getAttribute("src") === path && item.naturalWidth === 2,
-          ),
+          (path) =>
+            Array.from(document.images).some(
+              (item) =>
+                item.getAttribute("src") === path && item.naturalWidth === 2,
+            ),
           fixture.imagePath,
         );
-        assert.equal(await notes.getByRole("link", { name: "linked text" }).count(), 0);
-        assert.equal(await notes.getByRole("link", { name: "Invalid fixture destination" }).count(), 0);
-        assert.equal(requests.some((url) => url.includes("/description-only.txt")), false);
-        passed("reviewed notes image loads with complete alt text and no phantom link or request");
+        assert.equal(
+          await notes.getByRole("link", { name: "linked text" }).count(),
+          0,
+        );
+        assert.equal(
+          await notes
+            .getByRole("link", { name: "Invalid fixture destination" })
+            .count(),
+          0,
+        );
+        assert.equal(
+          requests.some((url) => url.includes("/description-only.txt")),
+          false,
+        );
+        passed(
+          "reviewed notes image loads with complete alt text and no phantom link or request",
+        );
       }
       assert.equal(
         await page
@@ -336,9 +358,12 @@ try {
       passed("mobile syllabus opens, Escape closes and focus returns");
     }
     if (fixture) {
-      const { verifyEducatorReviewBrowser } = await import("./verify-educator-review-browser.mjs");
+      const { verifyEducatorReviewBrowser } =
+        await import("./verify-educator-review-browser.mjs");
       evidence.educatorReview = await verifyEducatorReviewBrowser(browser);
-      passed("offline educator packet native math, blank decisions and A4 print smoke");
+      passed(
+        "offline educator packet native math, blank decisions and A4 print smoke",
+      );
     }
     assert.deepEqual(evidence.browserErrors, [], "Browser runtime errors");
     passed("no browser runtime errors");
@@ -381,7 +406,8 @@ async function runIsolatedFixture() {
   );
   const notes =
     "## Fixture notes\n\nFixture notes marker\n\n| Item | Value |\n| --- | --- |\n| Test | 2 |\n\n$x^2$\n\n<script>window.fixtureXss=true</script>\n\n[unsafe](javascript:alert(1))\n";
-  const wideTable = "\n\n| A | B | C | D | E | F | G | H |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |\n";
+  const wideTable =
+    "\n\n| A | B | C | D | E | F | G | H |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |\n";
   const lesson = (key, slug, title, kind, position) => ({
     key,
     slug,
@@ -390,17 +416,18 @@ async function runIsolatedFixture() {
     position,
     overview:
       "Automated interface test fixture, never a reviewed educational lesson.",
-    notesMarkdown: notes + wideTable + "\n\n$$x=1$$\n\n$$" + Array.from({ length: 12 }, (_, i) => "x_{" + i + "}").join("+") + "$$\n\n```text\nshort\n```\n\n```text\n" + "1234567890".repeat(8) + "\n```\n",
+    notesMarkdown:
+      notes +
+      wideTable +
+      "\n\n$$x=1$$\n\n$$" +
+      Array.from({ length: 12 }, (_, i) => "x_{" + i + "}").join("+") +
+      "$$\n\n```text\nshort\n```\n\n```text\n" +
+      "1234567890".repeat(8) +
+      "\n```\n",
     publication: testReview,
   });
   const video = {
-    ...lesson(
-      "fixture-video",
-      "video-test",
-      lessonTitles[0],
-      "video",
-      0,
-    ),
+    ...lesson("fixture-video", "video-test", lessonTitles[0], "video", 0),
     video: { provider: "youtube", publicId: "abcdefghijk" },
     resources: [
       {
@@ -423,15 +450,12 @@ async function runIsolatedFixture() {
       },
     ],
   };
-  video.notesMarkdown += "\n![Diagram of $$x^2$$ with [linked text](/resources/public/description-only.txt)](" + imagePath + ")\n\n" +
+  video.notesMarkdown +=
+    "\n![Diagram of $$x^2$$ with [linked text](/resources/public/description-only.txt)](" +
+    imagePath +
+    ")\n\n" +
     "[Invalid fixture destination](https://example.invalid%3Ftext)\n";
-  const text = lesson(
-    "fixture-text",
-    "text-test",
-    lessonTitles[1],
-    "text",
-    0,
-  );
+  const text = lesson("fixture-text", "text-test", lessonTitles[1], "text", 0);
   const catalogue = {
     schemaVersion: 1,
     courses: [
@@ -555,14 +579,22 @@ async function runIsolatedFixture() {
         const path = join(folder, entry.name);
         if (entry.isDirectory()) checked += await checkAssets(path);
         else if (entry.isFile()) {
-          assert.ok(!(await readFile(path)).includes(reviewBytes), "Reviewer evidence in public build asset: " + entry.name);
+          assert.ok(
+            !(await readFile(path)).includes(reviewBytes),
+            "Reviewer evidence in public build asset: " + entry.name,
+          );
           checked++;
         }
       }
       return checked;
     }
-    assert.ok((await checkAssets(join(directory, ".output/public"))) > 0, "No browser build assets scanned");
-    console.log("PASS reviewer source marker absent from actual public build assets");
+    assert.ok(
+      (await checkAssets(join(directory, ".output/public"))) > 0,
+      "No browser build assets scanned",
+    );
+    console.log(
+      "PASS reviewer source marker absent from actual public build assets",
+    );
     server = spawn(process.execPath, [".output/server/index.mjs"], {
       cwd: directory,
       env,

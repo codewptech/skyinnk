@@ -26,13 +26,13 @@ A formal tone is respectful and direct. It does **not** require complicated voca
 
 Imagine a fictional school reading club wishes to use the library hall for a session. Complete a five-part plan:
 
-| Part | Planning question | Example detail |
-| --- | --- | --- |
-| Recipient | Who can decide? | Activities Coordinator |
-| Purpose | What do we want? | Permission to use the library hall |
-| Occasion | What is planned? | A 40-minute reading session |
-| Practical details | What will be needed? | Approximately 20 students and chairs |
-| Request | What should the recipient do? | Confirm a suitable day or suggest another slot |
+| Part              | Planning question             | Example detail                                 |
+| ----------------- | ----------------------------- | ---------------------------------------------- |
+| Recipient         | Who can decide?               | Activities Coordinator                         |
+| Purpose           | What do we want?              | Permission to use the library hall             |
+| Occasion          | What is planned?              | A 40-minute reading session                    |
+| Practical details | What will be needed?          | Approximately 20 students and chairs           |
+| Request           | What should the recipient do? | Confirm a suitable day or suggest another slot |
 
 Only include a specific date if it is known and accurate. If scheduling is undecided, state the proposed time and ask for confirmation rather than presenting it as an approved booking.
 
@@ -69,12 +69,12 @@ The signature is fictional and deliberately does not include a real student’s 
 
 Compare these pairs:
 
-| Too casual or unclear | More appropriate |
-| --- | --- |
-| “Hey! Need the hall ASAP.” | “I am writing to request permission to use the hall.” |
+| Too casual or unclear        | More appropriate                                         |
+| ---------------------------- | -------------------------------------------------------- |
+| “Hey! Need the hall ASAP.”   | “I am writing to request permission to use the hall.”    |
 | “You must give us Thursday.” | “Please let us know whether Thursday would be suitable.” |
-| “Stuff is happening there.” | “We plan to conduct a 40-minute reading session.” |
-| “Send a reply now.” | “I would appreciate your response when convenient.” |
+| “Stuff is happening there.”  | “We plan to conduct a 40-minute reading session.”        |
+| “Send a reply now.”          | “I would appreciate your response when convenient.”      |
 
 Avoid unnecessary phrases such as “I humbly beg to state” or several sentences that repeat the same request. Clear language is usually stronger than exaggerated politeness.
 

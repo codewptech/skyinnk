@@ -9,20 +9,20 @@ By the end, you should be able to construct a table of coordinates, plot two str
 Consider $x+y=6$. Rearrange it to $y=6-x$.
 
 | $x$ | $y$ | Coordinate |
-| --- | --- | --- |
-| 0 | 6 | $(0,6)$ |
-| 2 | 4 | $(2,4)$ |
-| 6 | 0 | $(6,0)$ |
+| --- | --- | ---------- |
+| 0   | 6   | $(0,6)$    |
+| 2   | 4   | $(2,4)$    |
+| 6   | 0   | $(6,0)$    |
 
 Each row satisfies the equation. On squared paper, draw horizontal $x$ and vertical $y$ axes using the same scale, mark the origin and label both axes. Plot the three points, draw the straight line through them, and label it $x+y=6$. Two distinct points determine a straight line; the third is a useful check.
 
 Now plot $x-y=2$, or $y=x-2$, using the same axes.
 
 | $x$ | $y$ | Coordinate |
-| --- | --- | --- |
-| 0 | -2 | $(0,-2)$ |
-| 2 | 0 | $(2,0)$ |
-| 4 | 2 | $(4,2)$ |
+| --- | --- | ---------- |
+| 0   | -2  | $(0,-2)$   |
+| 2   | 0   | $(2,0)$    |
+| 4   | 2   | $(4,2)$    |
 
 The lines meet at $(4,2)$. That coordinate is the graphical solution because it lies on both lines. Check: $4+2=6$ and $4-2=2$.
 

@@ -31,7 +31,7 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '24'
+          node-version: "24"
       - name: Read-only routing snapshot (NO agent dispatch)
         env:
           GITHUB_TOKEN: ${{ github.token }}

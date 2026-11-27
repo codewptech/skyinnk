@@ -31,8 +31,11 @@ const addressClaims = {
 
 function optionalString(value: unknown): string | null | undefined {
   if (value === null || value === "") return null;
-  return typeof value === "string" && !value.includes("\0") && !/[\uD800-\uDFFF]/u.test(value)
-    ? value : undefined;
+  return typeof value === "string" &&
+    !value.includes("\0") &&
+    !/[\uD800-\uDFFF]/u.test(value)
+    ? value
+    : undefined;
 }
 
 export function validAuth0Subject(value: unknown): value is string {
@@ -136,30 +139,38 @@ export async function syncAuth0User(claims: UserClaims) {
   const identity = { auth0Id };
   const select = { id: true } as const;
 
-  return prisma.$transaction(async (tx) => {
-    const [created] = await tx.user.createManyAndReturn({
-      data,
-      skipDuplicates: true,
-      select,
-    });
-    if (created) return created;
+  return prisma.$transaction(
+    async (tx) => {
+      const [created] = await tx.user.createManyAndReturn({
+        data,
+        skipDuplicates: true,
+        select,
+      });
+      if (created) return created;
 
-    // PostgreSQL rechecks the WHERE clause after a concurrent update releases
-    // its row lock. An older request cannot overwrite a newer committed profile.
-    const [updated] = await tx.user.updateManyAndReturn({
-      where: {
-        ...identity,
-        OR: [
-          { auth0UpdatedAt: null },
-          ...(auth0UpdatedAt ? [{ auth0UpdatedAt: { lte: auth0UpdatedAt } }] : []),
-        ],
-      },
-      data,
-      select,
-    });
-    return updated ?? tx.user.findUniqueOrThrow({
-      where: identity,
-      select,
-    });
-  }, { isolationLevel: "ReadCommitted" });
+      // PostgreSQL rechecks the WHERE clause after a concurrent update releases
+      // its row lock. An older request cannot overwrite a newer committed profile.
+      const [updated] = await tx.user.updateManyAndReturn({
+        where: {
+          ...identity,
+          OR: [
+            { auth0UpdatedAt: null },
+            ...(auth0UpdatedAt
+              ? [{ auth0UpdatedAt: { lte: auth0UpdatedAt } }]
+              : []),
+          ],
+        },
+        data,
+        select,
+      });
+      return (
+        updated ??
+        tx.user.findUniqueOrThrow({
+          where: identity,
+          select,
+        })
+      );
+    },
+    { isolationLevel: "ReadCommitted" },
+  );
 }

@@ -9,10 +9,13 @@ const fixtureCourses = [
   {
     slug: "course-one",
     modules: [
-      { position: 0, lessons: [
-        { position: 0, slug: "video-lesson" },
-        { position: 1, slug: "text-lesson" },
-      ] },
+      {
+        position: 0,
+        lessons: [
+          { position: 0, slug: "video-lesson" },
+          { position: 1, slug: "text-lesson" },
+        ],
+      },
     ],
   },
   {
@@ -23,7 +26,10 @@ const fixtureCourses = [
 
 function executeActualSitemap(courses) {
   const filename = "server/routes/sitemap.xml.get.ts";
-  const source = readFileSync(new URL("../" + filename, import.meta.url), "utf8");
+  const source = readFileSync(
+    new URL("../" + filename, import.meta.url),
+    "utf8",
+  );
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
@@ -32,18 +38,25 @@ function executeActualSitemap(courses) {
   });
   const module = { exports: {} };
   const localRequire = createRequire(import.meta.url);
-  runInNewContext(outputText, {
-    module,
-    exports: module.exports,
-    require(specifier) {
-      if (specifier.endsWith("/utils/public-catalogue-source.ts")) return {
-        listSourceCourses: () => courses,
-      };
-      return localRequire(specifier);
+  runInNewContext(
+    outputText,
+    {
+      module,
+      exports: module.exports,
+      require(specifier) {
+        if (specifier.endsWith("/utils/public-catalogue-source.ts"))
+          return {
+            listSourceCourses: () => courses,
+          };
+        return localRequire(specifier);
+      },
+      defineEventHandler: (callback) => callback,
+      setHeader: (event, name, value) => {
+        event.headers[name] = value;
+      },
     },
-    defineEventHandler: (callback) => callback,
-    setHeader: (event, name, value) => { event.headers[name] = value; },
-  }, { filename });
+    { filename },
+  );
 
   const event = { headers: {} };
   const xml = module.exports.default(event);
@@ -74,8 +87,13 @@ test("actual sitemap handler includes both canonical public legal routes and onl
     base + "/courses/course-two/lessons/chapter-one",
   ]);
   assert.equal(new Set(actual).size, actual.length, "no duplicate indexed URL");
-  assert.ok(!actual.some((url) =>
-    /\/auth\/|\/api\/|\/resources\/|\/admin\/|\/account\/|\/draft\//.test(url)));
+  assert.ok(
+    !actual.some((url) =>
+      /\/auth\/|\/api\/|\/resources\/|\/admin\/|\/account\/|\/draft\//.test(
+        url,
+      ),
+    ),
+  );
 });
 
 test("empty real-publication sitemap retains the legal and discovery URLs but invents no teaching content", () => {

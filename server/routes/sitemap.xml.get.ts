@@ -4,8 +4,12 @@ export default defineEventHandler((event) => {
   const paths = ["/", "/courses", "/privacy-policy", "/terms-of-service"];
   for (const course of listSourceCourses()) {
     paths.push(`/courses/${course.slug}`);
-    for (const module of [...course.modules].sort((a, b) => a.position - b.position))
-      for (const lesson of [...module.lessons].sort((a, b) => a.position - b.position))
+    for (const module of [...course.modules].sort(
+      (a, b) => a.position - b.position,
+    ))
+      for (const lesson of [...module.lessons].sort(
+        (a, b) => a.position - b.position,
+      ))
         paths.push(`/courses/${course.slug}/lessons/${lesson.slug}`);
   }
   return (

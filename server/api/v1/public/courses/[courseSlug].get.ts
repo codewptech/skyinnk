@@ -8,7 +8,10 @@ export default defineEventHandler((event) => {
     getRouterParam(event, "courseSlug") ?? "",
   );
   if (!data) {
-    throw createError({ statusCode: 404, statusMessage: "Course not published" });
+    throw createError({
+      statusCode: 404,
+      statusMessage: "Course not published",
+    });
   }
   return data;
 });

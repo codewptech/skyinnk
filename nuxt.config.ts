@@ -16,7 +16,9 @@ export default defineNuxtConfig({
   },
   routeRules: {
     "/**": { cache: false },
-    "/resources/public/**": { headers: { "x-content-type-options": "nosniff" } },
+    "/resources/public/**": {
+      headers: { "x-content-type-options": "nosniff" },
+    },
   },
   hooks: {
     "build:manifest"(manifest) {

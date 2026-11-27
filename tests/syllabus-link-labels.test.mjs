@@ -43,9 +43,7 @@ test("identical lesson titles and kinds have distinct module-aware accessible na
       key: "module-later",
       title: "Repeated module",
       position: 10,
-      lessons: [
-        lesson("third", "Introduction", "text", 0),
-      ],
+      lessons: [lesson("third", "Introduction", "text", 0)],
     },
     {
       key: "module-first",
@@ -155,8 +153,10 @@ test("real classroom syllabus component renders distinct accessible link names a
   });
   app.component("NuxtLink", {
     props: ["to"],
-    setup: (props, { attrs, slots }) =>
-      () => h("a", { href: props.to, ...attrs }, slots.default?.()),
+    setup:
+      (props, { attrs, slots }) =>
+      () =>
+        h("a", { href: props.to, ...attrs }, slots.default?.()),
   });
   const html = await renderToString(app);
   assert.match(
@@ -177,31 +177,51 @@ test("real classroom syllabus component renders distinct accessible link names a
 
 test("visually equivalent syllabus names receive distinct positions, while different lesson kinds remain concise", () => {
   const labels = syllabusAccessibleNames([
-    { key: "module-a", title: "Unit", position: 0, lessons: [
-      lesson("a", "Introduction", "text", 0),
-      lesson("b", "  introduction  ", "text", 1),
-      lesson("c", "INTRODUCTION", "video", 2),
-    ] },
+    {
+      key: "module-a",
+      title: "Unit",
+      position: 0,
+      lessons: [
+        lesson("a", "Introduction", "text", 0),
+        lesson("b", "  introduction  ", "text", 1),
+        lesson("c", "INTRODUCTION", "video", 2),
+      ],
+    },
   ]);
-  assert.equal(labels.get("a"), "Introduction, Unit (module 1, lesson 1), Text lesson");
-  assert.equal(labels.get("b"), "introduction, Unit (module 1, lesson 2), Text lesson");
+  assert.equal(
+    labels.get("a"),
+    "Introduction, Unit (module 1, lesson 1), Text lesson",
+  );
+  assert.equal(
+    labels.get("b"),
+    "introduction, Unit (module 1, lesson 2), Text lesson",
+  );
   assert.equal(labels.get("c"), "INTRODUCTION, Video lesson");
   assert.equal(new Set(labels.values()).size, 3);
 });
 
 test("syllabus final names cannot collide with literal module-position-shaped titles", () => {
-  const modules = [{ key: "unit", title: "Unit", position: 0, lessons: [
-    lesson("a", "Introduction", "text", 0),
-    lesson("b", "Introduction", "text", 1),
-    lesson("c", " introduction, unit (module 1, lesson 1) ", "text", 2),
-    lesson("d", "Introduction, Unit (module 1, lesson 2)", "text", 3),
-    lesson("e", "Practice", "video", 4),
-  ] }];
+  const modules = [
+    {
+      key: "unit",
+      title: "Unit",
+      position: 0,
+      lessons: [
+        lesson("a", "Introduction", "text", 0),
+        lesson("b", "Introduction", "text", 1),
+        lesson("c", " introduction, unit (module 1, lesson 1) ", "text", 2),
+        lesson("d", "Introduction, Unit (module 1, lesson 2)", "text", 3),
+        lesson("e", "Practice", "video", 4),
+      ],
+    },
+  ];
   const labels = syllabusAccessibleNames(modules);
-  const normalize = value => value.trim().replace(/\s+/gu, " ").toLowerCase();
+  const normalize = (value) => value.trim().replace(/\s+/gu, " ").toLowerCase();
   assert.equal(new Set([...labels.values()].map(normalize)).size, 5);
   assert.equal(labels.get("e"), "Practice, Video lesson");
   assert.deepEqual([...syllabusAccessibleNames(modules)], [...labels]);
   for (const item of modules[0].lessons)
-    assert.ok(normalize(labels.get(item.key)).startsWith(normalize(item.title)));
+    assert.ok(
+      normalize(labels.get(item.key)).startsWith(normalize(item.title)),
+    );
 });
