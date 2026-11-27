@@ -21,7 +21,7 @@ export function syllabusAccessibleNames(
         })),
     );
 
-  const normalizeTitle = (title: string) => title.trim().replace(/\s+/gu, " ").toLowerCase();
+  const normalizeTitle = (title: string) => title.trim().replace(/\s+/gu, " ").normalize("NFC").toLowerCase().normalize("NFC");
   const counts = new Map<string, number>();
   for (const { lesson, type } of entries) {
     const identity = `${normalizeTitle(lesson.title)}, ${type}`;

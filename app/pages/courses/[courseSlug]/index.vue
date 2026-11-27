@@ -10,7 +10,7 @@ if (!course)
 const orderedModules = [...course.modules].sort(
   (a, b) => a.position - b.position,
 );
-const lessonTitleIdentity = (title: string) => title.trim().replace(/\s+/gu, " ").toLowerCase();
+const lessonTitleIdentity = (title: string) => title.trim().replace(/\s+/gu, " ").normalize("NFC").toLowerCase().normalize("NFC");
 const lessonTitleCounts = new Map<string, number>();
 for (const module of orderedModules)
   for (const lesson of module.lessons)

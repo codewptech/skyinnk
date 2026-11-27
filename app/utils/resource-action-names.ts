@@ -5,7 +5,7 @@ import type { PublicResource } from "../../shared/public-content";
 export function resourceActionNames(
   resources: readonly Pick<PublicResource, "title">[],
 ): string[] {
-  const identity = (title: string) => title.trim().replace(/\s+/gu, " ").toLowerCase();
+  const identity = (title: string) => title.trim().replace(/\s+/gu, " ").normalize("NFC").toLowerCase().normalize("NFC");
   const totals = new Map<string, number>();
   for (const resource of resources) {
     const key = identity(resource.title);
