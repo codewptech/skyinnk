@@ -31,7 +31,8 @@ const addressClaims = {
 
 function optionalString(value: unknown): string | null | undefined {
   if (value === null || value === "") return null;
-  return typeof value === "string" && !value.includes("\0") ? value : undefined;
+  return typeof value === "string" && !value.includes("\0") && !/[\uD800-\uDFFF]/u.test(value)
+    ? value : undefined;
 }
 
 export function validAuth0Subject(value: unknown): value is string {
@@ -39,7 +40,8 @@ export function validAuth0Subject(value: unknown): value is string {
     typeof value === "string" &&
     value.length <= 255 &&
     value.trim().length > 0 &&
-    !value.includes("\0")
+    !value.includes("\0") &&
+    !/[\uD800-\uDFFF]/u.test(value)
   );
 }
 

@@ -1,7 +1,7 @@
 /** Keep noncolliding first-pass names unchanged. Reserve every first-pass name
  * before assigning fallback labels, including literal suffix-shaped titles. */
 export function uniqueAccessibleNames(names: readonly string[]): string[] {
-  const identity = (name: string) => name.trim().replace(/\s+/gu, " ").toLowerCase();
+  const identity = (name: string) => name.trim().replace(/\s+/gu, " ").normalize("NFC").toLowerCase().normalize("NFC");
   const reserved = new Set(names.map(identity));
   const used = new Set<string>();
   const nextSuffix = new Map<string, number>();

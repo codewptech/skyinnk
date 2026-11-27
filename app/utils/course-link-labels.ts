@@ -5,7 +5,7 @@ import type { PublicCourse } from "../../shared/public-content";
 export function courseSyllabusLinkLabels(
   courses: readonly Pick<PublicCourse, "title">[],
 ): string[] {
-  const identity = (title: string) => title.trim().replace(/\s+/gu, " ").toLowerCase();
+  const identity = (title: string) => title.trim().replace(/\s+/gu, " ").normalize("NFC").toLowerCase().normalize("NFC");
   const totals = new Map<string, number>();
   for (const course of courses) {
     const key = identity(course.title);

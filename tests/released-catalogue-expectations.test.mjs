@@ -91,3 +91,30 @@ test("release oracle predicts final collision-safe names for literal suffix-shap
     "Introduction, First module (module 1, lesson 1) (link 2)",
   ]);
 });
+
+
+test("independent release oracle distinguishes canonically equivalent course and lesson titles", () => {
+  const source = publicCatalogueFixture();
+  const course = source.courses[0];
+  course.title = "Café";
+  course.modules[0].lessons[0].title = "Café";
+  course.modules[1].lessons[0].title = "Cafe\u0301";
+  const another = structuredClone(course);
+  another.key = another.slug = "another-course";
+  another.title = "Cafe\u0301";
+  another.modules.forEach((module, i) => {
+    module.key = "another-module-" + i;
+    module.lessons.forEach((lesson, j) => { lesson.key = "another-lesson-" + i + "-" + j; });
+  });
+  source.courses.push(another);
+  const expected = releaseExpectations(source);
+  assert.deepEqual(expected.map(x=>x.linkName), [
+    "View syllabus: Café (course 1 of 2)",
+    "View syllabus: Cafe\u0301 (course 2 of 2)",
+  ]);
+  assert.deepEqual(expected[0].lessons.map(x=>x.linkName), [
+    "Café, First module (module 1, lesson 1)",
+    "Cafe\u0301, Second module (module 2, lesson 1)",
+  ]);
+  assert.equal(source.courses[1].title, "Cafe\u0301");
+});

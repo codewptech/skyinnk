@@ -414,3 +414,21 @@ test("rolling quotas recover at their boundary, isolate exact subjects and fail 
     TypeError,
   );
 });
+
+
+test("HTTP rejects malformed Unicode verified subjects before quota or persistence", async () => {
+  const request = await api();
+  for (const sub of ["fixture|\ud800", "fixture|\udc00"]) {
+    const response = await request(undefined, {}, { sub });
+    assert.equal(response.status, 401);
+    assert.equal((await response.json()).statusMessage, "Authentication required");
+  }
+  assert.equal(database.$transaction.mock.callCount(), 0);
+  const response = await request(undefined, {}, {
+    sub: "fixture|ExactCase-𝑥", name: "bad\ud800", nickname: "José 𝑥",
+    address: { locality: "bad\udc00", country: "IN" },
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(database.user.createManyAndReturn.mock.calls[0].arguments[0].data,
+    { auth0Id: "fixture|ExactCase-𝑥", nickname: "José 𝑥", addressCountry: "IN" });
+});

@@ -243,3 +243,20 @@ test("client failures preserve navigation, deduplicate in-flight work and honor 
   );
   assert.equal(new Auth0SyncRateLimitError("invalid", 0).retryAfterMs, 30000);
 });
+
+
+test("malformed Unicode subjects are rejected before persistence and invalid optional claims are omitted", async () => {
+  for (const invalid of ["\ud800", "\udc00"]) {
+    const sub = "fixture|" + invalid;
+    assert.throws(() => mapAuth0Profile({ sub }), TypeError);
+    await assert.rejects(syncAuth0User({ sub }), TypeError);
+  }
+  assert.equal(database.$transaction.mock.callCount(), 0);
+  assert.deepEqual(mapAuth0Profile({
+    sub: "fixture|ExactCase-𝑥", name: "समीक्षक José 𝑥", nickname: "bad\ud800",
+    email: "", phone_number: null, address: { locality: "bad\udc00", country: "IN" },
+  }), {
+    auth0Id: "fixture|ExactCase-𝑥", name: "समीक्षक José 𝑥", email: null,
+    phoneNumber: null, addressCountry: "IN",
+  });
+});

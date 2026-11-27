@@ -150,3 +150,18 @@ test("actual course page resolves collisions between literal and generated lesso
   for (const slug of ["first", "second", "third", "literal", "unique"])
     assert.ok(html.includes('href="/courses/fixture-course/lessons/' + slug + '"'));
 });
+
+
+test("actual course page names canonically equivalent titles distinctly without altering their visible text", async () => {
+  const fixture = structuredClone(fixtureCourse);
+  const first = fixture.modules[1].lessons.find(x => x.key === "first");
+  const second = fixture.modules[1].lessons.find(x => x.key === "second");
+  first.title = "Café";
+  second.title = "Cafe\u0301";
+  const { html } = await renderCourse(fixture.slug, fixture);
+  assert.ok(html.includes('aria-label="Café, Same module title (module 1, lesson 1)"'));
+  assert.ok(html.includes('aria-label="Cafe\u0301, Same module title (module 1, lesson 2)"'));
+  assert.ok(html.includes(">Café</a>") && html.includes(">Cafe\u0301</a>"));
+  assert.ok(html.includes('href="/courses/fixture-course/lessons/first"'));
+  assert.ok(html.includes('href="/courses/fixture-course/lessons/second"'));
+});
