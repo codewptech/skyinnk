@@ -4,7 +4,7 @@ import { demoPreviewEnabled, loadDemoPreview, readDemoCatalogue } from "../utils
 /** SSR must use the original request's transport, not a synthetic local API call. */
 export default defineEventHandler((event) => {
   if (!import.meta.dev) return;
-  const pathname = event.path.split("?")[0];
+  const pathname = event.path.split("?")[0] ?? "";
   if (pathname !== "/courses" && !pathname.startsWith("/courses/")) return;
   const socket = event.node.req.socket;
   const flag = process.env.SKYINNK_DEMO_PREVIEW;
