@@ -229,6 +229,24 @@ try {
         .getByRole("tabpanel")
         .getByText(fixture.notesMarker, { exact: false })
         .waitFor();
+      if (fixture.imagePath) {
+        const notes = page.getByRole("tabpanel");
+        const image = notes.getByRole("img", {
+          name: "Diagram of x^2 with linked text",
+          exact: true,
+        });
+        await image.scrollIntoViewIfNeeded();
+        await page.waitForFunction(
+          (path) => Array.from(document.images).some(
+            (item) => item.getAttribute("src") === path && item.naturalWidth === 2,
+          ),
+          fixture.imagePath,
+        );
+        assert.equal(await notes.getByRole("link", { name: "linked text" }).count(), 0);
+        assert.equal(await notes.getByRole("link", { name: "Invalid fixture destination" }).count(), 0);
+        assert.equal(requests.some((url) => url.includes("/description-only.txt")), false);
+        passed("reviewed notes image loads with complete alt text and no phantom link or request");
+      }
       assert.equal(
         await page
           .locator("iframe")
@@ -356,6 +374,11 @@ async function runIsolatedFixture() {
     reviewedAt: "2026-11-11T00:00:00.000Z",
   };
   const resourceBytes = "AUTOMATED TEST FIXTURE. Not educational content.\n";
+  const imagePath = "/resources/public/fixture.png";
+  const imageBytes = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGNwLpsHRAwQCgAkJgVdI19QBgAAAABJRU5ErkJggg==",
+    "base64",
+  );
   const notes =
     "## Fixture notes\n\nFixture notes marker\n\n| Item | Value |\n| --- | --- |\n| Test | 2 |\n\n$x^2$\n\n<script>window.fixtureXss=true</script>\n\n[unsafe](javascript:alert(1))\n";
   const wideTable = "\n\n| A | B | C | D | E | F | G | H |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |\n";
@@ -389,8 +412,19 @@ async function runIsolatedFixture() {
         sha256: createHash("sha256").update(resourceBytes).digest("hex"),
         publication: testReview,
       },
+      {
+        key: "fixture-image",
+        title: "Fixture notes diagram",
+        url: imagePath,
+        type: "PNG",
+        sizeBytes: imageBytes.length,
+        sha256: createHash("sha256").update(imageBytes).digest("hex"),
+        publication: testReview,
+      },
     ],
   };
+  video.notesMarkdown += "\n![Diagram of $$x^2$$ with [linked text](/resources/public/description-only.txt)](" + imagePath + ")\n\n" +
+    "[Invalid fixture destination](https://example.invalid%3Ftext)\n";
   const text = lesson(
     "fixture-text",
     "text-test",
@@ -493,6 +527,7 @@ async function runIsolatedFixture() {
       join(directory, "public/resources/public/fixture.txt"),
       resourceBytes,
     );
+    await writeFile(join(directory, "public", imagePath), imageBytes);
     await writeFile(
       join(directory, "content/catalogue.json"),
       JSON.stringify(catalogue, null, 2) + "\n",
@@ -507,6 +542,7 @@ async function runIsolatedFixture() {
         lessonTitles,
         notesMarker: "Fixture notes marker",
         resourcePath: "/resources/public/fixture.txt",
+        imagePath,
         reviewerMarker: testReview.reviewedBy,
       }),
     );

@@ -420,7 +420,7 @@ try {
   await page.keyboard.press("End");
   const resources = page.getByRole("tab", { name: "Resources" });
   assert.equal(await resources.evaluate(focus), true);
-  await page.getByRole("tabpanel").getByRole("link", { name: /download/i }).waitFor();
+  await page.getByRole("tabpanel").getByRole("link", { name: /download fixture text resource/i }).waitFor();
   await page.keyboard.press("Home");
   assert.equal(await overview.evaluate(focus), true);
 

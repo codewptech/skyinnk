@@ -20,7 +20,7 @@ export function isSafeMarkdownLink(value: string): boolean {
   // authority syntax has the same meaning at validation and navigation time.
   if (!/^https:\/\/[^/]/i.test(value) || !/^https:\/\/[^/]/i.test(decoded)) return false;
   try {
-    const url = new URL(decoded);
+    const url = new URL(value);
     return (
       url.protocol === "https:" &&
       Boolean(url.hostname) &&
@@ -73,6 +73,13 @@ const markdown = new MarkdownIt({
 });
 markdown.validateLink = isSafeMarkdownLink;
 
+markdown.core.ruler.after("block", "number_notes_tables", ({ tokens }) => {
+  let number = 0;
+  for (const token of tokens) {
+    if (token.type === "table_open") token.meta = { ...token.meta, tableNumber: ++number };
+  }
+});
+
 // Keep the actual table element and its native accessibility semantics.
 // Only our renderer creates these attributes; source HTML remains disabled.
 const renderTableOpen =
@@ -84,7 +91,7 @@ const renderTableClose =
   ((tokens, index, options, _environment, renderer) =>
     renderer.renderToken(tokens, index, options));
 markdown.renderer.rules.table_open = (tokens, index, options, environment, renderer) => {
-  const number = tokens.slice(0, index + 1).filter(token => token.type === "table_open").length;
+  const number = tokens[index]!.meta!.tableNumber;
   return `<div class="notes-table-scroll" role="region" aria-label="Lesson notes table ${number}" tabindex="-1">` +
     renderTableOpen(tokens, index, options, environment, renderer);
 };
@@ -124,7 +131,7 @@ type InlineToken = NonNullable<ReturnType<typeof markdown.parse>[number]["childr
 function plainImageLabel(tokens: readonly InlineToken[]): string {
   let result = "";
   for (const token of tokens) {
-    if (token.type === "text" || token.type === "code_inline" || token.type === "math_inline") {
+    if (["text", "code_inline", "math_inline", "math_display"].includes(token.type)) {
       result += token.content;
     } else if (token.type === "softbreak" || token.type === "hardbreak") {
       result += " ";
@@ -254,7 +261,8 @@ export function markdownResourcePaths(source: string): Set<string> {
         const path = decodeURIComponent(url.pathname);
         if (url.origin === base && path.startsWith("/resources/public/")) paths.add(path);
       }
-      if (token.children) walk(token.children);
+      // Image children are flattened into text by the image renderer.
+      if (!image && token.children) walk(token.children);
     }
   };
   walk(markdown.parse(source, {}));
@@ -278,7 +286,7 @@ export function validateMarkdownMath(source: string): { count: number; errors: s
           errors.push(`KaTeX expression ${count} rejected or exceeds renderer limits`);
         }
       }
-      if (token.children) walk(token.children);
+      if (token.type !== "image" && token.children) walk(token.children);
     }
   };
   walk(markdown.parse(source, {}));
