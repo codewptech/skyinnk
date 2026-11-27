@@ -99,6 +99,7 @@ test("owned API routes are versioned and legacy URLs are unavailable", async () 
     [...handlers].sort(),
     [
       "v1/auth/sync.post.ts",
+      "v1/development/catalogue.get.ts",
       "v1/health.get.ts",
       "v1/public/courses.get.ts",
       "v1/public/courses/[courseSlug].get.ts",

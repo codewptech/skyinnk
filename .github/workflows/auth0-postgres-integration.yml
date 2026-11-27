@@ -10,6 +10,11 @@ on:
       - tests/auth0-postgres.integration.mjs
       - tests/academic-postgres.integration.mjs
       - tests/academic-publication-postgres.integration.mjs
+      - tests/demo-catalogue-postgres.integration.mjs
+      - server/utils/demo-catalogue.ts
+      - server/api/v1/development/catalogue.get.ts
+      - server/middleware/demo-catalogue-context.ts
+      - app/utils/public-catalogue.ts
       - server/utils/academic-publication.ts
       - server/utils/academic-private-media.ts
       - scripts/validate-public-content.ts
@@ -29,6 +34,11 @@ on:
       - tests/auth0-postgres.integration.mjs
       - tests/academic-postgres.integration.mjs
       - tests/academic-publication-postgres.integration.mjs
+      - tests/demo-catalogue-postgres.integration.mjs
+      - server/utils/demo-catalogue.ts
+      - server/api/v1/development/catalogue.get.ts
+      - server/middleware/demo-catalogue-context.ts
+      - app/utils/public-catalogue.ts
       - server/utils/academic-publication.ts
       - server/utils/academic-private-media.ts
       - scripts/validate-public-content.ts
@@ -105,3 +115,4 @@ jobs:
           node --experimental-strip-types tests/auth0-postgres.integration.mjs
           node --experimental-strip-types tests/academic-postgres.integration.mjs
           node --experimental-strip-types tests/academic-publication-postgres.integration.mjs
+          node --experimental-strip-types tests/demo-catalogue-postgres.integration.mjs

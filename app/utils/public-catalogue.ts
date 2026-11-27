@@ -9,11 +9,34 @@ export type {
 // Vite injects only the validated, explicitly projected learner-facing data.
 declare const __SKYINNK_LEARNER_COURSES__: LearnerCourse[];
 const courses = __SKYINNK_LEARNER_COURSES__;
+
+type CataloguePreview = { enabled: boolean; courses: LearnerCourse[] };
+
+/** Preserve the existing built-server projection; never serialize raw catalogue
+ * Markdown into a production Nuxt async-data payload. Development SSR uses
+ * the original HTTP event's guarded loader, not a synthetic internal fetch. */
+export function useLearningCatalogue() {
+  const fallback: CataloguePreview = { enabled: false, courses };
+  if (!import.meta.dev) {
+    return { data: shallowRef(fallback), error: shallowRef(null) };
+  }
+  const event = import.meta.server ? useRequestEvent() : undefined;
+  const request = useRequestFetch();
+  return useAsyncData<CataloguePreview>("learning-catalogue", async () => {
+    const load = event?.context.skyinnkDemoCatalogue as
+      | (() => Promise<CataloguePreview>)
+      | undefined;
+    const preview = import.meta.server
+      ? await load?.()
+      : await request<CataloguePreview>("/api/v1/development/catalogue");
+    return preview?.enabled ? preview : fallback;
+  });
+}
 export function listPublicCourses(): LearnerCourse[] {
   return courses;
 }
-export function findPublicCourse(slug: string): LearnerCourse | undefined {
-  return courses.find((course) => course.slug === slug);
+export function findPublicCourse(slug: string, catalogue = courses): LearnerCourse | undefined {
+  return catalogue.find((course) => course.slug === slug);
 }
 export function orderedPublicLessons(course: LearnerCourse): LearnerLesson[] {
   return [...course.modules]
@@ -22,8 +45,8 @@ export function orderedPublicLessons(course: LearnerCourse): LearnerLesson[] {
       [...module.lessons].sort((a, b) => a.position - b.position),
     );
 }
-export function findPublicLesson(courseSlug: string, lessonSlug: string) {
-  const course = findPublicCourse(courseSlug);
+export function findPublicLesson(courseSlug: string, lessonSlug: string, catalogue = courses) {
+  const course = findPublicCourse(courseSlug, catalogue);
   if (!course) return undefined;
   const lesson = orderedPublicLessons(course).find(
     (entry) => entry.slug === lessonSlug,
