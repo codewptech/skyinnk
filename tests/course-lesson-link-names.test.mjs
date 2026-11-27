@@ -68,6 +68,7 @@ async function renderCourse(slug, selectedCourse = fixtureCourse) {
           return { uniqueAccessibleNames };
         if (id.endsWith("/public-catalogue"))
           return {
+            useLearningCatalogue: async () => ({ data: { value: { enabled: false, courses: [selectedCourse] } }, error: { value: null } }),
             findPublicCourse: (requested) =>
               requested === selectedCourse.slug ? selectedCourse : undefined,
           };

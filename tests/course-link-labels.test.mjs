@@ -30,7 +30,7 @@ test("course link names remain concise unless displayed course titles collide", 
   );
 });
 
-async function renderActualCatalogue(courses) {
+async function renderActualCatalogue(courses, demoPreview = false) {
   const filename = "app/pages/courses/index.vue";
   const { descriptor, errors } = parse(
     readFileSync(new URL("../" + filename, import.meta.url), "utf8"),
@@ -58,7 +58,7 @@ async function renderActualCatalogue(courses) {
       exports: mod.exports,
       require(id) {
         if (id.endsWith("/public-catalogue"))
-          return { listPublicCourses: () => courses };
+          return { useLearningCatalogue: async () => ({ data: { value: { enabled: demoPreview, courses } }, error: { value: null } }) };
         if (id.endsWith("/course-link-labels"))
           return { courseSyllabusLinkLabels };
         return localRequire(id);
@@ -248,4 +248,14 @@ test("accessible course, syllabus and resource labels distinguish canonically eq
       pair,
     );
   }
+});
+
+
+test("demo catalogue renders database preview labels rather than published claims", async () => {
+  const { html } = await renderActualCatalogue([{ key: "demo-sample", slug: "demo-sample", title: "[DEMO] Sample", summary: "Fictional" }], true);
+  assert.ok(html.includes("Development preview"));
+  assert.ok(html.includes("Demo course"));
+  assert.ok(html.includes('href="/courses/demo-sample"'));
+  assert.ok(!html.includes("Published learning material is available without registration."));
+  assert.ok(!html.includes(">Public course<"));
 });

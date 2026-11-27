@@ -108,6 +108,7 @@ async function renderActualLesson() {
       require(id) {
         if (id.endsWith("/public-catalogue"))
           return {
+            useLearningCatalogue: async () => ({ data: { value: { enabled: false, courses: [course] } }, error: { value: null } }),
             findPublicLesson: (courseSlug, lessonSlug) =>
               courseSlug === course.slug && lessonSlug === lesson.slug
                 ? { course, lesson }
