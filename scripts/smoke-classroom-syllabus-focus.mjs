@@ -31,28 +31,42 @@ async function resize(width) {
   // and a subsequent rendering frame, not merely the viewport RPC.
   await page.evaluate((mobile) => {
     const layout = matchMedia("(max-width: 700px)");
-    if (layout.matches === mobile) throw Error("Expected a breakpoint transition");
+    if (layout.matches === mobile)
+      throw Error("Expected a breakpoint transition");
     window.__skyinnkSyllabusResizeObserved = false;
-    layout.addEventListener("change", (event) => {
-      if (event.matches === mobile) {
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          window.__skyinnkSyllabusResizeObserved = true;
-        }));
-      }
-    }, { once: true });
+    layout.addEventListener(
+      "change",
+      (event) => {
+        if (event.matches === mobile) {
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              window.__skyinnkSyllabusResizeObserved = true;
+            }),
+          );
+        }
+      },
+      { once: true },
+    );
   }, width <= 700);
   await page.setViewportSize({ width, height: 900 });
-  await page.waitForFunction(() => window.__skyinnkSyllabusResizeObserved === true,
-    undefined, { timeout: 5000 });
+  await page.waitForFunction(
+    () => window.__skyinnkSyllabusResizeObserved === true,
+    undefined,
+    { timeout: 5000 },
+  );
 }
 async function focused(locator) {
   await locator.and(page.locator(":focus")).waitFor({ timeout: 5000 });
 }
 try {
-  await page.route("**/*", route =>
-    new URL(route.request().url()).origin === base.origin ? route.continue() : route.abort(),
+  await page.route("**/*", (route) =>
+    new URL(route.request().url()).origin === base.origin
+      ? route.continue()
+      : route.abort(),
   );
-  await page.goto(new URL("/courses/fixture-course/lessons/video-test", base).href);
+  await page.goto(
+    new URL("/courses/fixture-course/lessons/video-test", base).href,
+  );
   // Confirm hydration by exercising the actual sidebar state.
   await desktop.click();
   await page.locator("#desktop-syllabus").waitFor({ state: "hidden" });
@@ -74,16 +88,25 @@ try {
   await focused(desktop);
   await outside.focus();
   await resize(375);
-  assert.ok(await outside.evaluate(node => node === document.activeElement),
-    "Outside focus must survive the observed mobile transition");
+  assert.ok(
+    await outside.evaluate((node) => node === document.activeElement),
+    "Outside focus must survive the observed mobile transition",
+  );
   await resize(1365);
-  assert.ok(await outside.evaluate(node => node === document.activeElement),
-    "Outside focus must survive the observed desktop transition");
+  assert.ok(
+    await outside.evaluate((node) => node === document.activeElement),
+    "Outside focus must survive the observed desktop transition",
+  );
   await desktop.focus();
-  await desktop.evaluate(node => node.blur());
+  await desktop.evaluate((node) => node.blur());
   await resize(375);
-  assert.equal(await page.evaluate(() => document.activeElement?.tagName), "BODY");
-  console.log("PASS syllabus breakpoint focus, drawer close, outside focus and deliberate blur");
+  assert.equal(
+    await page.evaluate(() => document.activeElement?.tagName),
+    "BODY",
+  );
+  console.log(
+    "PASS syllabus breakpoint focus, drawer close, outside focus and deliberate blur",
+  );
 } finally {
   await browser.close();
 }

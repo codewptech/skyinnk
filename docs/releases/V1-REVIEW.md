@@ -4,13 +4,13 @@ Date: 11 November 2026. Scope: reconciled Chat 03 source and public V1 implement
 
 ## Findings addressed during integration
 
-| Finding | Impact | Resolution to verify |
-| --- | --- | --- |
-| Course/lesson scaffold captured route parameters only at setup | Client navigation could keep showing a previous course/lesson | Reactive route lookup and invalid-route guards added to final pages; browser behavior still needs execution |
-| Lesson-slug uniqueness checked only within a module | Two lessons in separate modules could share one URL | Shared catalogue validator enforces uniqueness across a course |
-| Docker deny-all context omitted new content directory | Container build would fail to import the catalogue | Integration owner adds narrowly scoped approved content/shared/script build inputs |
-| Publication depended on a comment and a type cast | Accidental draft/private records could enter browser assets | Shared validator and build gate require explicit public publication and review metadata; reject unsupported fields |
-| Public resource paths were not checked against actual files | Missing downloads or accidental public assets could ship | Build validation checks local file existence, size, containment and allowlist |
+| Finding                                                        | Impact                                                        | Resolution to verify                                                                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Course/lesson scaffold captured route parameters only at setup | Client navigation could keep showing a previous course/lesson | Reactive route lookup and invalid-route guards added to final pages; browser behavior still needs execution        |
+| Lesson-slug uniqueness checked only within a module            | Two lessons in separate modules could share one URL           | Shared catalogue validator enforces uniqueness across a course                                                     |
+| Docker deny-all context omitted new content directory          | Container build would fail to import the catalogue            | Integration owner adds narrowly scoped approved content/shared/script build inputs                                 |
+| Publication depended on a comment and a type cast              | Accidental draft/private records could enter browser assets   | Shared validator and build gate require explicit public publication and review metadata; reject unsupported fields |
+| Public resource paths were not checked against actual files    | Missing downloads or accidental public assets could ship      | Build validation checks local file existence, size, containment and allowlist                                      |
 
 The Auth0 SDK routes and original Prisma User/migration remain the baseline. API versioning is reconciled from Chat 03 rather than replaced. No live database, production infrastructure or deployment was accessed during this review.
 

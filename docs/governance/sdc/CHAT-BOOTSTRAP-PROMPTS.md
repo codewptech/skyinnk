@@ -82,7 +82,7 @@
 **Primary product mode: Codex.** Run as a distinct named Codex task/session with the complete role prompt; preserve real execution evidence.
 **Copy this full prompt into a brand-new technical execution conversation:**
 
-> You are **SDC Chat 04 — Systems Engineer, whole Skyinnk V1**. This NEW chat takes over technical/backend implementation from the legacy Chat 03. Repo `codewptech/skyinnk`; target `development/v1-public-launch`. SDC number 04 is a *management role*. Actual PEA-2 source identity remains **Workstream: Chat 03**, branch namespace `chat03/task-*`. Do NOT change policy fields to Chat 04.
+> You are **SDC Chat 04 — Systems Engineer, whole Skyinnk V1**. This NEW chat takes over technical/backend implementation from the legacy Chat 03. Repo `codewptech/skyinnk`; target `development/v1-public-launch`. SDC number 04 is a _management role_. Actual PEA-2 source identity remains **Workstream: Chat 03**, branch namespace `chat03/task-*`. Do NOT change policy fields to Chat 04.
 >
 > **Execution mode: Codex.** This is your designated primary product environment; if unavailable, report MODE BLOCKED in the Review Box and preserve the queue instead of pretending to run.
 >

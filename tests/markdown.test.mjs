@@ -118,7 +118,10 @@ test("unavailable images display escaped readable alt without fetching disallowe
     assert.equal(isSafeMarkdownImage(path), false);
     const html = renderMarkdown("![**Area** and `x < y`](" + path + ")");
     assert.doesNotMatch(html, /<img\b/);
-    assert.match(html, /<span class="image-unavailable">Area and x &lt; y<\/span>/);
+    assert.match(
+      html,
+      /<span class="image-unavailable">Area and x &lt; y<\/span>/,
+    );
   }
   for (const path of [
     "/resources/public/picture.png",
@@ -141,27 +144,51 @@ test("image descriptions escape quotes and cannot inject attributes", () => {
 });
 
 test("tables retain native structure inside uniquely named keyboard scroll regions", () => {
-  const source = "| A | B |\n| --- | --- |\n| 1 | 2 |\n\n| C | D |\n| --- | --- |\n| 3 | 4 |";
+  const source =
+    "| A | B |\n| --- | --- |\n| 1 | 2 |\n\n| C | D |\n| --- | --- |\n| 3 | 4 |";
   const result = renderMarkdown(source);
-  assert.match(result, /<div class="notes-table-scroll" role="region" aria-label="Lesson notes table 1" tabindex="-1"><table>/);
-  assert.match(result, /<div class="notes-table-scroll" role="region" aria-label="Lesson notes table 2" tabindex="-1"><table>/);
+  assert.match(
+    result,
+    /<div class="notes-table-scroll" role="region" aria-label="Lesson notes table 1" tabindex="-1"><table>/,
+  );
+  assert.match(
+    result,
+    /<div class="notes-table-scroll" role="region" aria-label="Lesson notes table 2" tabindex="-1"><table>/,
+  );
   assert.equal([...result.matchAll(/<\/table>\s*<\/div>/g)].length, 2);
   assert.equal([...result.matchAll(/<thead>/g)].length, 2);
   assert.equal([...result.matchAll(/<th scope="col">/g)].length, 4);
   assert.equal([...result.matchAll(/<tbody>/g)].length, 2);
-  assert.doesNotMatch(renderMarkdown("<div class=\"notes-table-scroll\" tabindex=\"0\">fake</div>"), /<div class="notes-table-scroll"/);
+  assert.doesNotMatch(
+    renderMarkdown('<div class="notes-table-scroll" tabindex="0">fake</div>'),
+    /<div class="notes-table-scroll"/,
+  );
 });
-
 
 test("explicit HTTPS link policy rejects ambiguous URL forms interpreted differently with a browser base", () => {
   const base = "https://www.skyinnk.in/courses/fixture/lessons/example";
   const ambiguous = "https:/resources/public/missing.txt";
-  assert.equal(new URL(ambiguous, base).href, "https://www.skyinnk.in/resources/public/missing.txt");
-  for (const value of [ambiguous, "https:resources/public/missing.txt", "https:///example.invalid/path", "https%3A%2F%2Fexample.invalid", "%23section", "%2Fresources/public/missing.txt"]) {
+  assert.equal(
+    new URL(ambiguous, base).href,
+    "https://www.skyinnk.in/resources/public/missing.txt",
+  );
+  for (const value of [
+    ambiguous,
+    "https:resources/public/missing.txt",
+    "https:///example.invalid/path",
+    "https%3A%2F%2Fexample.invalid",
+    "%23section",
+    "%2Fresources/public/missing.txt",
+  ]) {
     assert.equal(isSafeMarkdownLink(value), false, value);
     assert.doesNotMatch(renderMarkdown("[Read](" + value + ")"), /<a\b/, value);
   }
-  for (const value of ["https://example.invalid/path", "HTTPS://example.invalid/path", "/resources/public/%66ile.txt", "#section"]) {
+  for (const value of [
+    "https://example.invalid/path",
+    "HTTPS://example.invalid/path",
+    "/resources/public/%66ile.txt",
+    "#section",
+  ]) {
     assert.equal(isSafeMarkdownLink(value), true, value);
     assert.match(renderMarkdown("[Read](" + value + ")"), /<a\b/, value);
   }
@@ -180,10 +207,10 @@ test("notes reject invalid encoded HTTPS hosts without throwing in resource pref
     "[Same site](https://www.skyinnk.in:443/resources/public/other.txt)",
     "[External](https://example.invalid/resources/public/third.txt)",
   ].join(" ");
-  assert.deepEqual([...markdownResourcePaths(source)], [
-    "/resources/public/file.txt",
-    "/resources/public/other.txt",
-  ]);
+  assert.deepEqual(
+    [...markdownResourcePaths(source)],
+    ["/resources/public/file.txt", "/resources/public/other.txt"],
+  );
 });
 
 test("image descriptions do not create links, image requests or rendered math", () => {
@@ -195,11 +222,14 @@ test("image descriptions do not create links, image requests or rendered math", 
     "![Verbatim $\\notAKaTeXCommand$](/resources/public/actual.png)",
     "![](/resources/public/decoration.png)",
   ].join("\n\n");
-  assert.deepEqual([...markdownResourcePaths(source)], [
-    "/resources/public/actual.png",
-    "/resources/public/document.txt",
-    "/resources/public/decoration.png",
-  ]);
+  assert.deepEqual(
+    [...markdownResourcePaths(source)],
+    [
+      "/resources/public/actual.png",
+      "/resources/public/document.txt",
+      "/resources/public/decoration.png",
+    ],
+  );
   const html = renderMarkdown(source);
   assert.match(html, /alt="A linked label and nested label"/);
   assert.match(html, /alt="Equation x\^2"/);
@@ -225,8 +255,13 @@ test("notes number many tables in render order without scanning prior table toke
   }
   assert.equal(copiedPrefixTokens, 0);
   assert.deepEqual(
-    [...result.matchAll(/aria-label="Lesson notes table (\d+)"/g)].map(match => Number(match[1])),
+    [...result.matchAll(/aria-label="Lesson notes table (\d+)"/g)].map(
+      (match) => Number(match[1]),
+    ),
     Array.from({ length: 300 }, (_, index) => index + 1),
   );
-  assert.match(renderMarkdown("| A |\n| --- |"), /aria-label="Lesson notes table 1"/);
+  assert.match(
+    renderMarkdown("| A |\n| --- |"),
+    /aria-label="Lesson notes table 1"/,
+  );
 });

@@ -34,13 +34,13 @@ The CLI reads one local JSON file and prints deterministic JSON or a blocking er
       "kind": "ASSIGNED",
       "at": "2026-11-22T12:00:00.000Z",
       "assignmentId": "sdc-a1-<derive using assignmentId(...)>",
-      "source": {"kind": "routing", "reference": "https://github.com/..."}
+      "source": { "kind": "routing", "reference": "https://github.com/..." }
     }
   ]
 }
 ```
 
-Replace the placeholder assignment ID with the computed 64-hex digest. Every event has a unique ID, a strictly increasing UTC timestamp not later than `observedAt`, and the *same* assignment ID. Allowed `mode` values: `SIMULATED` and `OBSERVED`. `OBSERVED` is **not** proof of authentication: input JSON and its assertions can be forged. Output is always `SIMULATED_ONLY` or `CONSISTENT_BUT_UNAUTHENTICATED_OFFLINE`; `unattendedExecutionProven` and `sourceIdentityAuthenticated` are always `false`.
+Replace the placeholder assignment ID with the computed 64-hex digest. Every event has a unique ID, a strictly increasing UTC timestamp not later than `observedAt`, and the _same_ assignment ID. Allowed `mode` values: `SIMULATED` and `OBSERVED`. `OBSERVED` is **not** proof of authentication: input JSON and its assertions can be forged. Output is always `SIMULATED_ONLY` or `CONSISTENT_BUT_UNAUTHENTICATED_OFFLINE`; `unattendedExecutionProven` and `sourceIdentityAuthenticated` are always `false`.
 
 ### Stable assignment and compatibility
 
@@ -63,15 +63,15 @@ Each execution attempt must supply a distinct actual `attemptId`, and `ACKNOWLED
 
 The approved target is exactly `development/v1-public-launch`, not `main` or another repository's branch. GitHub commits can be referenced by multiple PRs, so an identical head SHA is **not sufficient** to establish review or merge identity. All fields below are mandatory for the named stage. Field contents remain **untrusted fixture assertions**; this reducer performs internal consistency checks only.
 
-| Stage | Required identity/provenance fields |
-| --- | --- |
-| `COMPLETED.pr` | `repository`, integer `number`, `targetBranch`, exact `baseSha`, exact `headSha`, `authorActorId`, `reference`; repository must match assignment and target must be the protected development branch |
-| `REVIEW_PENDING` | `repository`, integer `prNumber`, `targetBranch`, exact `headSha`; all match completed PR |
-| `REVIEWED.review` | `repository`, integer `prNumber`, `targetBranch`, exact `headSha`, `state: APPROVED`, `independent: true`, `reviewId`, distinct `reviewerActorId`; `COMMENTED` is explicitly insufficient |
+| Stage                                      | Required identity/provenance fields                                                                                                                                                                                                                                                                             |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMPLETED.pr`                             | `repository`, integer `number`, `targetBranch`, exact `baseSha`, exact `headSha`, `authorActorId`, `reference`; repository must match assignment and target must be the protected development branch                                                                                                            |
+| `REVIEW_PENDING`                           | `repository`, integer `prNumber`, `targetBranch`, exact `headSha`; all match completed PR                                                                                                                                                                                                                       |
+| `REVIEWED.review`                          | `repository`, integer `prNumber`, `targetBranch`, exact `headSha`, `state: APPROVED`, `independent: true`, `reviewId`, distinct `reviewerActorId`; `COMMENTED` is explicitly insufficient                                                                                                                       |
 | `REVIEWED.ci` and `INTEGRATION_PENDING.ci` | `workflow: Development PR CI`, `name: Development CI`, `event: pull_request`, `repository`, integer `prNumber`, `targetBranch`, `baseRef`, exact `baseSha` and `headSha`, `conclusion: success`, `latest: true`, `runId`, `reference`; CI base must equal the completed PR base, all identity fields must agree |
-| `INTEGRATION_PENDING` | Matching `repository`, `prNumber`, `targetBranch`, `expectedHeadSha`, and `currentDevelopmentSha` equal to the completed PR's declared base |
-| `INTEGRATED.merge` | Matching `repository`, integer `prNumber`, `targetBranch`, `expectedHeadSha`, `developmentBeforeSha` equal to completed PR base; `protected: true`, nonempty `authorizationReference`, distinct `mergeCommitSha`, one of `squash/merge/rebase` |
-| `VERIFIED.postmergeCi` | `workflow: Development PR CI`, `name: Development CI`, `event: push`, `repository`, `targetBranch`, `branch: development/v1-public-launch`, `headSha` equal to the merge commit, `conclusion: success`, `latest: true`, `runId`, `reference` |
+| `INTEGRATION_PENDING`                      | Matching `repository`, `prNumber`, `targetBranch`, `expectedHeadSha`, and `currentDevelopmentSha` equal to the completed PR's declared base                                                                                                                                                                     |
+| `INTEGRATED.merge`                         | Matching `repository`, integer `prNumber`, `targetBranch`, `expectedHeadSha`, `developmentBeforeSha` equal to completed PR base; `protected: true`, nonempty `authorizationReference`, distinct `mergeCommitSha`, one of `squash/merge/rebase`                                                                  |
+| `VERIFIED.postmergeCi`                     | `workflow: Development PR CI`, `name: Development CI`, `event: push`, `repository`, `targetBranch`, `branch: development/v1-public-launch`, `headSha` equal to the merge commit, `conclusion: success`, `latest: true`, `runId`, `reference`                                                                    |
 
 A **single GitHub Actions workflow run cannot be both a candidate PR check and a later protected-development push check**. The verifier binds the candidate check's `runId` and `reference` at `REVIEWED`; `INTEGRATION_PENDING` must reuse that exact candidate run identity (it is legitimate to cite the same candidate CI again). The `VERIFIED` post-merge push check must carry a **different** run ID **and** a **different** run reference. Matching event labels alone never make a replayed workflow run distinct. A changed candidate CI run between source review and integration requires a fresh reviewed evidence packet; missing or replayed run identity fails closed.
 
@@ -83,7 +83,7 @@ Failure transitions are explicit: `BLOCKED`, `EXPIRED`, `RETRY_ELIGIBLE`, `ESCAL
 
 ### Trust and security boundaries
 
-The verifier validates **relationships and consistency** among asserted records, not their cryptographic authenticity. A malicious JSON fixture could fabricate an `APPROVED` review, `verified` CI, or a product receipt. An authenticated **read-only evidence adapter** would be needed to supply real product-run records and GitHub authenticated review/check/merge records; that adapter is *not implemented or authorized by #84*. A human reviewing referenced URLs is still required. No authenticated Work/Codex actor should be inferred from shared GitHub credentials, a self-authored comment, or unverified `actorId`. Issue comments can preserve durable references but are not atomic locks, and the controller's short-lived GitHub routing artifacts are not durable authenticated run receipts.
+The verifier validates **relationships and consistency** among asserted records, not their cryptographic authenticity. A malicious JSON fixture could fabricate an `APPROVED` review, `verified` CI, or a product receipt. An authenticated **read-only evidence adapter** would be needed to supply real product-run records and GitHub authenticated review/check/merge records; that adapter is _not implemented or authorized by #84_. A human reviewing referenced URLs is still required. No authenticated Work/Codex actor should be inferred from shared GitHub credentials, a self-authored comment, or unverified `actorId`. Issue comments can preserve durable references but are not atomic locks, and the controller's short-lived GitHub routing artifacts are not durable authenticated run receipts.
 
 The first and second complete positive fixtures in the test suite are intentionally labelled `SIMULATED`. They **do not** satisfy Issue #59. Genuine acceptance of unattended engineering still requires a verified GitHub event → existing eligible Codex role/session activation (or separately authorized equivalent), true execution/run ID, independent review, protected integration, post-merge re-audit, and automatic NEXT without another owner prompt. A supported external wake-up endpoint for an existing dormant cloud Codex conversation has **not** been demonstrated. Codex Goals inside an already active thread are not a GitHub webhook-to-dormant-thread trigger.
 

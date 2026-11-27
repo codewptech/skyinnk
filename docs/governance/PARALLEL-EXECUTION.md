@@ -1,42 +1,43 @@
 # Skyinnk — Parallel Delivery Operating System (PEA-2)
 
 **Status:** Revised execution architecture, 19 November 2026; implementation proposed in PR #32, not active across GitHub until merged and independently verified.
-**Authority:** Owner's execution reset. Supersedes previous *serial scheduling habits*, not the approved Skyinnk product ADL, V1/V2 release scope, existing file/role protections, or owner's production restrictions.
+**Authority:** Owner's execution reset. Supersedes previous _serial scheduling habits_, not the approved Skyinnk product ADL, V1/V2 release scope, existing file/role protections, or owner's production restrictions.
 **Goal:** Keep useful, compatible implementation, independent review and integration moving simultaneously. Remove the owner as a routine dispatcher.
 
 ## 1. Hard separation: product, policy, scheduling and execution
 
-The product architecture defines *what Skyinnk must do*. PEA-2 defines *how approved work is delivered*. The existing mandatory repository governance remains enforceable until a separately reviewed CI change replaces it. A policy document cannot start an agent, create a protected GitHub identity, change a branch ruleset, or guarantee that a submitted issue is actually executable.
+The product architecture defines _what Skyinnk must do_. PEA-2 defines _how approved work is delivered_. The existing mandatory repository governance remains enforceable until a separately reviewed CI change replaces it. A policy document cannot start an agent, create a protected GitHub identity, change a branch ruleset, or guarantee that a submitted issue is actually executable.
 
 Four independent planes:
+
 1. **Decision:** owner approves material product changes, real lesson content/media rights, legal text, spending, identities, production and live data. Architecture reviewer resolves genuine conflicts. Routine implementation proceeds without owner approval when scoped and safe.
 2. **Dispatch:** a ready-task registry, verified dependency graph, claim coordinator, executor adapters, and task event log. This plane is **partly specified, not yet deployed**; the immediate manual GitHub procedure is described below.
-3. **Execution:** Learning Experience, Technical Foundation and Quality/Remediation queues, with distinct *code ownership roles*. Running agents implement independent tasks concurrently.
+3. **Execution:** Learning Experience, Technical Foundation and Quality/Remediation queues, with distinct _code ownership roles_. Running agents implement independent tasks concurrently.
 4. **Review/integration:** independent review pool and a single ordered non-production integration conveyor; production has a separate owner-enforced release gate.
 
 A **lane** describes delivery purpose, a **Workstream** determines source-path permissions, and an **Executor** is a verifiable actual running task/session. They are different identities and must not be conflated.
 
-| Delivery lane | Typical work | Valid code ownership |
-| --- | --- | --- |
-| Learning Experience | Catalogue, course pages, classroom, browser acceptance, content intake | Work |
-| Technical Foundation | APIs, Auth0, Prisma, CI, integration and runtime acceptance | Chat 03 |
-| Quality/Remediation | Audit, reproductions, security and regression work | Work / Chat 03 / Chat 01 according to exact changed files |
-| Governance | Architecture and policy code | Chat 01 |
+| Delivery lane        | Typical work                                                           | Valid code ownership                                      |
+| -------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------- |
+| Learning Experience  | Catalogue, course pages, classroom, browser acceptance, content intake | Work                                                      |
+| Technical Foundation | APIs, Auth0, Prisma, CI, integration and runtime acceptance            | Chat 03                                                   |
+| Quality/Remediation  | Audit, reproductions, security and regression work                     | Work / Chat 03 / Chat 01 according to exact changed files |
+| Governance           | Architecture and policy code                                           | Chat 01                                                   |
 
 No invented `quality/*` branch: existing CI accepts `work/task-*`, `chat03/task-*` and `chat01/task-*` only. An independent auditor may review any lane read-only; an auditor implementing a fix must use an authorized owner-role task and review route.
 
 ## 2. Guaranteed versus advisory controls
 
-| Control | Current guarantee | Target verification |
-| --- | --- | --- |
-| Protected main/development branches and required Development CI | Existing active repository rulesets | Read effective GitHub settings and commit checks |
-| Task branch namespace, declared issue, workstream role, exact shared reservations and open-PR path overlap | Existing Development CI, only after PR exists | Check current merged `scripts/verify-pr-governance.mjs` |
-| Concurrency among multiple unpublished implementation branches | **NOT enforced**: PR-only checker sees neither unpublished edits nor task claims atomically | Dispatcher grants exclusive atomic leases before work |
-| READY task and dependency validation | **Advisory issue metadata only** until follow-on issue #33/#34 merges | Policy tests and live invalid/valid PR acceptance |
-| Start/resume Work or Codex tasks automatically | **NOT available merely from GitHub issues or ordinary chat instructions** | Connected supported execution adapter logs a real start and completion |
-| Human-independent reviewer authentication | **NOT established** with agents sharing owner GitHub identity | Separate approved credentials and actual GitHub review metadata |
-| Non-production serial integration | Procedural, current technical steward | Actual reviewed merge + post-merge CI |
-| Owner-only production release | Separate approval needed; current live deploy is still push-triggered | Owner-controlled enforceable release mechanism, separately authorized |
+| Control                                                                                                    | Current guarantee                                                                           | Target verification                                                    |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Protected main/development branches and required Development CI                                            | Existing active repository rulesets                                                         | Read effective GitHub settings and commit checks                       |
+| Task branch namespace, declared issue, workstream role, exact shared reservations and open-PR path overlap | Existing Development CI, only after PR exists                                               | Check current merged `scripts/verify-pr-governance.mjs`                |
+| Concurrency among multiple unpublished implementation branches                                             | **NOT enforced**: PR-only checker sees neither unpublished edits nor task claims atomically | Dispatcher grants exclusive atomic leases before work                  |
+| READY task and dependency validation                                                                       | **Advisory issue metadata only** until follow-on issue #33/#34 merges                       | Policy tests and live invalid/valid PR acceptance                      |
+| Start/resume Work or Codex tasks automatically                                                             | **NOT available merely from GitHub issues or ordinary chat instructions**                   | Connected supported execution adapter logs a real start and completion |
+| Human-independent reviewer authentication                                                                  | **NOT established** with agents sharing owner GitHub identity                               | Separate approved credentials and actual GitHub review metadata        |
+| Non-production serial integration                                                                          | Procedural, current technical steward                                                       | Actual reviewed merge + post-merge CI                                  |
+| Owner-only production release                                                                              | Separate approval needed; current live deploy is still push-triggered                       | Owner-controlled enforceable release mechanism, separately authorized  |
 
 Do not claim "fully enforced", "running agents" or "reviewed" when only a document, issue comment, self-test or owner-linked AI review exists.
 
@@ -67,23 +68,23 @@ Invalid or placeholder packets remain BACKLOG. A status label alone is not autho
 
 ## 4. State machine and honest source of truth
 
-| State | Entered when | Next valid states |
-| --- | --- | --- |
-| BACKLOG | Packet created or incomplete | READY, DEFERRED, CANCELLED |
-| READY | Validated, start prerequisites resolved, non-colliding claim available, authorized | CLAIMED, BLOCKED, DEFERRED, CANCELLED |
-| CLAIMED | Claim broker or explicitly documented **advisory** manual coordinator assigns executor and paths | BUILDING, PAUSED, READY (release), BLOCKED |
-| BUILDING | Executor is actually active and has branch/claim evidence | PR_OPEN, PAUSED, BLOCKED, CLAIMED, CANCELLED |
-| PR_OPEN | A real task PR is open with exact head SHA | REVIEWING, CHANGES_REQUESTED, BLOCKED |
-| REVIEWING | Independent reviewer examining exact head | READY_TO_INTEGRATE, CHANGES_REQUESTED, BLOCKED |
-| CHANGES_REQUESTED | Review or exact-head CI rejects code | BUILDING, BLOCKED |
-| READY_TO_INTEGRATE | Required technical review and checks accepted for current head/base | INTEGRATING, CHANGES_REQUESTED |
-| INTEGRATING | Integration steward has locked one candidate, reconciled base and begun normal PR merge | VERIFIED, CHANGES_REQUESTED, BLOCKED |
-| VERIFIED | Merge commit exists, post-merge development CI and relevant regression acceptance pass | DONE, CHANGES_REQUESTED |
-| DONE | Verified non-production delivery recorded, issue closed | REOPENED when new evidence invalidates result |
-| BLOCKED | Named missing condition, actor and unblock trigger exists | READY, BUILDING, PR_OPEN, REVIEWING after validation |
-| PAUSED | Executor is unavailable; claim and source evidence preserved pending explicit resume or transfer | CLAIMED, BUILDING, BLOCKED, CANCELLED |
-| DEFERRED / CANCELLED | Explicit authorized disposition | BACKLOG only after owner/role reauthorization |
-| REOPENED | Previously DONE task invalidated | BACKLOG, READY |
+| State                | Entered when                                                                                     | Next valid states                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| BACKLOG              | Packet created or incomplete                                                                     | READY, DEFERRED, CANCELLED                           |
+| READY                | Validated, start prerequisites resolved, non-colliding claim available, authorized               | CLAIMED, BLOCKED, DEFERRED, CANCELLED                |
+| CLAIMED              | Claim broker or explicitly documented **advisory** manual coordinator assigns executor and paths | BUILDING, PAUSED, READY (release), BLOCKED           |
+| BUILDING             | Executor is actually active and has branch/claim evidence                                        | PR_OPEN, PAUSED, BLOCKED, CLAIMED, CANCELLED         |
+| PR_OPEN              | A real task PR is open with exact head SHA                                                       | REVIEWING, CHANGES_REQUESTED, BLOCKED                |
+| REVIEWING            | Independent reviewer examining exact head                                                        | READY_TO_INTEGRATE, CHANGES_REQUESTED, BLOCKED       |
+| CHANGES_REQUESTED    | Review or exact-head CI rejects code                                                             | BUILDING, BLOCKED                                    |
+| READY_TO_INTEGRATE   | Required technical review and checks accepted for current head/base                              | INTEGRATING, CHANGES_REQUESTED                       |
+| INTEGRATING          | Integration steward has locked one candidate, reconciled base and begun normal PR merge          | VERIFIED, CHANGES_REQUESTED, BLOCKED                 |
+| VERIFIED             | Merge commit exists, post-merge development CI and relevant regression acceptance pass           | DONE, CHANGES_REQUESTED                              |
+| DONE                 | Verified non-production delivery recorded, issue closed                                          | REOPENED when new evidence invalidates result        |
+| BLOCKED              | Named missing condition, actor and unblock trigger exists                                        | READY, BUILDING, PR_OPEN, REVIEWING after validation |
+| PAUSED               | Executor is unavailable; claim and source evidence preserved pending explicit resume or transfer | CLAIMED, BUILDING, BLOCKED, CANCELLED                |
+| DEFERRED / CANCELLED | Explicit authorized disposition                                                                  | BACKLOG only after owner/role reauthorization        |
+| REOPENED             | Previously DONE task invalidated                                                                 | BACKLOG, READY                                       |
 
 State is **not** derived only from mutable issue-body text. Target architecture reconciles issue claim + task executor/run + current branch SHA + linked PR state + current check conclusions + integration SHA. An issue never has to remain READY after it gains a PR. Recheck current GitHub state before transition; transition writes must be idempotent and reject stale generation numbers.
 
@@ -116,6 +117,7 @@ Track actual throughput: ready-to-claim time, branch-to-PR time, review wait, me
 ### Immediate mode — advisory, non-atomic
 
 Before editing, an active agent must:
+
 1. Read current development SHA, open task issues (including CLAIMED/BUILDING/PR_OPEN), open PR file lists and both previous/new rename paths.
 2. Check exact changed paths plus all known shared files against other active claims and PRs.
 3. Write claim identity, task link, branch, paths and heartbeat timestamp to its issue; re-read the active claims and PRs before starting.
@@ -133,6 +135,7 @@ A broker might be implemented with an approved GitHub-backed serialized workflow
 ## 8. Execution adapters and uninterrupted lanes
 
 An execution adapter is a real supported connector to a running agent environment. Its contract:
+
 1. `start(issue, repo, baseSHA, paths, acceptance, claimGeneration)` returns a genuine run ID; the adapter confirms the agent began the task.
 2. `heartbeat(runID)` proves liveness and claim ownership without granting unrelated privileges.
 3. `checkpoint(runID, evidence, headSHA)` records test/PR state and releases only appropriate execution slots.
@@ -141,11 +144,12 @@ An execution adapter is a real supported connector to a running agent environmen
 
 Adapters may be built for Work/Codex **only where a real supported launch and status API is connected and authorized**. A GitHub issue cannot wake a dormant chat, and an automation that reports queue health does not execute code. Do not invent a Codex/Work API endpoint or say runs have started without a recorded run ID.
 
-**Immediately usable fallback:** owner or an authorized active agent initiates one long-running, scoped Work/Codex task per lane with the ready queue and standing handoff instructions; each running task proceeds to the next non-colliding READY issue while allowed, rather than asking the owner at every milestone. This removes *repeated* messages but not the initial execution kickoff. Account usage limits and session termination are genuine pauses. Maintain one independent agent per code lane where possible.
+**Immediately usable fallback:** owner or an authorized active agent initiates one long-running, scoped Work/Codex task per lane with the ready queue and standing handoff instructions; each running task proceeds to the next non-colliding READY issue while allowed, rather than asking the owner at every milestone. This removes _repeated_ messages but not the initial execution kickoff. Account usage limits and session termination are genuine pauses. Maintain one independent agent per code lane where possible.
 
 ## 9. Review factory and non-production integration conveyor
 
 Review is a staffed separate work queue, not an implicit step after every other task finishes:
+
 1. On PR_OPEN, attach exact head/base SHA, issue, changed paths, affected contract, tests and review categories. A review coordinator assigns a relevant actual reviewer; an already-running agent can inspect a different lane without modifying its branch.
 2. Reviewer examines source and relevant tests, records findings for the **exact head** and chooses `CHANGES_REQUESTED` or `TECHNICALLY_ACCEPTABLE`. An AI under the shared owner GitHub account must label this **advisory technical review**, not an independently authenticated GitHub approval.
 3. The integrator independently checks changed files, active leases/open PRs, current required CI, task approvals and blockers. Select a single candidate, reconcile its branch with latest development **without force-push/resetting others' work**, rerun exact-head CI.
@@ -158,7 +162,7 @@ Review is a staffed separate work queue, not an implicit step after every other 
 
 GitHub issue #2 is the brief sync ledger; individual issue and PR record is the actual work evidence. No separate manually maintained spreadsheet and no reliance on ChatGPT memory as operational truth.
 
-Escalate to owner *only* for material product architecture conflicts, real student/guardian/privacy decisions, content/media rights, legal approval, spending, live resources, production authorization, credential/identity/ruleset changes or an unresolvable task-claim conflict. A request must state exact impacted tasks, two viable choices, default safe action and which other lanes continue.
+Escalate to owner _only_ for material product architecture conflicts, real student/guardian/privacy decisions, content/media rights, legal approval, spending, live resources, production authorization, credential/identity/ruleset changes or an unresolvable task-claim conflict. A request must state exact impacted tasks, two viable choices, default safe action and which other lanes continue.
 
 Use contract-first fixtures for independent frontend/API work. Do not block all work because real Class 10 content, legal copy, live Auth0, Smiley activation or production release is pending; these remain clearly separate launch-critical paths. No new V2 scope.
 
@@ -177,7 +181,6 @@ Use contract-first fixtures for independent frontend/API work. Do not block all 
 **Phase 4 — concurrent pilot:** while Codex maintains its legitimate remediation PRs, start real Work #35 and Chat 03 #36 tasks in separate agent runtimes where supported. Require timestamps/run IDs/paths. Both produce exact-head CI PRs with no overlap; assign genuine technical reviewers concurrently; integrate at least one approved PR and record post-merge CI. Record owner interventions, review and merge waiting time. **The system does not pass this acceptance test simply because two issues exist.**
 
 **Rollout completion criteria:** (a) contract merged, (b) issue/task policy + CI checks effective and tested, (c) actual conflict-free concurrent execution observed, (d) reviews occur without owner relaying every step, (e) ordered integration passes post-merge checks, and (f) no unauthorized production writes. Publish status as `DESIGNED`, `DOCUMENTED`, `CI_ENFORCED`, `EXECUTING` and `PILOT_VERIFIED` separately.
-
 
 ### Stage-zero executable model (not a live dispatcher)
 

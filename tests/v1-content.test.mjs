@@ -85,15 +85,24 @@ test("resource publication enforces local safe paths, review, type and truthful 
     assert.doesNotThrow(() => checkPublicContent(root));
     lesson.notesMarkdown = "[Read](/resources/public/%6dissing.txt#section)";
     writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
-    assert.throws(() => checkPublicContent(root), /unreviewed resource: .*missing\.txt/);
+    assert.throws(
+      () => checkPublicContent(root),
+      /unreviewed resource: .*missing\.txt/,
+    );
     lesson.notesMarkdown = originalNotes;
     delete resource.sha256;
     writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
-    assert.throws(() => checkPublicContent(root), /Missing approved resource SHA-256/);
+    assert.throws(
+      () => checkPublicContent(root),
+      /Missing approved resource SHA-256/,
+    );
     resource.sha256 = createHash("sha256").update("test").digest("hex");
     writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
     writeFileSync(join(root, "public/resources/public/fixture.txt"), "edit");
-    assert.throws(() => checkPublicContent(root), /differs from approved bytes/);
+    assert.throws(
+      () => checkPublicContent(root),
+      /differs from approved bytes/,
+    );
     writeFileSync(join(root, "public/resources/public/fixture.txt"), "test");
     writeFileSync(
       join(root, "public/resources/public/private.txt"),
@@ -115,15 +124,17 @@ test("an approved digest cannot make text bytes a PDF", () => {
   const value = publicCatalogueFixture();
   const lesson = value.courses[0].modules[1].lessons[0];
   const contents = "Fictional text, not a PDF.";
-  lesson.resources = [{
-    key: "fixture-pdf",
-    title: "Test worksheet",
-    url: "/resources/public/fixture.pdf",
-    type: "PDF",
-    sizeBytes: Buffer.byteLength(contents),
-    sha256: createHash("sha256").update(contents).digest("hex"),
-    publication: { ...lesson.publication },
-  }];
+  lesson.resources = [
+    {
+      key: "fixture-pdf",
+      title: "Test worksheet",
+      url: "/resources/public/fixture.pdf",
+      type: "PDF",
+      sizeBytes: Buffer.byteLength(contents),
+      sha256: createHash("sha256").update(contents).digest("hex"),
+      publication: { ...lesson.publication },
+    },
+  ];
   const root = mkdtempSync(join(tmpdir(), "skyinnk-resource-format-"));
   try {
     mkdirSync(join(root, "content"));
@@ -174,18 +185,30 @@ test("mandatory catalogue build rejects unfinished or technically invalid notes 
         ["## Notes\n\nEDITORIAL DRAFT", /draft\/review warning/],
         ["## Notes\n\nText\0here", /NUL character/],
         ["## Notes\n\n$\\definitelyUnknownCommand{x}$", /invalid parsed math/],
-        ["## Notes\n\n$$\n\\definitelyUnknownCommand{x}\n$$", /invalid parsed math/],
+        [
+          "## Notes\n\n$$\n\\definitelyUnknownCommand{x}\n$$",
+          /invalid parsed math/,
+        ],
       ]) {
         lesson.notesMarkdown = source;
-        assert.throws(check, error =>
-          reason.test(error.message) && error.message.includes("fixture-course/" + lesson.slug));
+        assert.throws(
+          check,
+          (error) =>
+            reason.test(error.message) &&
+            error.message.includes("fixture-course/" + lesson.slug),
+        );
       }
       lesson.notesMarkdown = original;
     }
     video.notesMarkdown = "";
-    text.notesMarkdown = "## Notes\n\n$x^2$\n\n~~~text\n$\\definitelyUnknownCommand{x}$\n~~~";
+    text.notesMarkdown =
+      "## Notes\n\n$x^2$\n\n~~~text\n$\\definitelyUnknownCommand{x}$\n~~~";
     assert.deepEqual(check(), value);
-    assert.equal(JSON.parse(readFileSync(path, "utf8")).courses[0].modules[1].lessons[0].notesMarkdown, text.notesMarkdown);
+    assert.equal(
+      JSON.parse(readFileSync(path, "utf8")).courses[0].modules[1].lessons[0]
+        .notesMarkdown,
+      text.notesMarkdown,
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -212,9 +235,12 @@ test("mandatory catalogue build enforces actual rendered heading hierarchy", () 
         "## Notes\n\n### Example\n\n# Another H1",
       ]) {
         lesson.notesMarkdown = source;
-        assert.throws(check, error =>
-          /rendered headings/.test(error.message) &&
-          error.message.includes("fixture-course/" + lesson.slug));
+        assert.throws(
+          check,
+          (error) =>
+            /rendered headings/.test(error.message) &&
+            error.message.includes("fixture-course/" + lesson.slug),
+        );
       }
       for (const source of [
         "Heading-free prose remains valid.",
@@ -239,12 +265,17 @@ test("mandatory catalogue build enforces actual rendered heading hierarchy", () 
 test("publication checks canonical absolute resource links alongside relative ones", () => {
   const value = publicCatalogueFixture();
   const lesson = value.courses[0].modules[1].lessons[0];
-  lesson.resources = [{
-    key: "fixture-resource", title: "Reviewed worksheet",
-    url: "/resources/public/fixture.txt", type: "TXT", sizeBytes: 4,
-    sha256: createHash("sha256").update("test").digest("hex"),
-    publication: { ...lesson.publication },
-  }];
+  lesson.resources = [
+    {
+      key: "fixture-resource",
+      title: "Reviewed worksheet",
+      url: "/resources/public/fixture.txt",
+      type: "TXT",
+      sizeBytes: 4,
+      sha256: createHash("sha256").update("test").digest("hex"),
+      publication: { ...lesson.publication },
+    },
+  ];
   const root = mkdtempSync(join(tmpdir(), "skyinnk-canonical-resource-"));
   try {
     mkdirSync(join(root, "content"));
@@ -252,38 +283,57 @@ test("publication checks canonical absolute resource links alongside relative on
     writeFileSync(join(root, "public/resources/public/fixture.txt"), "test");
     const check = (notes) => {
       lesson.notesMarkdown = notes;
-      writeFileSync(join(root, "content/catalogue.json"), JSON.stringify(value));
+      writeFileSync(
+        join(root, "content/catalogue.json"),
+        JSON.stringify(value),
+      );
       return checkPublicContent(root);
     };
     for (const notes of [
       "[Reviewed](https://www.skyinnk.in/resources/public/%66ixture.txt#section)",
       "[Reviewed](/resources/public/fixture.txt)",
       "[External](https://example.invalid/resources/public/missing.txt)",
-    ]) assert.doesNotThrow(() => check(notes));
+    ])
+      assert.doesNotThrow(() => check(notes));
     for (const notes of [
       "[Missing](https://www.skyinnk.in/resources/public/missing.txt)",
       "[Missing](https://WWW.SKYINNK.IN:443/resources/public/%6dissing.txt#section)",
       "[Missing](/resources/public/missing.txt)",
-    ]) assert.throws(() => check(notes), /unreviewed resource: .*missing\.txt/);
+    ])
+      assert.throws(() => check(notes), /unreviewed resource: .*missing\.txt/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-
 test("direct publication rejects known placeholder reviewer names at every publication level", () => {
   for (const level of ["course", "lesson", "resource"]) {
-    for (const name of ["pending", " UNAPPROVED ", "Unknown", "TBD", "placeholder", "Test Fixture Only"]) {
+    for (const name of [
+      "pending",
+      " UNAPPROVED ",
+      "Unknown",
+      "TBD",
+      "placeholder",
+      "Test Fixture Only",
+    ]) {
       const value = publicCatalogueFixture();
-      const course = value.courses[0], lesson = course.modules[0].lessons[0];
+      const course = value.courses[0],
+        lesson = course.modules[0].lessons[0];
       const resource = {
-        key: "review-fixture", title: "Reviewed resource",
-        url: "/resources/public/review.txt", type: "TXT", sizeBytes: 4,
+        key: "review-fixture",
+        title: "Reviewed resource",
+        url: "/resources/public/review.txt",
+        type: "TXT",
+        sizeBytes: 4,
         publication: { ...lesson.publication },
       };
       lesson.resources = [resource];
       ({ course, lesson, resource })[level].publication.reviewedBy = name;
-      assert.throws(() => validatePublicCatalogue(value), /reviewer/i, level + ": " + name);
+      assert.throws(
+        () => validatePublicCatalogue(value),
+        /reviewer/i,
+        level + ": " + name,
+      );
     }
   }
   const value = publicCatalogueFixture();
@@ -291,20 +341,30 @@ test("direct publication rejects known placeholder reviewer names at every publi
   assert.doesNotThrow(() => validatePublicCatalogue(value));
 });
 
-
 test("duplicate resource associations within a lesson are rejected without banning cross-lesson reuse", () => {
   const value = publicCatalogueFixture();
-  const [one, two] = value.courses[0].modules.map(module => module.lessons[0]);
+  const [one, two] = value.courses[0].modules.map(
+    (module) => module.lessons[0],
+  );
   const resource = {
-    key: "shared-resource-duplicate-check", title: "Reviewed worksheet",
-    url: "/resources/public/shared.txt", type: "TXT", sizeBytes: 4,
+    key: "shared-resource-duplicate-check",
+    title: "Reviewed worksheet",
+    url: "/resources/public/shared.txt",
+    type: "TXT",
+    sizeBytes: 4,
     publication: { ...one.publication },
   };
-  one.resources = [resource, { ...resource, key: "other-resource", url: "/resources/public/other.txt" }];
+  one.resources = [
+    resource,
+    { ...resource, key: "other-resource", url: "/resources/public/other.txt" },
+  ];
   two.resources = [structuredClone(resource)];
   assert.doesNotThrow(() => validatePublicCatalogue(value));
   one.resources.push(structuredClone(resource));
-  assert.throws(() => validatePublicCatalogue(value), /lesson resource key must be unique/);
+  assert.throws(
+    () => validatePublicCatalogue(value),
+    /lesson resource key must be unique/,
+  );
 });
 
 test("mandatory catalogue build rejects malformed UTF-8 without altering valid multilingual text", () => {
@@ -321,7 +381,10 @@ test("mandatory catalogue build rejects malformed UTF-8 without altering valid m
     writeFileSync(path, valid);
     assert.deepEqual(checkPublicContent(root), value);
     assert.throws(() => {
-      writeFileSync(path, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), valid]));
+      writeFileSync(
+        path,
+        Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), valid]),
+      );
       checkPublicContent(root);
     }, SyntaxError);
     for (const field of ["reviewedBy", "notesMarkdown"]) {
@@ -331,8 +394,11 @@ test("mandatory catalogue build rejects malformed UTF-8 without altering valid m
       const raw = JSON.stringify(value);
       const index = raw.indexOf("CORRUPT_MARKER");
       assert.ok(index >= 0);
-      const malformed = Buffer.concat([Buffer.from(raw.slice(0, index)),
-        Buffer.from([0xff]), Buffer.from(raw.slice(index + "CORRUPT_MARKER".length))]);
+      const malformed = Buffer.concat([
+        Buffer.from(raw.slice(0, index)),
+        Buffer.from([0xff]),
+        Buffer.from(raw.slice(index + "CORRUPT_MARKER".length)),
+      ]);
       writeFileSync(path, malformed);
       assert.throws(() => checkPublicContent(root), /invalid UTF-8/i, field);
       assert.deepEqual(readFileSync(path), malformed);
@@ -343,10 +409,10 @@ test("mandatory catalogue build rejects malformed UTF-8 without altering valid m
   }
 });
 
-
 test("mandatory catalogue build rejects ambiguous duplicate JSON members before approval validation", () => {
   const value = publicCatalogueFixture();
-  value.courses[0].summary = 'Literal text: {"status":"draft","status":"published"} and escaped quote "';
+  value.courses[0].summary =
+    'Literal text: {"status":"draft","status":"published"} and escaped quote "';
   const root = mkdtempSync(join(tmpdir(), "skyinnk-duplicate-publication-"));
   try {
     mkdirSync(join(root, "content"));
@@ -355,14 +421,23 @@ test("mandatory catalogue build rejects ambiguous duplicate JSON members before 
     writeFileSync(path, valid);
     assert.deepEqual(checkPublicContent(root), value);
     for (const duplicate of [
-      valid.replace('"status":"published"', '"status":"draft","status":"published"'),
-      valid.replace('"status":"published"', '"status":"draft","\\u0073tatus":"published"'),
+      valid.replace(
+        '"status":"published"',
+        '"status":"draft","status":"published"',
+      ),
+      valid.replace(
+        '"status":"published"',
+        '"status":"draft","\\u0073tatus":"published"',
+      ),
       valid.replace('"schemaVersion":1', '"schemaVersion":2,"schemaVersion":1'),
     ]) {
       assert.notEqual(duplicate, valid);
       assert.deepEqual(JSON.parse(duplicate), value);
       writeFileSync(path, duplicate);
-      assert.throws(() => checkPublicContent(root), /duplicate JSON object member/i);
+      assert.throws(
+        () => checkPublicContent(root),
+        /duplicate JSON object member/i,
+      );
       assert.equal(readFileSync(path, "utf8"), duplicate);
     }
   } finally {

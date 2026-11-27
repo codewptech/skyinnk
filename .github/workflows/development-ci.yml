@@ -2,7 +2,15 @@ name: Development PR CI
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited, ready_for_review, converted_to_draft]
+    types:
+      [
+        opened,
+        synchronize,
+        reopened,
+        edited,
+        ready_for_review,
+        converted_to_draft,
+      ]
     branches:
       - development/v1-public-launch
   push:
@@ -80,7 +88,7 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '24'
+          node-version: "24"
 
       - name: Enforce PR governance with current development policy
         if: github.event_name == 'pull_request'
