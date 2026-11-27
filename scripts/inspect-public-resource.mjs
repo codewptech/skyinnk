@@ -32,18 +32,24 @@ export async function inspectPublicResource(localFile, publicUrl) {
     throw new TypeError("Input must be a nonempty regular file, not a symlink or directory");
   }
 
-  // Opening the already-checked path can race with a symlink/file replacement.
-  // Keep one descriptor open, check its identity, and hash those very bytes.
-  const handle = await open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  if (before.size > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error("Input file is too large to report an exact size");
+  }
+  // Keep one descriptor open; a substituted FIFO must not block a POSIX open.
+  const handle = await open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  const sameFile = (item) => item.isFile() &&
+    item.dev === before.dev && item.ino === before.ino &&
+    item.size === before.size && item.mtimeNs === before.mtimeNs &&
+    item.ctimeNs === before.ctimeNs;
   try {
     const opened = await handle.stat({ bigint: true });
-    if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino) {
+    if (!sameFile(opened)) {
       throw new Error("Input file changed while being opened; inspect the final approved bytes again");
     }
 
     let sizeBytes = 0;
     const digest = createHash("sha256");
-    for await (const chunk of handle.createReadStream({ autoClose: false })) {
+    for await (const chunk of handle.createReadStream({ autoClose: false, start: 0, end: Number(before.size) - 1 })) {
       sizeBytes += chunk.length;
       if (!Number.isSafeInteger(sizeBytes)) {
         throw new Error("Input file is too large to report an exact size");
@@ -53,15 +59,7 @@ export async function inspectPublicResource(localFile, publicUrl) {
 
     const after = await handle.stat({ bigint: true });
     const pathAfter = await lstat(filePath, { bigint: true });
-    const sameFile = [after, pathAfter].every((item) =>
-      item.isFile() &&
-      item.dev === opened.dev &&
-      item.ino === opened.ino &&
-      item.size === opened.size &&
-      item.mtimeNs === opened.mtimeNs &&
-      item.ctimeNs === opened.ctimeNs
-    );
-    if (!sameFile || BigInt(sizeBytes) !== opened.size) {
+    if (![after, pathAfter].every(sameFile) || BigInt(sizeBytes) !== before.size) {
       throw new Error("Input file changed during inspection; inspect the final approved bytes again");
     }
 
