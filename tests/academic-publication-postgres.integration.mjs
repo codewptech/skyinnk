@@ -72,6 +72,15 @@ try {
  await withdrawAcademicCourse(reviewer.id,c.id,active.id);
  assert.equal(await prisma.courseRelease.count({where:{courseId:c.id,state:"ACTIVE"}}),0);
  assert.equal((await prisma.courseRelease.findUniqueOrThrow({where:{id:active.id}})).state,"WITHDRAWN");
+ // Revert to the exact pre-first-publication draft. With no active release,
+ // its previous digest must NOT authorize republishing after withdrawal.
+ await prisma.lesson.update({where:{id:l.id},data:{notesMarkdown:"## Example\nUpdated fictional notes."}});
+ await rejects(()=>publishAcademicCourse(reviewer.id,c.id,corrected.digest,true,root),"STALE");
+ const fresh=await previewAcademicPublication(reviewer.id,c.id,root);
+ assert.notEqual(fresh.digest,corrected.digest);
+ const third=await publishAcademicCourse(reviewer.id,c.id,fresh.digest,true,root);
+ assert.equal(third.version,3);
+ await withdrawAcademicCourse(reviewer.id,c.id,third.id);
  await prisma.course.update({where:{id:c.id},data:{archivedAt:new Date()}});
- console.log("PASS concurrent atomic replacement, one active release, preserved history, scoped withdrawal and archive");
+ console.log("PASS concurrent atomic replacement, one active release, preserved history, stale withdrawal review, intentional republication and archive");
 } finally { await prisma.$disconnect(); await rm(root,{recursive:true,force:true}); }
