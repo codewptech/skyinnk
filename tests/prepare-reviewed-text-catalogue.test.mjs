@@ -191,3 +191,33 @@ test("external staging rejects same-length file replacement after the regular-fi
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+
+test("external reviewed intake rejects duplicate and escaped-equivalent approval members", () => {
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-intake-duplicate-"));
+  try {
+    const repo = join(root, "repo"), stage = join(root, "stage");
+    mkdirSync(repo); mkdirSync(stage);
+    const path = join(stage, "reviewed-intake.json"), packet = fixture();
+    packet.courses[0].summary = 'Literal string {"reviewedBy":"pending","reviewedBy":"other"}';
+    const valid = JSON.stringify(packet);
+    for (const lesson of lessons(packet)) writeFileSync(join(stage, lesson.notesFile), bytes);
+    writeFileSync(path, valid);
+    const expected = prepareFromStaging(path, repo);
+    assert.equal(expected.courses[0].summary, packet.courses[0].summary);
+    for (const duplicate of [
+      valid.replace('"reviewedBy":"SYNTHETIC TEST REVIEWER"', '"reviewedBy":"pending","reviewedBy":"SYNTHETIC TEST REVIEWER"'),
+      valid.replace('"status":"published"', '"status":"draft","\\u0073tatus":"published"'),
+      valid.replace('"schemaVersion":1', '"schemaVersion":2,"schemaVersion":1'),
+    ]) {
+      assert.notEqual(duplicate, valid);
+      assert.deepEqual(JSON.parse(duplicate), packet);
+      writeFileSync(path, duplicate);
+      assert.throws(() => prepareFromStaging(path, repo), /duplicate JSON object member/i);
+      assert.equal(readFileSync(path, "utf8"), duplicate);
+      assert.deepEqual(readFileSync(join(stage, "notes-0.md")), bytes);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
