@@ -123,3 +123,34 @@ test("final-name fallback reserves literal suffixes and handles repeated collisi
   assert.deepEqual(uniqueAccessibleNames(result), result);
   assert.deepEqual(uniqueAccessibleNames([]), []);
 });
+
+
+test("accessible course, syllabus and resource labels distinguish canonically equivalent Unicode titles", async () => {
+  const { resourceActionNames } = await import("../app/utils/resource-action-names.ts");
+  const { syllabusAccessibleNames } = await import("../app/utils/syllabus-link-labels.ts");
+  for (const pair of [["Café", "Cafe\u0301"], ["\u0958", "\u0915\u093c"]]) {
+    const [a,b] = pair;
+    const titles = pair.map(title => ({ title }));
+    assert.equal(a.normalize("NFC"), b.normalize("NFC"));
+    assert.deepEqual(courseSyllabusLinkLabels(titles), [
+      "View syllabus: " + a + " (course 1 of 2)",
+      "View syllabus: " + b + " (course 2 of 2)",
+    ]);
+    assert.deepEqual(resourceActionNames(titles), [
+      a + " (resource 1 of 2)", b + " (resource 2 of 2)",
+    ]);
+    const labels = syllabusAccessibleNames([{
+      key: "unit", title: "Unit", position: 0, lessons: pair.map((title, position) => ({
+        key: "lesson-" + position, slug: "lesson-" + position, title, kind: "text", position,
+      })),
+    }]);
+    assert.deepEqual([...labels.values()], [
+      a + ", Unit (module 1, lesson 1), Text lesson",
+      b + ", Unit (module 1, lesson 2), Text lesson",
+    ]);
+    const result = uniqueAccessibleNames([a,b,a + " (link 2)"]);
+    assert.deepEqual(result, [a,b + " (link 3)",a + " (link 2)"]);
+    assert.deepEqual(uniqueAccessibleNames(result), result);
+    assert.deepEqual(titles.map(x => x.title), pair);
+  }
+});
