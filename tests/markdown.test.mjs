@@ -3,7 +3,9 @@ import { test } from "node:test";
 import {
   isSafeMarkdownImage,
   isSafeMarkdownLink,
+  markdownResourcePaths,
   renderMarkdown,
+  validateMarkdownMath,
 } from "../app/utils/render-markdown.ts";
 
 test("notes render readable Markdown, Unicode, tables and escaped code", () => {
@@ -163,4 +165,68 @@ test("explicit HTTPS link policy rejects ambiguous URL forms interpreted differe
     assert.equal(isSafeMarkdownLink(value), true, value);
     assert.match(renderMarkdown("[Read](" + value + ")"), /<a\b/, value);
   }
+});
+
+test("notes reject invalid encoded HTTPS hosts without throwing in resource preflight", () => {
+  for (const host of ["example.invalid%3Ftext", "example.invalid%23text"]) {
+    const target = "https://" + host;
+    const source = "[Read](" + target + ")";
+    assert.equal(isSafeMarkdownLink(target), false);
+    assert.doesNotMatch(renderMarkdown(source), /<a\b/);
+    assert.deepEqual([...markdownResourcePaths(source)], []);
+  }
+  const source = [
+    "[Local](/resources/public/%66ile.txt?version=1#top)",
+    "[Same site](https://www.skyinnk.in:443/resources/public/other.txt)",
+    "[External](https://example.invalid/resources/public/third.txt)",
+  ].join(" ");
+  assert.deepEqual([...markdownResourcePaths(source)], [
+    "/resources/public/file.txt",
+    "/resources/public/other.txt",
+  ]);
+});
+
+test("image descriptions do not create links, image requests or rendered math", () => {
+  const source = [
+    "![A [linked label](/resources/public/label.txt) and ![nested label](/resources/public/nested.png)](/resources/public/actual.png)",
+    "![Another ![nested label](/resources/public/unloaded.png)](https://example.invalid/image.png)",
+    "[Outside the description](/resources/public/document.txt)",
+    "![Equation $$x^2$$](/resources/public/actual.png)",
+    "![Verbatim $\\notAKaTeXCommand$](/resources/public/actual.png)",
+    "![](/resources/public/decoration.png)",
+  ].join("\n\n");
+  assert.deepEqual([...markdownResourcePaths(source)], [
+    "/resources/public/actual.png",
+    "/resources/public/document.txt",
+    "/resources/public/decoration.png",
+  ]);
+  const html = renderMarkdown(source);
+  assert.match(html, /alt="A linked label and nested label"/);
+  assert.match(html, /alt="Equation x\^2"/);
+  assert.match(html, /decoration\.png" alt=""/);
+  assert.doesNotMatch(html, /<math\b/);
+  assert.deepEqual(validateMarkdownMath(source), { count: 0, errors: [] });
+});
+
+test("notes number many tables in render order without scanning prior table tokens", () => {
+  const source = "| A |\n| --- |\n| 1 |\n\n".repeat(300);
+  const slice = Array.prototype.slice;
+  let copiedPrefixTokens = 0;
+  Array.prototype.slice = function (start, end) {
+    if (start === 0 && Number.isInteger(end) && this[0]?.type === "table_open")
+      copiedPrefixTokens += end;
+    return slice.apply(this, arguments);
+  };
+  let result;
+  try {
+    result = renderMarkdown(source);
+  } finally {
+    Array.prototype.slice = slice;
+  }
+  assert.equal(copiedPrefixTokens, 0);
+  assert.deepEqual(
+    [...result.matchAll(/aria-label="Lesson notes table (\d+)"/g)].map(match => Number(match[1])),
+    Array.from({ length: 300 }, (_, index) => index + 1),
+  );
+  assert.match(renderMarkdown("| A |\n| --- |"), /aria-label="Lesson notes table 1"/);
 });
