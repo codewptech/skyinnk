@@ -1,4 +1,6 @@
 import test from "node:test";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, symlinkSync } from "node:fs";
@@ -148,6 +150,44 @@ test("external intake rejects malformed UTF-8 metadata and preserves valid Unico
     assert.throws(() => prepareFromStaging(path, repo), /invalid UTF-8/);
     assert.deepEqual(readFileSync(path), corrupt);
   } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("external staging rejects same-length file replacement after the regular-file check", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-intake-swap-"));
+  const originalLstat = fs.lstatSync;
+  try {
+    const repo = join(root, "repo"), stage = join(root, "stage");
+    mkdirSync(repo); mkdirSync(stage);
+    const path = join(stage, "reviewed-intake.json"), packet = fixture();
+    const raw = JSON.stringify(packet);
+    const changed = raw.replace("SYNTHETIC TEST REVIEWER", "SYNTHETIC FAKE REVIEWER");
+    assert.notEqual(changed, raw);
+    assert.equal(Buffer.byteLength(changed), Buffer.byteLength(raw));
+    const replacement = join(root, "replacement.json");
+    writeFileSync(path, raw);
+    writeFileSync(replacement, changed);
+    for (const lesson of lessons(packet)) writeFileSync(join(stage, lesson.notesFile), bytes);
+    assert.equal(prepareFromStaging(path, repo).courses[0].publication.reviewedBy,
+      packet.courses[0].publication.reviewedBy);
+    let swapped = false;
+    t.mock.method(fs, "lstatSync", (name, ...args) => {
+      const info = originalLstat(name, ...args);
+      if (name === path && !swapped) {
+        swapped = true;
+        fs.renameSync(path, path + ".saved");
+        symlinkSync(replacement, path);
+      }
+      return info;
+    });
+    syncBuiltinESMExports();
+    assert.throws(() => prepareFromStaging(path, repo), /file changed while opening|file changed while reading/);
+    assert.ok(swapped);
+    assert.equal(readFileSync(path + ".saved", "utf8"), raw);
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
     rmSync(root, { recursive: true, force: true });
   }
 });
