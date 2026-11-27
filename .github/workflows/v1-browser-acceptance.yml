@@ -17,6 +17,7 @@ on:
       - scripts/smoke-v1.mjs
       - scripts/smoke-course-discovery.mjs
       - scripts/smoke-classroom-a11y.mjs
+      - scripts/smoke-classroom-syllabus-focus.mjs
       - scripts/smoke-public-api-contract.mjs
       - scripts/smoke-released-catalogue.mjs
       - scripts/released-catalogue-expectations.mjs
@@ -40,6 +41,7 @@ on:
       - scripts/smoke-v1.mjs
       - scripts/smoke-course-discovery.mjs
       - scripts/smoke-classroom-a11y.mjs
+      - scripts/smoke-classroom-syllabus-focus.mjs
       - scripts/smoke-public-api-contract.mjs
       - scripts/smoke-released-catalogue.mjs
       - scripts/released-catalogue-expectations.mjs
@@ -136,6 +138,7 @@ jobs:
           if [ "$ready" != 1 ]; then cat "$artifacts/controller.log"; exit 1; fi
           node scripts/smoke-course-discovery.mjs http://127.0.0.1:4319 "$artifacts/fixture-parameters.json"
           node scripts/smoke-classroom-a11y.mjs http://127.0.0.1:4319
+          node scripts/smoke-classroom-syllabus-focus.mjs http://127.0.0.1:4319
           node scripts/smoke-public-api-contract.mjs --port 4319
           fixture_root=$(sed -n 's/^FIXTURE_TEMP //p' "$artifacts/controller.log")
           test -n "$fixture_root"
