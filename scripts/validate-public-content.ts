@@ -83,9 +83,16 @@ export function checkFinalNoteSource(source: string, context: string, requireHea
 
 /** Validate actual build inputs; no runtime draft switch or filesystem URL lookup. */
 export function checkPublicContent(root = resolve(".")): PublicCatalogue {
-  const catalogue = validatePublicCatalogue(
-    JSON.parse(readFileSync(join(root, "content/catalogue.json"), "utf8")),
-  );
+  const bytes = readFileSync(join(root, "content/catalogue.json"));
+  let source: string;
+  try {
+    // Reject corrupt approved text rather than silently substituting characters.
+    // Preserve JSON.parse's previous leading-BOM behavior.
+    source = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
+  } catch {
+    throw new Error("Public content: invalid UTF-8 in content/catalogue.json");
+  }
+  const catalogue = validatePublicCatalogue(JSON.parse(source));
   const resources = new Set<string>();
   const notes: string[] = [];
   for (const course of catalogue.courses)
