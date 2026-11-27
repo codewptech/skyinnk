@@ -306,3 +306,39 @@ test("duplicate resource associations within a lesson are rejected without banni
   one.resources.push(structuredClone(resource));
   assert.throws(() => validatePublicCatalogue(value), /lesson resource key must be unique/);
 });
+
+test("mandatory catalogue build rejects malformed UTF-8 without altering valid multilingual text", () => {
+  const value = publicCatalogueFixture();
+  const root = mkdtempSync(join(tmpdir(), "skyinnk-catalogue-utf8-"));
+  try {
+    mkdirSync(join(root, "content"));
+    const path = join(root, "content/catalogue.json");
+    const course = value.courses[0];
+    const lesson = course.modules[1].lessons[0];
+    course.publication.reviewedBy = "Fictional reviewer – समीक्षक José";
+    lesson.notesMarkdown = "## Notes\n\nगणित – café";
+    const valid = Buffer.from(JSON.stringify(value));
+    writeFileSync(path, valid);
+    assert.deepEqual(checkPublicContent(root), value);
+    assert.throws(() => {
+      writeFileSync(path, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), valid]));
+      checkPublicContent(root);
+    }, SyntaxError);
+    for (const field of ["reviewedBy", "notesMarkdown"]) {
+      const target = field === "reviewedBy" ? course.publication : lesson;
+      const original = target[field];
+      target[field] = original + " CORRUPT_MARKER";
+      const raw = JSON.stringify(value);
+      const index = raw.indexOf("CORRUPT_MARKER");
+      assert.ok(index >= 0);
+      const malformed = Buffer.concat([Buffer.from(raw.slice(0, index)),
+        Buffer.from([0xff]), Buffer.from(raw.slice(index + "CORRUPT_MARKER".length))]);
+      writeFileSync(path, malformed);
+      assert.throws(() => checkPublicContent(root), /invalid UTF-8/i, field);
+      assert.deepEqual(readFileSync(path), malformed);
+      target[field] = original;
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
