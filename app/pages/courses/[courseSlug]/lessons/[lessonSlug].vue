@@ -40,9 +40,30 @@ const videoFallback = ref<HTMLAnchorElement>();
 const drawer = ref<HTMLDialogElement>();
 const drawerToggle = ref<HTMLButtonElement>();
 const desktopToggle = ref<HTMLButtonElement>();
+const desktopSyllabus = ref<HTMLElement>();
 const lessonHeading = ref<HTMLHeadingElement>();
 const drawerOpen = ref(false);
 let mobileLayout: MediaQueryList | undefined;
+let lastSyllabusFocus: "desktop" | "mobile" | null = null;
+
+function syllabusFocus(target: EventTarget | null) {
+  if (!(target instanceof Node)) return null;
+  if (drawerToggle.value?.contains(target)) return "mobile" as const;
+  if (desktopToggle.value?.contains(target) || desktopSyllabus.value?.contains(target))
+    return "desktop" as const;
+  return null;
+}
+function rememberSyllabusFocus(event: FocusEvent) {
+  lastSyllabusFocus = syllabusFocus(event.target);
+}
+function forgetSyllabusFocus(event: FocusEvent) {
+  // A breakpoint may hide the focused element before the media-query event.
+  // Preserve that location only when it actually became hidden, not on an
+  // ordinary blur. A subsequent focusin elsewhere also clears the location.
+  if (event.relatedTarget === null && event.target instanceof HTMLElement &&
+      event.target.getClientRects().length > 0)
+    lastSyllabusFocus = null;
+}
 
 function loadVideo(event: MouseEvent) {
   videoLoaded.value = true;
@@ -65,7 +86,16 @@ function drawerClosed() {
   toggle?.focus();
 }
 function onLayoutChange(event: MediaQueryListEvent) {
-  if (!event.matches) closeDrawer();
+  if (!event.matches && drawer.value?.open) {
+    closeDrawer();
+    return;
+  }
+  const active = document.activeElement;
+  const previousFocus = active === document.body || !active
+    ? lastSyllabusFocus
+    : syllabusFocus(active);
+  if (event.matches && previousFocus === "desktop") drawerToggle.value?.focus();
+  else if (!event.matches && previousFocus === "mobile") desktopToggle.value?.focus();
 }
 function onDrawerBackdrop(event: MouseEvent) {
   if (event.target !== drawer.value) return;
@@ -121,9 +151,14 @@ watch(
 onMounted(() => {
   mobileLayout = window.matchMedia("(max-width: 700px)");
   mobileLayout.addEventListener("change", onLayoutChange);
+  lastSyllabusFocus = syllabusFocus(document.activeElement);
+  document.addEventListener("focusin", rememberSyllabusFocus);
+  document.addEventListener("focusout", forgetSyllabusFocus);
 });
 onBeforeUnmount(() => {
   mobileLayout?.removeEventListener("change", onLayoutChange);
+  document.removeEventListener("focusin", rememberSyllabusFocus);
+  document.removeEventListener("focusout", forgetSyllabusFocus);
   closeDrawer();
 });
 useHead(() => ({
@@ -188,6 +223,7 @@ useHead(() => ({
       <aside
         v-show="sidebarExpanded"
         id="desktop-syllabus"
+        ref="desktopSyllabus"
         class="desktop-syllabus"
         aria-label="Course syllabus"
       >
