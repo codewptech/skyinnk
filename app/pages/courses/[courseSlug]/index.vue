@@ -56,16 +56,15 @@ useHead({
 </script>
 <template>
   <main id="main-content" class="course">
-    <NuxtLink to="/courses">All courses</NuxtLink>
-    <h1>{{ course.title }}</h1>
-    <p>{{ course.summary }}</p>
-    <p>For: {{ course.audience }}</p>
-    <p>Public lessons · No account required</p>
+    <header class="learning-nav"><NuxtLink class="learning-brand" to="/"><span class="brand-mark" aria-hidden="true">S</span>Skyinnk</NuxtLink><NuxtLink to="/courses">All courses</NuxtLink></header>
+    <div class="course-hero"><div><p class="section-kicker">Course overview</p><h1>{{ course.title }}</h1><p class="course-summary">{{ course.summary }}</p></div><div class="course-facts"><span class="section-kicker">Learning at a glance</span><strong>{{ orderedEntries.length }} {{ orderedEntries.length === 1 ? "lesson" : "lessons" }}</strong><span>For: {{ course.audience }}</span><span>Public lessons · No account required</span></div></div>
+    <div class="outline-heading"><p class="section-kicker">Learning path</p><h2>Course syllabus</h2></div>
     <section
-      v-for="module in orderedModules"
+      v-for="(module, moduleIndex) in orderedModules"
       :key="module.key"
+      class="module-card"
     >
-      <h2>{{ module.title }}</h2>
+      <div class="module-heading"><span class="module-number" aria-hidden="true">{{ String(moduleIndex + 1).padStart(2, "0") }}</span><h3>{{ module.title }}</h3></div>
       <ol>
         <li
           v-for="lesson in [...module.lessons].sort(
@@ -76,34 +75,31 @@ useHead({
           <NuxtLink
             :to="`/courses/${course.slug}/lessons/${lesson.slug}`"
             :aria-label="lessonNames.get(lesson.key)"
-          >{{
-            lesson.title
-          }}</NuxtLink>
+          ><span class="outline-kind" aria-hidden="true">{{ lesson.kind === "video" ? "▷" : "≡" }}</span><span>{{ lesson.title }}</span><span class="outline-arrow" aria-hidden="true">→</span></NuxtLink>
         </li>
       </ol>
     </section>
   </main>
 </template>
 <style scoped>
-.course {
-  flex: 1;
-  max-width: 1000px;
-  width: calc(100% - 3rem);
-  margin: 2rem auto;
-  color: #17233a;
-}
-.course section {
-  margin-top: 2rem;
-  border-top: 1px solid #d7e1ef;
-}
-p {
-  line-height: 1.6;
-  color: #485a73;
-}
-a {
-  color: #164b96;
-}
-li {
-  margin: 0.9rem 0;
-}
+.course { width: min(100%, var(--page-width) + 2 * var(--gutter)); margin: 0 auto; padding: 1.25rem var(--gutter) 4rem; }
+.course-hero { display: grid; grid-template-columns: minmax(0,1.7fr) minmax(0,1fr); gap: 1.5rem; align-items: center; padding: clamp(1.4rem,4vw,3rem); background: var(--soft); border-radius: 1.5rem; }
+.course-hero h1 { font-size: clamp(2rem,4.5vw,3.8rem); letter-spacing: -.055em; margin: 0 0 1rem; }
+.course-summary { margin: 0; color: var(--muted); font-size: 1.08rem; white-space: pre-line; }
+.course-facts { padding: 1.2rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-direction: column; gap: .65rem; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+.course-facts .section-kicker { margin: 0; }
+.course-facts strong { color: var(--ink); font-size: 1.5rem; }
+.outline-heading { margin: 2.5rem 0 1rem; }
+.outline-heading h2 { margin: 0; font-size: clamp(1.5rem,3vw,2.1rem); }
+.module-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 1rem; padding: 1.2rem 1.4rem; box-shadow: var(--shadow); }
+.module-heading { display: flex; align-items: center; gap: 1rem; margin-bottom: .75rem; }
+.module-heading h3 { margin: 0; font-size: 1.25rem; }
+.module-number { flex: 0 0 auto; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; background: var(--soft); color: var(--brand); border-radius: .75rem; font-weight: 750; }
+ol { list-style: none; padding: 0; margin: 0; }
+li { border-top: 1px solid var(--line); }
+li a { display: flex; align-items: center; gap: .8rem; min-height: 54px; text-decoration: none; color: var(--brand); font-weight: 650; padding: .65rem .45rem; overflow-wrap: anywhere; }
+li a:hover { background: var(--soft); border-radius: .5rem; }
+.outline-kind { flex: 0 0 1.8rem; font-size: 1.1rem; text-align: center; }
+.outline-arrow { margin-left: auto; flex: 0 0 auto; }
+@media (max-width: 700px) { .course-hero { grid-template-columns: 1fr; } .module-card { padding: 1rem; } }
 </style>

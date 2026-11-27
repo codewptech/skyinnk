@@ -22,22 +22,25 @@ useHead({
 </script>
 <template>
   <main id="main-content" class="catalogue">
-    <NuxtLink to="/">Skyinnk / Home</NuxtLink>
-    <h1>Explore courses</h1>
-    <p>Published learning material is available without registration.</p>
+    <header class="learning-nav"><NuxtLink class="learning-brand" to="/"><span class="brand-mark" aria-hidden="true">S</span>Skyinnk</NuxtLink><NuxtLink to="/">Home</NuxtLink></header>
+    <section class="catalogue-heading" aria-labelledby="catalogue-title"><p class="section-kicker">Learning library</p><h1 id="catalogue-title">Explore courses</h1><p>Published learning material is available without registration.</p></section>
     <div v-if="courses.length" class="grid">
       <article v-for="(course, courseIndex) in courses" :key="course.key">
-        <h2>{{ course.title }}</h2>
+        <div class="course-illustration" aria-hidden="true"><span>▤</span><span class="course-decoration">✳</span></div>
+        <div class="course-body"><p class="section-kicker">Public course</p><h2>{{ course.title }}</h2>
         <p>{{ course.summary }}</p>
         <NuxtLink
           :to="`/courses/${course.slug}`"
           :aria-label="courseLinkNames[courseIndex]"
+          class="course-link"
         >
-          View syllabus
-        </NuxtLink>
+          View syllabus <span aria-hidden="true">→</span>
+        </NuxtLink></div>
       </article>
     </div>
-    <section v-else aria-label="No published courses">
+    <section v-else class="empty-state" aria-label="No published courses">
+      <div class="empty-icon" aria-hidden="true">▤</div>
+      <p class="section-kicker">No published courses yet</p>
       <h2>Lessons are being prepared</h2>
       <p>
         We will list courses here as soon as substantive, educator-reviewed
@@ -47,34 +50,22 @@ useHead({
   </main>
 </template>
 <style scoped>
-.catalogue {
-  box-sizing: border-box;
-  width: min(100%, 1050px);
-  margin: auto;
-  padding: 2rem 1.5rem;
-  flex: 1;
-}
-.catalogue > p {
-  color: #465775;
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-top: 2rem;
-}
-.grid article,
-.catalogue section {
-  border: 1px solid #d6dfeb;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  background: white;
-  margin-top: 1.5rem;
-}
-h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-}
-a {
-  color: #164b96;
-}
+.catalogue { width: min(100%, var(--page-width) + 2 * var(--gutter)); margin: 0 auto; padding: 1.25rem var(--gutter) 4rem; }
+.catalogue-heading { border-radius: 1.5rem; padding: clamp(1.5rem,5vw,3rem); background: var(--soft); color: var(--ink); }
+.catalogue-heading h1 { font-size: clamp(2.3rem,5vw,4rem); letter-spacing: -.06em; margin: .2rem 0 .8rem; }
+.catalogue-heading > p:last-child { margin: 0; color: var(--muted); font-size: 1.08rem; max-width: 40rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,270px),1fr)); gap: 1.25rem; margin-top: 2rem; }
+.grid article { min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; box-shadow: var(--shadow); }
+.course-illustration { height: 7rem; background: var(--mint); color: #235b44; padding: 1.1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; font-size: 2.8rem; }
+.grid article:nth-child(3n+2) .course-illustration { background: var(--soft); color: var(--brand); }
+.grid article:nth-child(3n+3) .course-illustration { background: var(--amber); color: #684417; }
+.course-decoration { font-size: 4rem; opacity: .55; }
+.course-body { display: flex; flex: 1; flex-direction: column; padding: 1.4rem; min-width: 0; }
+.course-body h2 { font-size: 1.4rem; margin: 0; }
+.course-body > p:not(.section-kicker) { color: var(--muted); margin: .7rem 0 1rem; }
+.course-link { color: var(--brand); font-weight: 700; display: flex; justify-content: space-between; gap: .6rem; padding: .8rem 0; min-height: 44px; border-top: 1px solid var(--line); margin-top: auto; }
+.empty-state { margin: 2rem 0; border: 1px dashed #b9bbd0; border-radius: var(--radius); padding: clamp(1.5rem,6vw,4rem); background: var(--surface); text-align: center; }
+.empty-icon { display: grid; place-items: center; width: 4.5rem; height: 4.5rem; margin: 0 auto 1.25rem; background: var(--soft); color: var(--brand); border-radius: 1rem; font-size: 2.2rem; }
+.empty-state h2 { font-size: clamp(1.45rem,3vw,2.1rem); margin: 0 0 .65rem; }
+.empty-state > p:last-child { color: var(--muted); max-width: 35rem; margin: 0 auto; }
 </style>

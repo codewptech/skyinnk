@@ -79,12 +79,24 @@ async function renderPage(page, user) {
 
 test("public home renders its login action and shared legal navigation without an account", async () => {
   const page = await renderPage("index");
-  assert.match(page.html, /<h1[^>]*>Free lessons for curious school learners\.<\/h1>/);
+  assert.match(page.html, /<h1[^>]*>Understand more\.<br[^>]*>Learn at your pace\.<\/h1>/);
   for (const path of ["/auth/login", "/privacy-policy", "/terms-of-service"])
     assert.ok(page.html.includes(`href="${path}"`));
   assert.ok(!page.html.includes('href="/auth/logout"'));
   assert.match(page.headTags, /<title>Skyinnk \| Free Learning for School Students<\/title>/);
   assert.match(page.htmlAttrs, /lang="en"/);
+});
+
+test("redesigned home presents honest preparation states and a single main landmark", async () => {
+  const page = await renderPage("index");
+  assert.equal((page.html.match(/<main\b/g) || []).length, 1);
+  assert.match(page.html, /What we&#39;re preparing|What we\x27re preparing|What we&apos;re preparing/);
+  assert.match(page.html, /In preparation/);
+  assert.match(page.html, /Preview planned/);
+  assert.match(page.html, /No account required for public lessons/);
+  assert.match(page.html, /Explore free lessons/);
+  assert.match(page.html, /aria-hidden="true"[^>]*>/);
+  assert.doesNotMatch(page.html, /Coming Soon/i);
 });
 
 test("signed-in home escapes profile text and renders logout and safe image attributes", async () => {
