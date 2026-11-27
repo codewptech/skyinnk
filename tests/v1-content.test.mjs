@@ -290,3 +290,19 @@ test("direct publication rejects known placeholder reviewer names at every publi
   value.courses[0].publication.reviewedBy = "Fictional Reviewer";
   assert.doesNotThrow(() => validatePublicCatalogue(value));
 });
+
+
+test("duplicate resource associations within a lesson are rejected without banning cross-lesson reuse", () => {
+  const value = publicCatalogueFixture();
+  const [one, two] = value.courses[0].modules.map(module => module.lessons[0]);
+  const resource = {
+    key: "shared-resource-duplicate-check", title: "Reviewed worksheet",
+    url: "/resources/public/shared.txt", type: "TXT", sizeBytes: 4,
+    publication: { ...one.publication },
+  };
+  one.resources = [resource, { ...resource, key: "other-resource", url: "/resources/public/other.txt" }];
+  two.resources = [structuredClone(resource)];
+  assert.doesNotThrow(() => validatePublicCatalogue(value));
+  one.resources.push(structuredClone(resource));
+  assert.throws(() => validatePublicCatalogue(value), /lesson resource key must be unique/);
+});
