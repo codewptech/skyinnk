@@ -3,7 +3,7 @@
  * Prints a candidate manifest; never writes files or grants approval.
  */
 import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, realpathSync } from "node:fs";
+import { constants, lstatSync, openSync, fstatSync, readSync, closeSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { validatePublicCatalogue } from "../shared/public-content.ts";
@@ -90,11 +90,40 @@ function inside(parent, child) {
   return path === "" || (!isAbsolute(path) && path !== ".." && !path.startsWith(".." + sep));
 }
 function regularFile(path, limit) {
-  const info = lstatSync(path);
-  if (!info.isFile() || info.size < 1 || info.size > limit) fail("regular bounded file required");
-  const bytes = readFileSync(path);
-  if (bytes.length !== info.size || bytes.length > limit) fail("file changed while reading");
-  return bytes;
+  const info = lstatSync(path, { bigint: true });
+  if (!info.isFile() || info.size < 1n || info.size > BigInt(limit))
+    fail("regular bounded file required");
+  // Open a descriptor rather than following the path again for the read.
+  // Nonblocking open also avoids waiting on a substituted FIFO on POSIX.
+  let fd;
+  try {
+    fd = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  } catch {
+    fail("file changed while opening");
+  }
+  try {
+    const same = item => item.isFile() && item.dev === info.dev &&
+      item.ino === info.ino && item.size === info.size &&
+      item.mtimeNs === info.mtimeNs && item.ctimeNs === info.ctimeNs;
+    if (!same(fstatSync(fd, { bigint: true }))) fail("file changed while opening");
+    // Allocate only the previously checked size. An expanding file must not
+    // cause an unbounded read before the size limit can be checked.
+    const bytes = Buffer.alloc(Number(info.size));
+    let offset = 0;
+    while (offset < bytes.length) {
+      const count = readSync(fd, bytes, offset, bytes.length - offset, null);
+      if (count === 0) fail("file changed while reading");
+      offset += count;
+    }
+    const extra = Buffer.alloc(1);
+    if (readSync(fd, extra, 0, 1, null) !== 0 ||
+        !same(fstatSync(fd, { bigint: true })) ||
+        !same(lstatSync(path, { bigint: true })))
+      fail("file changed while reading");
+    return bytes;
+  } finally {
+    closeSync(fd);
+  }
 }
 export function prepareFromStaging(packetPath, repositoryRoot) {
   const path = resolve(packetPath);
