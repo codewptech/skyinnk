@@ -10,15 +10,26 @@ export type {
 declare const __SKYINNK_LEARNER_COURSES__: LearnerCourse[];
 const courses = __SKYINNK_LEARNER_COURSES__;
 
-/** The development-only route never modifies or impersonates a public release. */
+type CataloguePreview = { enabled: boolean; courses: LearnerCourse[] };
+
+/** Preserve the existing built-server projection; never serialize raw catalogue
+ * Markdown into a production Nuxt async-data payload. Development SSR uses
+ * the original HTTP event's guarded loader, not a synthetic internal fetch. */
 export function useLearningCatalogue() {
+  const fallback: CataloguePreview = { enabled: false, courses };
+  if (!import.meta.dev) {
+    return { data: shallowRef(fallback), error: shallowRef(null) };
+  }
+  const event = import.meta.server ? useRequestEvent() : undefined;
   const request = useRequestFetch();
-  return useAsyncData("learning-catalogue", async () => {
-    if (import.meta.dev) {
-      const preview = await request<{ enabled: boolean; courses: LearnerCourse[] }>("/api/v1/development/catalogue");
-      if (preview.enabled) return preview;
-    }
-    return { enabled: false, courses };
+  return useAsyncData<CataloguePreview>("learning-catalogue", async () => {
+    const load = event?.context.skyinnkDemoCatalogue as
+      | (() => Promise<CataloguePreview>)
+      | undefined;
+    const preview = import.meta.server
+      ? await load?.()
+      : await request<CataloguePreview>("/api/v1/development/catalogue");
+    return preview?.enabled ? preview : fallback;
   });
 }
 export function listPublicCourses(): LearnerCourse[] {

@@ -2,8 +2,36 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import type { LearnerCourse } from "../../shared/public-content.ts";
 
 /** Demo preview is opt-in, never an approved release, and never a built-server feature. */
-export function demoPreviewEnabled(dev: boolean, flag: string | undefined, host: string): boolean {
-  return dev === true && flag === "1" && /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/i.test(host);
+export type DemoCataloguePreview = { enabled: boolean; courses: LearnerCourse[] };
+
+function isLoopback(address: string | undefined): boolean {
+  return address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
+}
+
+export function demoPreviewEnabled(
+  dev: boolean,
+  flag: string | undefined,
+  host: string,
+  peer: string | undefined,
+  localAddress: string | undefined,
+): boolean {
+  return dev === true && flag === "1" && isLoopback(peer) &&
+    isLoopback(localAddress) &&
+    /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/i.test(host);
+}
+
+/** Never invoke the database loader until actual transport and opt-in checks pass. */
+export async function loadDemoPreview(
+  dev: boolean,
+  flag: string | undefined,
+  host: string,
+  peer: string | undefined,
+  localAddress: string | undefined,
+  load: () => Promise<LearnerCourse[]>,
+): Promise<DemoCataloguePreview> {
+  if (!demoPreviewEnabled(dev, flag, host, peer, localAddress))
+    return { enabled: false, courses: [] };
+  return { enabled: true, courses: await load() };
 }
 
 const selection = {
